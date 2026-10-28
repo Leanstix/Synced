@@ -37,3 +37,11 @@ object AppSession {
     private val generation = AtomicInteger()
     private val pendingCommands = AtomicInteger()
     private val controlEpoch = AtomicInteger()
+    private val uiUpdateQueued = AtomicBoolean(false)
+    private val frameBusy = AtomicBoolean(false)
+    @Volatile private var listener: ((UiState) -> Unit)? = null
+    @Volatile var state = UiState(); private set
+    @Volatile private var server: ServerSocket? = null
+    @Volatile private var socket: Socket? = null
+    @Volatile private var channel: SecureChannel? = null
+    @Volatile private var pendingApproval: ApprovalGate? = null
