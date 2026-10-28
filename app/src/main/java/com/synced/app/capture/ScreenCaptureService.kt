@@ -84,3 +84,11 @@ class ScreenCaptureService : Service() {
             screenReceiverRegistered = true
             val resultCode = intent.getIntExtra("resultCode", Activity.RESULT_CANCELED)
             val data = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra("data", Intent::class.java) else @Suppress("DEPRECATION") (intent.getParcelableExtra("data") as? Intent)
+            require(resultCode == Activity.RESULT_OK && data != null)
+            projection = getSystemService(MediaProjectionManager::class.java).getMediaProjection(resultCode, data)
+            projection!!.registerCallback(callback, handler)
+            handler.post {
+                try {
+                    val metrics = realMetrics(); density = metrics.densityDpi
+                    val dimensions = scaled(metrics.widthPixels, metrics.heightPixels)
+                    width = dimensions.first; height = dimensions.second
