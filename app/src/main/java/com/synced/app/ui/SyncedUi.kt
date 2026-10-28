@@ -126,3 +126,11 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         val row = s.row().apply { background = s.shape(s.surface, 16); setPadding(s.dp(5), s.dp(5), s.dp(5), s.dp(5)) }
         listOf("Connect" to false, "Share" to true).forEach { (label, share) ->
             val selected = shareSelected == share
+            row.addView(s.button(label) {
+                if (state.role != Role.IDLE && shareSelected != share) {
+                    AlertDialog.Builder(activity).setTitle("End this session?")
+                        .setMessage("Switching phones ends the current connection and screen sharing.")
+                        .setNegativeButton("Keep session", null)
+                        .setPositiveButton("End and switch") { _, _ -> shareSelected = share; actions.disconnect() }.show()
+                } else { shareSelected = share; rebuild() }
+            }.apply {
