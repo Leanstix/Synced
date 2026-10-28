@@ -49,3 +49,8 @@ public class SecureChannelIntegrationTest {
             Future<Boolean> closed = worker.submit(() -> { try { client.read(); return false; } catch (java.io.IOException expected) { return true; } });
             sockets.host.close(); assertTrue(closed.get(2, TimeUnit.SECONDS));
         } finally { worker.shutdownNow(); }
+    }
+    @Test public void concurrentWritersProduceOrderedAuthenticatedPackets() throws Exception {
+        ExecutorService writers = Executors.newFixedThreadPool(4);
+        try (Sockets sockets = new Sockets()) {
+            byte[] key = Crypto.random(32); SecureChannel host = new SecureChannel(sockets.host, key, key), client = new SecureChannel(sockets.client, key, key);
