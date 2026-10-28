@@ -96,3 +96,8 @@ class ScreenCaptureService : Service() {
                     display = projection!!.createVirtualDisplay("Synced screen", width, height, density,
                         DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
                     getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, handler)
+                    AppSession.captureChanged(true, sessionId)
+                } catch (_: Exception) { AppSession.report("Screen capture could not start. Grant a fresh sharing session."); stopSelf() }
+            }
+        } catch (_: Exception) { AppSession.report("Screen sharing permission was unavailable. Try sharing again."); stopSelf() }
+        return START_NOT_STICKY
