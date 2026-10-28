@@ -296,3 +296,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
 
     private fun controllerScreen() {
         content.addView(s.label("CONNECTED TO YOUR PHONE")); addGap(12)
+        content.addView(s.text(state.peerName.ifBlank { "Your other phone" }, 29f, s.ink, true).apply { letterSpacing = -.035f })
+        addGap(9)
+        content.addView(s.text(state.status, 13f, s.muted)); addGap(18)
+        val card = s.card().apply { setPadding(s.dp(8), s.dp(8), s.dp(8), s.dp(12)) }
