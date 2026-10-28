@@ -222,3 +222,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             addView(s.text("Send it to your other phone.", 20f, s.ink, true)); addView(s.space(8))
             addView(s.text("Copy the invitation and paste it into Connect on the other phone. Keep it private.", 14f, s.muted)); addView(s.space(18))
             if (state.invitation.isNotBlank()) {
+                addView(s.text(state.invitation, 11f, s.muted).apply {
+                    typeface = Typeface.MONOSPACE; maxLines = 2; ellipsize = TextUtils.TruncateAt.END
+                    setPadding(s.dp(12), s.dp(12), s.dp(12), s.dp(12)); background = s.shape(s.background, 10)
+                }, full())
