@@ -68,3 +68,21 @@ function Phone({
         height={6}
         rx={3}
         fill={primary ? "#D4FF74" : "#5B7154"}
+      />
+      <Rect
+        x={x + 15}
+        y={y + 46}
+        width={w - 42}
+        height={4}
+        rx={2}
+        fill="#2F3C2B"
+      />
+      {[0, 1, 2].map((i) => (
+        <Rect
+          key={i}
+          x={x + 14}
+          y={y + 64 + i * 18}
+          width={w - 28}
+          height={13}
+          rx={4}
+          fill={primary && i === 0 ? "#506437" : "#232E20"}
