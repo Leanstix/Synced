@@ -32,3 +32,12 @@ afterEach(async () => {
   await act(async () => mounted?.unmount());
   mounted = undefined;
 });
+
+it("reads native state without starting a connection or screen capture", async () => {
+  await mount();
+  expect(current.state.role).toBe("IDLE");
+  expect(native.NativeModules.Synced.startHosting).not.toHaveBeenCalled();
+  expect(native.NativeModules.Synced.startCapture).not.toHaveBeenCalled();
+});
+it("ignores a frame until an approved controller session is sharing", async () => {
+  await mount();
