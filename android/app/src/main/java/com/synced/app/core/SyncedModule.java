@@ -79,3 +79,8 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
         catch (Exception e) { engine.report("Invalid remote action."); }
     }
     @Override public void onState(JSONObject state) {
+        if (uiActive && getReactApplicationContext().hasActiveReactInstance()) emit("SyncedState", map(state));
+    }
+    @ReactMethod public void ackFrame() { frameAwaitingAck.set(false); }
+    @Override public void onFrame(int sessionId, byte[] jpeg) {
+        if (!uiActive || !getReactApplicationContext().hasActiveReactInstance() || !frameAwaitingAck.compareAndSet(false, true)) return;
