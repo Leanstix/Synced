@@ -42,3 +42,11 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
     }
     @ReactMethod public void startCapture() {
         UiThreadUtil.runOnUiThread(() -> {
+            if (capturePending) return;
+            Activity activity = getReactApplicationContext().getCurrentActivity();
+            if (activity == null || !engine.isHostReady()) { engine.report("Approve a connected phone on the host before sharing."); return; }
+            captureGeneration = engine.generation();
+            try {
+                MediaProjectionManager manager = activity.getSystemService(MediaProjectionManager.class);
+                Intent capture = Build.VERSION.SDK_INT >= 34 ? manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay()) : manager.createScreenCaptureIntent();
+                capturePending = true; activity.startActivityForResult(capture, CAPTURE_REQUEST);
