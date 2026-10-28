@@ -52,3 +52,8 @@ class MainActivity : Activity(), UiActions {
     }
     override fun openAccessibilitySettings() {
         AlertDialog.Builder(this).setTitle("Enable remote input on this phone")
+            .setMessage("Synced uses Android's Accessibility service to perform only commands from your approved phone during an active screen-sharing session. It can read the focused field and screen package to type and protect sensitive screens. It does not unlock your phone. Enable Synced in Accessibility settings, then return here and allow control for this session. You can disable the service in Settings at any time.")
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Open settings") { _, _ -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }.show()
+    }
+    override fun startScreenSharing() {
