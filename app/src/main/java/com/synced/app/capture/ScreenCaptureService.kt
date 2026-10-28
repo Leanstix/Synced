@@ -114,3 +114,9 @@ class ScreenCaptureService : Service() {
             .addAction(Notification.Action.Builder(null, "Stop & revoke", stop).build()).build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(11, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
         else startForeground(11, notification)
+    }
+    @Suppress("DEPRECATION") private fun realMetrics(): DisplayMetrics = DisplayMetrics().also {
+        (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(it)
+    }
+    private fun scaled(w: Int, h: Int): Pair<Int, Int> {
+        require(w > 0 && h > 0)
