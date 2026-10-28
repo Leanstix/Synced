@@ -128,3 +128,9 @@ object AppSession {
                                 } else gate.resolve(false)
                             }
                             val allowed = gate.await(90, TimeUnit.SECONDS)
+                            synchronized(this) {
+                                if (pendingApproval === gate) pendingApproval = null
+                                isCurrent(id) && allowed && System.currentTimeMillis() < expiry
+                            }
+                        }
+                        if (!isCurrent(id)) { accepted.close(); return@execute }
