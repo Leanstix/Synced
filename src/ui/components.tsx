@@ -48,3 +48,20 @@ export function Card({
   children,
   attention,
 }: {
+  children: React.ReactNode;
+  attention?: boolean;
+}) {
+  return (
+    <View style={[styles.card, attention && { borderColor: colors.warning }]}>
+      {children}
+    </View>
+  );
+}
+export function Eyebrow({ children }: { children: string }) {
+  return <Text style={styles.eyebrow}>{children}</Text>;
+}
+export function Status({
+  title,
+  subtitle,
+  connected,
+}: {
