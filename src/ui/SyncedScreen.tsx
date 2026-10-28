@@ -314,3 +314,23 @@ export function SyncedScreen({ state, actions }: Props) {
           />
         </View>
         <Text style={styles.caption}>
+          Let your other phone tap, swipe, type, and navigate. Enable only for a
+          phone you trust.
+        </Text>
+        {!state.accessibilityEnabled ? (
+          <>
+            <Text style={styles.caption}>
+              Requires the Synced accessibility service. It can read screen
+              content and perform actions while remote control is on.
+            </Text>
+            <Button onPress={actions.openAccessibilitySettings}>
+              Open accessibility settings
+            </Button>
+          </>
+        ) : (
+          <Text
+            style={[
+              styles.fine,
+              state.controlAllowed && { color: colors.lime },
+            ]}
+          >
