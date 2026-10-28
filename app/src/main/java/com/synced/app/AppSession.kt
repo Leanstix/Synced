@@ -107,3 +107,7 @@ object AppSession {
                     .flatMap { net -> net.inetAddresses.toList().filterIsInstance<Inet4Address>() }
                     .filter { it.isSiteLocalAddress || it.isLinkLocalAddress }.mapNotNull { it.hostAddress }.distinct()
                 require(candidates.isNotEmpty()) { "Connect both phones to the same Wi-Fi or turn on a phone's hotspot first." }
+                val localServer = ServerSocket(0).apply { soTimeout = 1000 }
+                if (!claimServer(id, localServer)) return@execute
+                val secret = Crypto.randomBytes(32)
+                val expiry = System.currentTimeMillis() + 10 * 60_000
