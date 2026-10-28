@@ -57,3 +57,24 @@ it("clears displayed frames when the host stops capture", async () => {
 it("does not let a delayed initial snapshot overwrite a live status event", async () => {
   let resolve!: (value: UiState) => void;
   native.NativeModules.Synced.getState.mockReturnValue(
+    new Promise<UiState>((done) => {
+      resolve = done;
+    })
+  );
+  await mount();
+  status({ role: "HOST", connected: true, status: "Approved live session" });
+  await act(async () => {
+    resolve(initialState);
+  });
+  expect(current.state.status).toBe("Approved live session");
+});
+it("removes native event subscriptions when the React tree unmounts", async () => {
+  await mount();
+  expect(native.__listeners.size).toBe(2);
+  await act(async () => mounted?.unmount());
+  mounted = undefined;
+  expect(native.__listeners.size).toBe(0);
+});
+it("requires the positive local consent action before allowing input", async () => {
+  await mount();
+  current.actions.setControlAllowed(true);
