@@ -188,3 +188,15 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                     else {
                         (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(field.windowToken, 0)
                         actions.connect(invitationDraft.trim())
+                    }
+                }, full())
+            }, full())
+        }
+        addGap(18)
+        content.addView(s.text("◎  Both phones need to be on the same Wi-Fi.", 12f, s.muted).apply { gravity = Gravity.CENTER })
+        addGap(28)
+        capabilities()
+    }
+
+    private fun hostScreen() {
+        content.addView(s.label(if (state.connected) "SHARING FROM THIS PHONE" else "READY WHEN YOU ARE"))
