@@ -37,3 +37,11 @@ public final class ScreenCaptureService extends Service {
     };
     private final DisplayManager.DisplayListener displayListener = new DisplayManager.DisplayListener() {
         public void onDisplayAdded(int id) {}
+        public void onDisplayRemoved(int id) {}
+        public void onDisplayChanged(int id) { if (Build.VERSION.SDK_INT < 34) { DisplayMetrics full = metrics(); resize(full.widthPixels, full.heightPixels); } }
+    };
+    private final MediaProjection.Callback callback = new MediaProjection.Callback() {
+        @Override public void onStop() { stopSelf(); }
+        @Override public void onCapturedContentResize(int w, int h) {
+            engine.setControlAllowed(false, sessionId);
+            handler.postDelayed(() -> {
