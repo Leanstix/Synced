@@ -65,3 +65,11 @@ object AppSession {
         sendStatus()
     }
     @Synchronized fun disconnect(message: String = "Disconnected. Create a fresh invitation to pair again.") {
+        generation.incrementAndGet()
+        authenticated = false
+        controlConsent = false
+        controlEpoch.incrementAndGet()
+        pendingApproval?.resolve(false); pendingApproval = null
+        runCatching { socket?.close() }; socket = null
+        runCatching { server?.close() }; server = null
+        channel = null
