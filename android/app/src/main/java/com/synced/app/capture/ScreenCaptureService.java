@@ -115,3 +115,7 @@ public final class ScreenCaptureService extends Service {
                 long now = SystemClock.elapsedRealtime();
                 if (!stopping && getSystemService(KeyguardManager.class).isKeyguardLocked()) { engine.disconnect(sessionId, "Host locked. Sharing and control stopped."); stopSelf(); }
                 else if (!stopping && engine.isCapturing() && now - lastFrame >= 250) {
+                    lastFrame = now; Image.Plane plane = image.getPlanes()[0]; int padding = plane.getRowStride() - plane.getPixelStride() * image.getWidth();
+                    Bitmap padded = Bitmap.createBitmap(image.getWidth() + padding / plane.getPixelStride(), image.getHeight(), Bitmap.Config.ARGB_8888);
+                    Bitmap cropped = null;
+                    try {
