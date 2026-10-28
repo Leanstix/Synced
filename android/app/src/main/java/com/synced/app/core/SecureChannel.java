@@ -12,3 +12,18 @@ public final class SecureChannel {
     private final PacketCipher sender, receiver;
     public SecureChannel(Socket socket, byte[] sendKey, byte[] receiveKey) throws Exception {
         input = new DataInputStream(socket.getInputStream()); output = new DataOutputStream(socket.getOutputStream());
+        sender = new PacketCipher(sendKey); receiver = new PacketCipher(receiveKey);
+    }
+    public synchronized void send(int type, byte[] body) throws Exception {
+        Framing.write(output, sender.encrypt(Crypto.join(new byte[] {(byte) type}, body)));
+    }
+    public Message read() throws Exception {
+        byte[] plain = receiver.decrypt(Framing.read(input));
+        if (plain.length == 0) throw new IllegalArgumentException("Empty message");
+        return new Message(plain[0] & 255, Arrays.copyOfRange(plain, 1, plain.length));
+    }
+    public static final class Message {
+        public final int type; public final byte[] body;
+        public Message(int type, byte[] body) { this.type = type; this.body = body; }
+    }
+}
