@@ -261,3 +261,9 @@ object AppSession {
         enqueue(id) {
             try { if (isCurrent(id) && state.capturing) secure.send(SecureChannel.FRAME, jpeg) }
             catch (_: Exception) { disconnectCurrent(id, "Connection lost. Sharing and control stopped.") }
+            finally { frameBusy.set(false) }
+        }
+    }
+    @Synchronized private fun sendStatus() {
+        if (state.role != Role.HOST || !authenticated) return
+        sendPacket(SecureChannel.STATUS, JSONObject().put("capturing", state.capturing).put("control", controlConsent)
