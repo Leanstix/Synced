@@ -17,3 +17,11 @@ Android's screen capture and system input APIs require native adapters. The appl
 
 ## Implemented
 
+- Private ten-minute invitation with a 256-bit random secret.
+- Matching six-digit pairing verification and explicit approval on the sharing phone.
+- Encrypted screen preview, after Android's screen-sharing consent.
+- Optional taps, single-finger swipes, Back/Home/Recents, and focused-field text replacement after the owner enables accessibility and allows control.
+- Clock shortcuts to open alarms, request set/dismiss/snooze, and inspect the visible result.
+- Capture notification with stop/revoke, local disconnect, lock and rotation safeguards, and network-loss timeout.
+- Original linked-S identity and dark citron Connect/Share interface with genuine empty, pending, active, and failure states.
+
