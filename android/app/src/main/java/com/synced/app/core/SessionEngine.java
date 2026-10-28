@@ -75,3 +75,12 @@ public final class SessionEngine {
     public synchronized boolean isHostReady() { return "HOST".equals(state.role) && state.connected && !state.capturing; }
     public synchronized boolean isCapturing() { return state.capturing && authenticated && "HOST".equals(state.role); }
     public synchronized boolean canControl() { return authenticated && controlConsent && state.capturing && "HOST".equals(state.role); }
+    public void report(String message) { update(s -> { s.status = message; s.error = message; }); }
+    public synchronized void report(int id, String message) { if (current(id)) report(message); }
+    public synchronized void refreshAccessibility() {
+        if ("CONTROLLER".equals(state.role)) return;
+        update(s -> s.accessibilityEnabled = RemoteControlService.instance != null); sendStatus();
+    }
+    public synchronized void disconnect(String message) {
+        generation.incrementAndGet(); latestFrame.set(null); authenticated = false; controlConsent = false; controlEpoch.incrementAndGet();
+        if (approval != null) approval.resolve(false); approval = null;
