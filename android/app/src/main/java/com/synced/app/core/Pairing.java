@@ -41,3 +41,7 @@ public final class Pairing {
         byte[] client = nonce(hello, "nonce"), host = Crypto.random(32); String peer = clean(hello.getString("name"));
         send(socket, secret, new JSONObject().put("type", "challenge").put("client", Invitation.encodeBytes(client)).put("host", Invitation.encodeBytes(host)).put("name", name()));
         JSONObject proof = receive(socket, secret);
+        if (!"proof".equals(proof.getString("type")) || !MessageDigest.isEqual(nonce(proof, "host"), host)) throw new IllegalArgumentException("Invalid proof");
+        SecureChannel channel = new SecureChannel(socket, Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, host, "controller to host"));
+        if (!approve.approve(peer + " · code " + verification(secret, client, host))) throw new IllegalArgumentException("Connection declined or approval expired.");
+        channel.send(SecureChannel.STATUS, new JSONObject().put("approved", true).put("name", name()).toString().getBytes(StandardCharsets.UTF_8));
