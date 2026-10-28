@@ -193,3 +193,12 @@ object AppSession {
                 if (type == SecureChannel.PING) { require(bytes.isEmpty()); continue }
                 require(type == SecureChannel.CONTROL && bytes.size <= 8192) { "Unexpected command" }
                 val now = System.nanoTime()
+                if (now - commandWindow > 1_000_000_000L) { commandWindow = now; commands = 0 }
+                require(++commands <= 30) { "Command rate exceeded" }
+                val command = JSONObject(String(bytes))
+                val epoch = controlEpoch.get()
+                if (pendingCommands.incrementAndGet() > 8) {
+                    pendingCommands.decrementAndGet()
+                    error("Too many pending commands")
+                }
+                main.post {
