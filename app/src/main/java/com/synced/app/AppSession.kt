@@ -173,3 +173,8 @@ object AppSession {
                 client.soTimeout = 100_000; client.tcpNoDelay = true
                 val (secure, peer) = Pairing.controller(client, invite.secret) { code ->
                     if (isCurrent(id)) updateCurrent(id) { it.copy(status = "Pairing code $code · Compare on the host, then approve there.") }
+                }
+                if (!isCurrent(id)) { client.close(); return@execute }
+                if (!activate(id, secure)) { client.close(); return@execute }
+                client.soTimeout = 15_000
+                updateCurrent(id) { it.copy(connected = true, peerName = peer, status = "Connected. Waiting for the host to start screen sharing.", error = null) }
