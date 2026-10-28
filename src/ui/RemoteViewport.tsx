@@ -24,3 +24,11 @@ export const RemoteViewport = React.memo(function RemoteViewport({
   enabled,
   onGesture,
 }: Props) {
+  const [layout, setLayout] = useState<Size>({ width: 300, height: 420 });
+  const [frame, setFrame] = useState<Size>({ width: 1, height: 2 });
+  const latest = useRef({ layout, frame, uri, enabled, onGesture });
+  latest.current = { layout, frame, uri, enabled, onGesture };
+  const start = useRef<{ x: number; y: number; time: number } | null>(null);
+  const point = (event: GestureResponderEvent, clamp: boolean) => {
+    const { layout: box, frame: image } = latest.current;
+    return normalizePoint(
