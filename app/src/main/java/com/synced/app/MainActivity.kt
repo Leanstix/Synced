@@ -47,3 +47,8 @@ class MainActivity : Activity(), UiActions {
         if (!allowed) { AppSession.setControlAllowed(false); return }
         AlertDialog.Builder(this).setTitle("Allow this phone to control your screen?")
             .setMessage("The approved phone can tap, swipe, type into normal text fields, navigate, and open clock actions while sharing is active. Keep private apps closed. Android permission screens and Synced controls require local interaction. Stop sharing or switch control off to revoke immediately.")
+            .setNegativeButton("Keep control off", null)
+            .setPositiveButton("Allow control") { _, _ -> AppSession.setControlAllowed(true) }.show()
+    }
+    override fun openAccessibilitySettings() {
+        AlertDialog.Builder(this).setTitle("Enable remote input on this phone")
