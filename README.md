@@ -25,3 +25,18 @@ Android's screen capture and system input APIs require native adapters. The appl
 - Capture notification with stop/revoke, local disconnect, lock and rotation safeguards, and network-loss timeout.
 - Original linked-S identity and dark citron Connect/Share interface with genuine empty, pending, active, and failure states.
 
+**Not implemented:** Bluetooth transport, internet relay, persistent trusted-device pairing, iPhone hosting, forwarded call audio, multi-touch, or gaming-grade video. Messaging uses the actual remote app's interface. Text replacement does not automatically send a message.
+
+## Run in development
+
+Use Node 24, JDK17, Android SDK platform37/build-tools37.0.0, NDK27.1.12297006, and CMake3.22.1. The app supports Android8.0/API26 and later.
+
+```sh
+npm ci
+npm run typecheck
+npm test
+npm start
+# In another terminal, with a device/emulator connected:
+npm run android
+```
+
