@@ -20,3 +20,15 @@ import java.io.ByteArrayOutputStream;
 
 /** Explicit, foreground, full-display capture. Permission tokens are never reused. */
 public final class ScreenCaptureService extends Service {
+    private final HandlerThread worker = new HandlerThread("Synced capture");
+    private Handler handler;
+    private SessionEngine engine;
+    private MediaProjection projection;
+    private VirtualDisplay display;
+    private ImageReader reader;
+    private int width, height, density, sessionId = -1;
+    private long lastFrame;
+    private volatile boolean stopping;
+    private boolean screenReceiverRegistered;
+    private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
