@@ -115,3 +115,12 @@ export function PhoneArtwork() {
         cx={176}
         cy={103}
         rx={117}
+        ry={115}
+        stroke="#2F3631"
+        fill="none"
+      />
+      <Line x1={9} y1={104} x2={342} y2={104} stroke="#242A25" />
+      <Line x1={175} y1={3} x2={175} y2={201} stroke="#242A25" />
+      <Phone x={83} y={43} w={77} h={132} angle={-12} />
+      <Phone x={184} y={23} w={86} h={148} angle={10} primary />
+      <Rect x={151} y={83} width={46} height={42} rx={15} fill="#D4FF74" />
