@@ -168,3 +168,8 @@ object AppSession {
             try {
                 val invite = Invitation.parse(text)
                 val client = Socket()
+                if (!claimSocket(id, client)) return@execute
+                client.connect(InetSocketAddress(invite.host, invite.port), 8000)
+                client.soTimeout = 100_000; client.tcpNoDelay = true
+                val (secure, peer) = Pairing.controller(client, invite.secret) { code ->
+                    if (isCurrent(id)) updateCurrent(id) { it.copy(status = "Pairing code $code · Compare on the host, then approve there.") }
