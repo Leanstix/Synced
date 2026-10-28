@@ -506,3 +506,19 @@ export function SyncedScreen({ state, actions }: Props) {
             ? controller
             : welcome}
           {state.role !== "IDLE" && !!state.error && (
+            <Card>
+              <Text style={[styles.title, styles.danger]}>
+                Let’s try that again
+              </Text>
+              <Text accessibilityRole="alert" style={styles.caption}>
+                {state.error}
+              </Text>
+            </Card>
+          )}
+          <View style={styles.footer}>
+            <Text style={styles.caption}>Built for two Android phones.</Text>
+            <Text style={styles.fine}>
+              Screen and touch only. Calls, audio forwarding, and
+              high-performance game streaming aren’t supported.
+            </Text>
+          </View>
