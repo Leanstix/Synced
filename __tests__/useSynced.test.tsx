@@ -78,3 +78,15 @@ it("removes native event subscriptions when the React tree unmounts", async () =
 it("requires the positive local consent action before allowing input", async () => {
   await mount();
   current.actions.setControlAllowed(true);
+  expect(native.NativeModules.Synced.setControlAllowed).not.toHaveBeenCalled();
+  const buttons = native.Alert.alert.mock.calls[0][2];
+  buttons[1].onPress();
+  expect(native.NativeModules.Synced.setControlAllowed).toHaveBeenCalledWith(
+    true
+  );
+  current.actions.setControlAllowed(false);
+  expect(
+    native.NativeModules.Synced.setControlAllowed
+  ).toHaveBeenLastCalledWith(false);
+});
+it("rejects invalid gesture coordinates at the TypeScript bridge boundary", async () => {
