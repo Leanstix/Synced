@@ -29,3 +29,14 @@ object Crypto {
     }
     internal fun crypt(mode: Int, key: ByteArray, nonce: ByteArray, data: ByteArray, aad: ByteArray): ByteArray =
         Cipher.getInstance("AES/GCM/NoPadding").run {
+            init(mode, SecretKeySpec(key, "AES"), GCMParameterSpec(128, nonce))
+            updateAAD(aad)
+            doFinal(data)
+        }
+}
+
+/** A key is unique per connection and direction; counters never repeat and replay closes the session. */
+class PacketCipher(private val key: ByteArray) {
+    private var nextSend = 0L
+    private var nextReceive = 0L
+    @Synchronized fun encrypt(plain: ByteArray): ByteArray {
