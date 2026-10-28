@@ -51,3 +51,9 @@ public final class SessionEngine {
         JSONObject json() {
             try { return new JSONObject().put("role", role).put("status", status).put("invitation", invitation).put("addresses", addresses)
                 .put("pendingPeer", pendingPeer == null ? JSONObject.NULL : pendingPeer).put("peerName", peerName)
+                .put("error", error == null ? JSONObject.NULL : error).put("connected", connected).put("capturing", capturing)
+                .put("accessibilityEnabled", accessibilityEnabled).put("controlAllowed", controlAllowed);
+            } catch (Exception e) { throw new IllegalStateException(e); }
+        }
+    }
+    public synchronized JSONObject snapshot() {
