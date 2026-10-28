@@ -194,3 +194,7 @@ public final class SessionEngine {
                     frameUiQueued.set(false); PendingFrame frame = latestFrame.getAndSet(null); Listener target = listener;
                     if (frame != null && current(frame.generation) && target != null) target.onFrame(frame.generation, frame.jpeg);
                 });
+            } else if (message.type == SecureChannel.STATUS) {
+                if (message.body.length > 8192) throw new IllegalArgumentException("Status too large");
+                JSONObject data = new JSONObject(new String(message.body, StandardCharsets.UTF_8));
+                update(id, s -> { s.capturing = data.optBoolean("capturing"); s.controlAllowed = data.optBoolean("control"); s.accessibilityEnabled = data.optBoolean("accessibility"); s.status = data.optString("message"); if (s.status.isEmpty()) s.status = s.capturing ? "Live · encrypted local connection" : "Connected. Host screen sharing is paused."; });
