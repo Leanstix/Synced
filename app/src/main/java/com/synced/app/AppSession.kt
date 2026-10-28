@@ -146,3 +146,12 @@ object AppSession {
                     } catch (e: Exception) {
                         accepted.close()
                         if (isCurrent(id)) updateCurrent(id) { it.copy(pendingPeer = null, status = "Connection declined or authentication failed. Share the invitation only with your intended phone.", error = null) }
+                    }
+                }
+                disconnectCurrent(id, "Invitation expired. Create a new invitation to host.")
+            } catch (e: Exception) {
+                disconnectCurrent(id, "Could not host: ${friendly(e)}")
+            }
+        }
+    }
+    @Synchronized fun approvePeer(allow: Boolean) {
