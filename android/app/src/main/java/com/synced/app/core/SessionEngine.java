@@ -66,3 +66,12 @@ public final class SessionEngine {
     private synchronized void update(Consumer<State> change) { change.accept(state); publish(); }
     private void publish() {
         if (uiQueued.compareAndSet(false, true)) main.post(() -> {
+            uiQueued.set(false); Listener target = listener; if (target != null) target.onState(snapshot());
+        });
+    }
+    private synchronized void update(int id, Consumer<State> change) { if (current(id)) update(change); }
+    public int generation() { return generation.get(); }
+    private boolean current(int id) { return generation.get() == id; }
+    public synchronized boolean isHostReady() { return "HOST".equals(state.role) && state.connected && !state.capturing; }
+    public synchronized boolean isCapturing() { return state.capturing && authenticated && "HOST".equals(state.role); }
+    public synchronized boolean canControl() { return authenticated && controlConsent && state.capturing && "HOST".equals(state.role); }
