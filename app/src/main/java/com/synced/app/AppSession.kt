@@ -159,3 +159,12 @@ object AppSession {
         if (pendingApproval == null) return
         pendingApproval?.resolve(allow)
         updateCurrent(id) { it.copy(pendingPeer = null, status = if (allow) "Phone approved. Establishing encrypted session…" else "Connection declined.") }
+    }
+    fun connect(text: String) {
+        disconnect()
+        val id = generation.get()
+        updateCurrent(id) { it.copy(role = Role.CONTROLLER, status = "Connecting securely. Approve this phone on the host…", error = null) }
+        io.execute {
+            try {
+                val invite = Invitation.parse(text)
+                val client = Socket()
