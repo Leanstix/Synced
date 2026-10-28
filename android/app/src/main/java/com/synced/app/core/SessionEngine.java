@@ -204,3 +204,8 @@ public final class SessionEngine {
     public synchronized void setControlAllowed(boolean allowed) { setControlAllowed(allowed, generation()); }
     public synchronized void setControlAllowed(boolean allowed, int id) {
         if (!current(id)) return; controlEpoch.incrementAndGet();
+        controlConsent = allowed && authenticated && state.capturing && "HOST".equals(state.role) && RemoteControlService.instance != null;
+        update(s -> { s.controlAllowed = controlConsent; s.status = controlConsent ? "Remote control allowed. Stop sharing or turn this off to revoke immediately." : "Remote control is off."; }); sendStatus();
+    }
+    public synchronized void captureChanged(boolean active, int id) {
+        if (!current(id)) return;
