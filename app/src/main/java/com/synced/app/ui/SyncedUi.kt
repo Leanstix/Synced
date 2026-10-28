@@ -60,3 +60,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             activity.window.setDecorFitsSystemWindows(false)
             activity.window.insetsController?.setSystemBarsAppearance(0,
                 android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+                    android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
+            root.setOnApplyWindowInsetsListener { view, insets ->
+                val safe = insets.getInsets(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.ime())
+                view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
