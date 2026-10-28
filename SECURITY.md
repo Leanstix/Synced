@@ -28,3 +28,5 @@ The controlled phone's ordinary Android/app protections still apply. Synced does
 
 Remote control is permitted only during an authenticated, approved, active screen-sharing session when the host explicitly enables control. The host can revoke it by switching it off, disconnecting, or stopping capture.
 
+The accessibility implementation checks the active app before gestures/text and blocks recognized Android permission/settings/installer surfaces and Synced itself. It rejects password-field text entry. These checks are defense in depth, not a complete list of every manufacturer's protected UI. Review OEM overlays and multi-window behavior on real devices before trusting this boundary.
+
