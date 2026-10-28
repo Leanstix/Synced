@@ -17,3 +17,8 @@ object Crypto {
     }
     fun open(key: ByteArray, sealed: ByteArray): ByteArray {
         require(sealed.size >= 28) { "Truncated authentication packet" }
+        return crypt(Cipher.DECRYPT_MODE, key, sealed.copyOfRange(0, 12), sealed.copyOfRange(12, sealed.size), "Synced handshake v1".toByteArray())
+    }
+    fun derive(secret: ByteArray, clientNonce: ByteArray, hostNonce: ByteArray, direction: String): ByteArray {
+        require(secret.size == 32 && clientNonce.size == 32 && hostNonce.size == 32)
+        val extract = hmac(clientNonce + hostNonce, secret)
