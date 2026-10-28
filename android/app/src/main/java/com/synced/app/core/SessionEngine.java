@@ -25,3 +25,7 @@ public final class SessionEngine {
     private final Context context;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService workers = Executors.newCachedThreadPool();
+    private final ThreadPoolExecutor writer = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, new ArrayBlockingQueue<>(32));
+    private final ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicInteger generation = new AtomicInteger(), controlEpoch = new AtomicInteger(), pendingCommands = new AtomicInteger();
+    private final AtomicBoolean frameBusy = new AtomicBoolean(), uiQueued = new AtomicBoolean(), frameUiQueued = new AtomicBoolean();
