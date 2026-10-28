@@ -16,3 +16,18 @@ data class UiState(
     val peerName: String = "",
     val remoteFrame: Bitmap? = null,
     val error: String? = null
+)
+interface UiActions {
+    fun startHosting()
+    fun connect(invitation: String)
+    fun approvePeer()
+    fun rejectPeer()
+    fun startScreenSharing()
+    fun openAccessibilitySettings()
+    fun setControlAllowed(allowed: Boolean)
+    fun disconnect()
+    fun sendGesture(startX: Float, startY: Float, endX: Float, endY: Float, durationMs: Long)
+    fun sendText(text: String)
+    /** Supported: back, home, recents, alarms, dismiss_alarm, snooze_alarm. */
+    fun sendAction(action: String)
+}
