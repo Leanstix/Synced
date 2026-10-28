@@ -184,3 +184,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                 }
                 addView(field, full()); addView(s.space(12))
                 addView(s.button("Connect to phone", primary = true) {
+                    if (invitationDraft.isBlank()) { field.error = "Paste the invitation from your other phone"; field.requestFocus() }
+                    else {
+                        (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(field.windowToken, 0)
+                        actions.connect(invitationDraft.trim())
