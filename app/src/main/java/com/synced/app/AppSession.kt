@@ -60,3 +60,8 @@ object AppSession {
     }
     fun report(message: String) { update { it.copy(status = message, error = message) } }
     fun refreshAccessibility() {
+        if (state.role == Role.CONTROLLER) return
+        update { it.copy(accessibilityEnabled = RemoteControlService.instance != null) }
+        sendStatus()
+    }
+    @Synchronized fun disconnect(message: String = "Disconnected. Create a fresh invitation to pair again.") {
