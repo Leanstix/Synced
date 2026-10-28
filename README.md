@@ -60,7 +60,7 @@ The **preview** variant includes its TypeScript/JavaScript bundle and Hermes run
 4. Compare the six-digit pairing code on both phones. Approve only the intended matching request on the sharing phone.
 5. On the sharing phone, start screen sharing and choose the **entire screen** in Android's dialog.
 6. For touch input, read the accessibility disclosure, enable Synced in Android settings, return, and explicitly allow control.
-7. Use the remote view or clock shortcuts. If the host is still showing Synced, use remote **Home** first; Synced protects its own controls from remote input.
+7. Use the remote view or clock shortcuts. Synced protects its own controls from remote taps and text.
 8. End the session with **Stop** or **Disconnect**. After host rotation, allow control locally again.
 
 There is no automatic discovery. Some routers/hotspots isolate clients and block peer connections. Invitations currently choose the host's preferred local interface; multiple concurrent networks or a VPN may require changing the phone's network setup.
