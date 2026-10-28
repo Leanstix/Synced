@@ -222,3 +222,7 @@ object AppSession {
                 SecureChannel.FRAME -> {
                     val now = System.nanoTime()
                     if (now - lastDecodedFrame < 150_000_000L) continue
+                    lastDecodedFrame = now
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                    require(bounds.outWidth in 1..1600 && bounds.outHeight in 1..1600 && bounds.outWidth.toLong() * bounds.outHeight <= 2_560_000) { "Invalid image dimensions" }
