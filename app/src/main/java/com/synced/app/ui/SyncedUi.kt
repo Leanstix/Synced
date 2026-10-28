@@ -145,3 +145,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     }
 
     private fun welcomeScreen() {
+        content.addView(s.label("YOUR PHONES. CONNECTED."))
+        addGap(13)
+        content.addView(s.text(if (shareSelected) "A little closer.\nFrom anywhere\non your Wi-Fi." else "Your other phone.\nRight here.", 34f, s.ink, true).apply {
+            letterSpacing = -.045f; setLineSpacing(0f, 1.03f)
