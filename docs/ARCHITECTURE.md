@@ -39,3 +39,9 @@ The TCP stream contains a four-byte big-endian length followed by that many byte
 
 A traffic record contains an eight-byte sequence number followed by AES-GCM ciphertext and its 16-byte authentication tag. The sequence is authenticated associated data. Plaintext contains a one-byte message type followed by the message body. Screen frames are JPEG bytes; status and control messages use bounded JSON. Authenticated heartbeat records run every five seconds, and a fifteen-second read timeout ends an unresponsive established connection.
 
+Refer to the constants and implementation as the authoritative protocol specification. This preview is not a stable interoperation contract.
+
+## Capture and input
+
+The host scales the longer capture edge to at most 1,280 pixels and attempts roughly four JPEG frames per second. This reduces bandwidth but still consumes battery and CPU. It is a basic preview pipeline, not game streaming. Remote display fitting must preserve aspect ratio and ignore letterbox touches.
+
