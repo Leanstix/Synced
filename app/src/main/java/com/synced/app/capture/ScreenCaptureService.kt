@@ -106,3 +106,7 @@ class ScreenCaptureService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(NotificationChannel("sharing", "Active screen sharing", NotificationManager.IMPORTANCE_LOW))
         val open = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val stop = PendingIntent.getService(this, 2, Intent(this, ScreenCaptureService::class.java).setAction("STOP"), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = Notification.Builder(this, "sharing").setSmallIcon(android.R.drawable.ic_menu_view)
+            .setContentTitle("Synced · your screen is being shared")
+            .setContentText("One approved phone can view this screen. Tap Stop to revoke.")
