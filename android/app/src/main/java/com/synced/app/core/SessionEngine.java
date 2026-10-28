@@ -228,3 +228,8 @@ public final class SessionEngine {
     }
     public synchronized void remoteMessage(String message) {
         try { sendPacket(SecureChannel.STATUS, new JSONObject().put("capturing", state.capturing).put("control", controlConsent).put("accessibility", RemoteControlService.instance != null).put("message", message).toString().getBytes(StandardCharsets.UTF_8)); }
+        catch (Exception ignored) {}
+    }
+    public synchronized void command(JSONObject command) {
+        if (authenticated && "CONTROLLER".equals(state.role) && state.capturing && state.controlAllowed) sendPacket(SecureChannel.CONTROL, command.toString().getBytes(StandardCharsets.UTF_8));
+        else report("The host must share its screen and allow remote control first.");
