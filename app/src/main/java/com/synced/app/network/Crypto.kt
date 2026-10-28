@@ -40,3 +40,12 @@ class PacketCipher(private val key: ByteArray) {
     private var nextSend = 0L
     private var nextReceive = 0L
     @Synchronized fun encrypt(plain: ByteArray): ByteArray {
+        require(plain.size <= MAX_PLAIN_BYTES) { "Packet too large" }
+        check(nextSend < Long.MAX_VALUE) { "Session exhausted" }
+        val sequence = ByteBuffer.allocate(8).putLong(nextSend++).array()
+        val nonce = ByteArray(4) + sequence
+        return sequence + Crypto.crypt(Cipher.ENCRYPT_MODE, key, nonce, plain, sequence)
+    }
+    @Synchronized fun decrypt(packet: ByteArray): ByteArray {
+        require(packet.size in 24..MAX_PACKET_BYTES) { "Invalid packet size" }
+        val sequence = packet.copyOfRange(0, 8)
