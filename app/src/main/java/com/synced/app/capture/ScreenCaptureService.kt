@@ -147,3 +147,7 @@ class ScreenCaptureService : Service() {
                 } else if (!stopping && AppSession.state.connected && now - lastFrame >= 250) {
                     lastFrame = now
                     val plane = image.planes[0]
+                    val padding = plane.rowStride - plane.pixelStride * image.width
+                    val padded = Bitmap.createBitmap(image.width + padding / plane.pixelStride, image.height, Bitmap.Config.ARGB_8888)
+                    padded.copyPixelsFromBuffer(plane.buffer)
+                    val cropped = Bitmap.createBitmap(padded, 0, 0, image.width, image.height)
