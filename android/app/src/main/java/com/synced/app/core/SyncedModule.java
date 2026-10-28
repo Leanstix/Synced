@@ -99,3 +99,11 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
             else map.putString(key, value.toString());
         }
         return map;
+    }
+    @Override public void onHostResume() { frameAwaitingAck.set(false); uiActive = true; engine.setListener(this); engine.refreshAccessibility(); onState(engine.snapshot()); }
+    @Override public void onHostPause() { uiActive = false; }
+    @Override public void onHostDestroy() { uiActive = false; }
+    @Override public void invalidate() {
+        engine.clearListener(this); getReactApplicationContext().removeActivityEventListener(this); getReactApplicationContext().removeLifecycleEventListener(this); super.invalidate();
+    }
+}
