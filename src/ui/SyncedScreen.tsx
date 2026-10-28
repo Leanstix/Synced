@@ -94,3 +94,24 @@ export function SyncedScreen({ state, actions }: Props) {
     }
     actions.sendAction(`set_alarm:${Number(hour)}:${Number(minute)}`);
     closeDialog();
+  };
+  const notice =
+    state.error || (state.status !== DEFAULT_STATUS ? state.status : "");
+
+  const welcome = (
+    <>
+      <View style={styles.stack}>
+        <Eyebrow>YOUR PHONES. CONNECTED.</Eyebrow>
+        <Text style={styles.hero}>
+          {sharing
+            ? "A little closer.\nOn the same Wi-Fi."
+            : "Your other phone.\nRight here."}
+        </Text>
+        <Text style={styles.copy}>
+          {sharing
+            ? "Share this phone’s screen. You choose who connects and what they can do."
+            : "See and control your other Android phone, with permission at every step."}
+        </Text>
+      </View>
+      <PhoneArtwork />
+      {state.role === "CONTROLLER" ? (
