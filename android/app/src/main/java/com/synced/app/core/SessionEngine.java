@@ -214,3 +214,12 @@ public final class SessionEngine {
     }
     public synchronized void sendFrame(byte[] jpeg, int id) {
         if (!current(id) || !isCapturing() || !frameBusy.compareAndSet(false, true)) return;
+        SecureChannel secure = channel; if (secure == null) { frameBusy.set(false); return; }
+        enqueue(id, () -> {
+            try { if (current(id) && isCapturing()) secure.send(SecureChannel.FRAME, jpeg); }
+            catch (Exception e) { disconnect(id, "Connection lost. Sharing and control stopped."); }
+            finally { frameBusy.set(false); }
+        });
+    }
+    private synchronized void sendStatus() {
+        if (!authenticated || !"HOST".equals(state.role)) return;
