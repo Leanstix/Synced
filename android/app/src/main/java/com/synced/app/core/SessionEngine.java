@@ -122,3 +122,12 @@ public final class SessionEngine {
                             ApprovalGate gate = new ApprovalGate();
                             synchronized (this) {
                                 if (current(id)) { approval = gate; update(id, s -> { s.pendingPeer = name; s.status = "Compare this code with the connecting phone before approving."; }); }
+                                else gate.resolve(false);
+                            }
+                            boolean allowed = gate.await(90, TimeUnit.SECONDS);
+                            synchronized (this) { if (approval == gate) approval = null; return current(id) && allowed && System.currentTimeMillis() < expiry; }
+                        });
+                        if (!current(id)) { close(peer); return; }
+                        close(local); synchronized (this) { if (current(id)) server = null; }
+                        if (!activate(id, result.channel)) { close(peer); return; }
+                        peer.setSoTimeout(15_000);
