@@ -11,3 +11,12 @@ import android.util.DisplayMetrics;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import com.synced.app.core.SessionEngine;
+import org.json.JSONObject;
+
+/** Platform-only accessibility adapter. The host's active session consent gates every operation. */
+public final class RemoteControlService extends AccessibilityService {
+    public static volatile RemoteControlService instance;
+    private SessionEngine engine;
+    @Override protected void onServiceConnected() { engine = SessionEngine.get(this); instance = this; engine.refreshAccessibility(); }
+    @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
