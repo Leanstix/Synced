@@ -240,3 +240,15 @@ export function SyncedScreen({ state, actions }: Props) {
             <Button style={styles.fill} onPress={actions.rejectPeer}>
               Decline
             </Button>
+            <Button style={styles.fill} primary onPress={actions.approvePeer}>
+              Approve
+            </Button>
+          </View>
+        </Card>
+      )}
+      {!state.connected ? (
+        <Card>
+          <Eyebrow>PRIVATE INVITATION</Eyebrow>
+          <Text style={styles.heading}>Send it to your other phone.</Text>
+          <Text style={styles.copy}>
+            Share the invitation and paste it into Connect on the other phone.
