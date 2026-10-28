@@ -24,3 +24,12 @@ class RemoteControlService : AccessibilityService() {
         AppSession.setControlAllowed(false)
         AppSession.refreshAccessibility()
         super.onDestroy()
+    }
+    fun execute(command: JSONObject) {
+        if (!AppSession.canControl()) return
+        val keyguard = getSystemService(KeyguardManager::class.java)
+        if (keyguard.isKeyguardLocked) { fail("Unlock the host locally to continue."); return }
+        try {
+            when (command.getString("kind")) {
+                "gesture" -> if (safeTarget()) gesture(command)
+                "text" -> if (safeTarget()) typeText(command.getString("text"))
