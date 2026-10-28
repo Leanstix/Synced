@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_description">Allows a phone you explicitly approve to tap, swipe, replace focused text fields, navigate and open clock actions only while you actively share your screen and allow remote control. Screen package information protects permission screens and Synced controls. Synced does not unlock the phone. Stop sharing or turn control off to revoke.</string>
+</resources>
