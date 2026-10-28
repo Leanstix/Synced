@@ -58,3 +58,11 @@ public final class ScreenCaptureService extends Service {
         if (intent != null && "STOP".equals(intent.getAction())) { engine.disconnect(sessionId, "Sharing stopped locally. Connection revoked."); stopSelf(); return START_NOT_STICKY; }
         if (projection != null) return START_NOT_STICKY;
         if (intent == null || !engine.isHostReady()) { stopSelf(); return START_NOT_STICKY; }
+        sessionId = intent.getIntExtra("generation", -1);
+        if (sessionId != engine.generation()) { stopSelf(); return START_NOT_STICKY; }
+        try {
+            notification();
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+            screenReceiverRegistered = true;
+            int result = intent.getIntExtra("resultCode", Activity.RESULT_CANCELED);
