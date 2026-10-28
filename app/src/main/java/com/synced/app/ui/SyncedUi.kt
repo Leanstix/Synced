@@ -162,3 +162,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         } else if (shareSelected) {
             content.addView(s.card().apply {
                 addView(s.label("01  ·  INVITE YOUR OTHER PHONE")); addView(s.space(14))
+                addView(s.text("Make the connection.", 22f, s.ink, true)); addView(s.space(9))
+                addView(s.text("Create a private invitation, then paste it into Synced on your other Android phone.", 14f, s.muted)); addView(s.space(20))
+                addView(s.button("Create invitation", primary = true) { actions.startHosting() }, full())
+                addView(s.space(12)); addView(s.text("You'll approve the phone before it can connect.", 11f, s.muted))
