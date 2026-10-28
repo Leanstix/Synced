@@ -176,3 +176,16 @@ export function SyncedScreen({ state, actions }: Props) {
       <Text style={[styles.caption, styles.centered]}>
         ◎ Both phones need to be on the same Wi-Fi.
       </Text>
+      <View style={[styles.stack, { paddingTop: 8 }]}>
+        <Eyebrow>ONE CONNECTION. A FEW LESS REACHES.</Eyebrow>
+        {[
+          ["See your screen", "A live view of the screen you choose to share."],
+          [
+            "Touch, swipe, type",
+            "Optional control, enabled on the sharing phone.",
+          ],
+          [
+            "Keep permission personal",
+            "Approve the connection. Stop whenever you like.",
+          ],
+        ].map(([title, copy], index) => (
