@@ -45,3 +45,9 @@ Refer to the constants and implementation as the authoritative protocol specific
 
 The host scales the longer capture edge to at most 1,280 pixels and attempts roughly four JPEG frames per second. This reduces bandwidth but still consumes battery and CPU. It is a basic preview pipeline, not game streaming. Remote display fitting must preserve aspect ratio and ignore letterbox touches.
 
+Remote coordinates are normalized to the displayed capture. The host maps them to its physical display for accessibility gestures. App-only capture cannot safely use this full-display mapping; select the entire screen. Rotation, overlays, OEM capture selection, and app resizing require physical-device verification.
+
+Text uses Android's focused editable-field action. It replaces the field's current contents; it does not append keystrokes or automatically press Send. Clock shortcuts dispatch official Android clock intents; the installed clock owns the resulting UI and alarm state.
+
+## Resource ownership
+
