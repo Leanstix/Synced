@@ -111,3 +111,7 @@ object AppSession {
                 if (!claimServer(id, localServer)) return@execute
                 val secret = Crypto.randomBytes(32)
                 val expiry = System.currentTimeMillis() + 10 * 60_000
+                val invitation = Invitation(candidates.first(), localServer.localPort, secret, expiry).encode()
+                updateCurrent(id) { it.copy(invitation = invitation, addresses = "${candidates.first()}:${localServer.localPort}", status = "Invitation ready for 10 minutes. Keep it private; approve the connecting phone here.") }
+                while (isCurrent(id) && System.currentTimeMillis() < expiry) {
+                    val accepted = try { localServer.accept() } catch (_: SocketTimeoutException) { continue }
