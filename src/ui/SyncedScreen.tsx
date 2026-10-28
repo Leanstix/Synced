@@ -371,3 +371,23 @@ export function SyncedScreen({ state, actions }: Props) {
           ["Home", "home"],
           ["Apps", "recents"],
         ].map(([label, action]) => (
+          <Button
+            key={action}
+            style={styles.fill}
+            disabled={!canControl}
+            onPress={() => actions.sendAction(action ?? "")}
+          >
+            {label ?? ""}
+          </Button>
+        ))}
+      </View>
+      <Button
+        disabled={!canControl}
+        onPress={() => {
+          setText("");
+          setDialog("keyboard");
+        }}
+      >
+        Set text on the other phone
+      </Button>
+      <Card>
