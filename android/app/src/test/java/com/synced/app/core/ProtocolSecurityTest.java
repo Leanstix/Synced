@@ -30,3 +30,7 @@ public class ProtocolSecurityTest {
     @Test public void truncatedCiphertextRejected() { assertThrows(IllegalArgumentException.class, () -> new PacketCipher(secret).decrypt(new byte[23])); }
     private DataInputStream length(int size) throws Exception { ByteArrayOutputStream data = new ByteArrayOutputStream(); new DataOutputStream(data).writeInt(size); return new DataInputStream(new ByteArrayInputStream(data.toByteArray())); }
     @Test public void framingRoundTrip() throws Exception { ByteArrayOutputStream data = new ByteArrayOutputStream(); Framing.write(new DataOutputStream(data), new byte[] {1, 2}); assertArrayEquals(new byte[] {1, 2}, Framing.read(new DataInputStream(new ByteArrayInputStream(data.toByteArray())))); }
+    @Test public void negativeLengthRejectedBeforeAllocation() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(-1))); }
+    @Test public void zeroLengthRejected() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(0))); }
+    @Test public void enormousLengthRejectedBeforeAllocation() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(Integer.MAX_VALUE))); }
+    @Test public void truncatedPayloadRejected() { assertThrows(EOFException.class, () -> Framing.read(length(100))); }
