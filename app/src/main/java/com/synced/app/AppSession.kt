@@ -123,3 +123,8 @@ object AppSession {
                             val gate = ApprovalGate()
                             synchronized(this) {
                                 if (isCurrent(id)) {
+                                    pendingApproval = gate
+                                    updateCurrent(id) { it.copy(pendingPeer = name, status = "Compare this code with the connecting phone before approving.") }
+                                } else gate.resolve(false)
+                            }
+                            val allowed = gate.await(90, TimeUnit.SECONDS)
