@@ -32,3 +32,14 @@ class ScreenCaptureService : Service() {
     private var width = 0
     private var height = 0
     private var density = 0
+    private var sessionId = -1
+    private var screenReceiverRegistered = false
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == Intent.ACTION_SCREEN_OFF) {
+                AppSession.disconnectCurrent(sessionId, "Host screen turned off. Sharing and control have stopped.")
+                stopSelf()
+            }
+        }
+    }
+    private var lastFrame = 0L
