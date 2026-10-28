@@ -124,3 +124,19 @@ public final class ScreenCaptureService extends Service {
                     } finally { if (cropped != null && cropped != padded) cropped.recycle(); padded.recycle(); }
                 }
             } catch (Exception ignored) { /* Drop one frame during resize or teardown. */ }
+            finally { image.close(); }
+        }, handler); return source;
+    }
+    @Override public void onDestroy() {
+        stopping = true; if (screenReceiverRegistered) { unregisterReceiver(screenReceiver); screenReceiverRegistered = false; }
+        engine.captureChanged(false, sessionId);
+        handler.post(() -> {
+            getSystemService(DisplayManager.class).unregisterDisplayListener(displayListener);
+            if (display != null) { display.release(); display = null; }
+            if (reader != null) { reader.close(); reader = null; }
+            if (projection != null) { projection.unregisterCallback(callback); projection.stop(); projection = null; }
+            worker.quitSafely();
+        });
+        stopForeground(STOP_FOREGROUND_REMOVE); super.onDestroy();
+    }
+}
