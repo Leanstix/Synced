@@ -42,3 +42,12 @@ public final class SessionEngine {
     private volatile ApprovalGate approval;
     private volatile boolean authenticated, controlConsent;
     private SessionEngine(Context context) {
+        this.context = context;
+        heartbeat.scheduleWithFixedDelay(() -> { if (authenticated) sendPacket(SecureChannel.PING, new byte[0]); }, 5, 5, TimeUnit.SECONDS);
+    }
+    private static final class State {
+        String role = "IDLE", status = "Ready for a connection you approve.", invitation = "", addresses = "", pendingPeer, peerName = "", error;
+        boolean connected, capturing, accessibilityEnabled, controlAllowed;
+        JSONObject json() {
+            try { return new JSONObject().put("role", role).put("status", status).put("invitation", invitation).put("addresses", addresses)
+                .put("pendingPeer", pendingPeer == null ? JSONObject.NULL : pendingPeer).put("peerName", peerName)
