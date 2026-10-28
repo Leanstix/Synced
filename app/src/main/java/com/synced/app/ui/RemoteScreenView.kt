@@ -43,3 +43,11 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
         canvas.save()
         canvas.clipPath(Path().apply { addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), radius, radius, Path.Direction.CW) })
         canvas.drawColor(Color.rgb(5, 8, 6))
+        val image = frame
+        if (image != null && !image.isRecycled) {
+            val scale = min(width.toFloat() / image.width, height.toFloat() / image.height)
+            val w = image.width * scale; val h = image.height * scale
+            bounds.set((width - w) / 2, (height - h) / 2, (width + w) / 2, (height + h) / 2)
+            canvas.drawBitmap(image, null, bounds, paint)
+        } else {
+            bounds.setEmpty()
