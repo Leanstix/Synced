@@ -24,3 +24,12 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
     private boolean capturePending;
     private final AtomicBoolean frameAwaitingAck = new AtomicBoolean();
     public SyncedModule(ReactApplicationContext context) {
+        super(context); engine = SessionEngine.get(context); context.addActivityEventListener(this); context.addLifecycleEventListener(this); engine.setListener(this);
+    }
+    @Override public String getName() { return NAME; }
+    @ReactMethod public void getState(Promise promise) { promise.resolve(map(engine.snapshot())); }
+    @ReactMethod public void startHosting() { engine.startHosting(); }
+    @ReactMethod public void connect(String invitation) { engine.connect(invitation); }
+    @ReactMethod public void approvePeer(boolean allow) { engine.approve(allow); }
+    @ReactMethod public void disconnect() { engine.disconnect("Disconnected. Create a fresh invitation to pair again."); }
+    @ReactMethod public void setControlAllowed(boolean allowed) { engine.setControlAllowed(allowed); }
