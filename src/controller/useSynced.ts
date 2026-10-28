@@ -161,3 +161,7 @@ export function useSynced(): { state: UiState; actions: UiActions } {
         })().catch(() => native?.startCapture());
       },
       openAccessibilitySettings: () =>
+        Alert.alert(
+          "Enable remote input on this phone",
+          "Synced uses Android Accessibility to tap, swipe, navigate and replace a focused text field only during a session you approve. Screen package information protects system permission screens and Synced's controls. It does not unlock your phone. Enable Synced in Accessibility settings, then return and allow control for this session. Disable the service in Settings at any time.",
+          [
