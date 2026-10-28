@@ -57,3 +57,7 @@ class MainActivity : Activity(), UiActions {
             .setPositiveButton("Open settings") { _, _ -> startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }.show()
     }
     override fun startScreenSharing() {
+        if (!AppSession.state.connected || AppSession.state.role != Role.HOST || AppSession.state.capturing) return
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 701)
+            return
