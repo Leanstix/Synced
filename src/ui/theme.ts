@@ -58,3 +58,27 @@ export const styles = StyleSheet.create({
     gap: 4,
   },
   tab: {
+    flex: 1,
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+  },
+  tabSelected: { backgroundColor: colors.elevated },
+  tabText: { fontSize: 14, color: colors.muted, fontWeight: "600" },
+  tabTextSelected: { color: colors.lime },
+  eyebrow: {
+    fontSize: 10,
+    lineHeight: 16,
+    fontWeight: "700",
+    letterSpacing: 1.7,
+    color: colors.muted,
+  },
+  hero: {
+    fontSize: 34,
+    lineHeight: 39,
+    fontWeight: "700",
+    letterSpacing: -1.4,
+    color: colors.ink,
+  },
+  heading: {
