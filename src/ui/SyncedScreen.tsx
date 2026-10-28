@@ -223,3 +223,20 @@ export function SyncedScreen({ state, actions }: Props) {
             : "Waiting for your other phone"
         }
         subtitle={state.status}
+        connected={state.connected}
+      />
+      {!!state.pendingPeer && (
+        <Card attention>
+          <Eyebrow>CONNECTION REQUEST</Eyebrow>
+          <Text selectable style={styles.heading}>
+            {state.pendingPeer}
+          </Text>
+          <Text style={styles.copy}>
+            Compare the six-digit code on both phones. Approve only if the codes
+            match and this is your phone. Sharing and control need separate
+            permission.
+          </Text>
+          <View style={styles.row}>
+            <Button style={styles.fill} onPress={actions.rejectPeer}>
+              Decline
+            </Button>
