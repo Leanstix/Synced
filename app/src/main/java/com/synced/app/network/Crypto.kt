@@ -49,3 +49,13 @@ class PacketCipher(private val key: ByteArray) {
     @Synchronized fun decrypt(packet: ByteArray): ByteArray {
         require(packet.size in 24..MAX_PACKET_BYTES) { "Invalid packet size" }
         val sequence = packet.copyOfRange(0, 8)
+        require(ByteBuffer.wrap(sequence).long == nextReceive) { "Out-of-order or replayed packet" }
+        val result = Crypto.crypt(Cipher.DECRYPT_MODE, key, ByteArray(4) + sequence, packet.copyOfRange(8, packet.size), sequence)
+        nextReceive++
+        return result
+    }
+    companion object {
+        const val MAX_PLAIN_BYTES = 2 * 1024 * 1024
+        const val MAX_PACKET_BYTES = MAX_PLAIN_BYTES + 24
+    }
+}
