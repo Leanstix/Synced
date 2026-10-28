@@ -243,3 +243,8 @@ object AppSession {
     @Synchronized fun setControlAllowed(allowed: Boolean, sessionId: Int = generation.get()) {
         if (!isCurrent(sessionId)) return
         controlEpoch.incrementAndGet()
+        controlConsent = allowed && authenticated && state.role == Role.HOST && state.capturing && RemoteControlService.instance != null
+        update { it.copy(controlAllowed = controlConsent, status = if (controlConsent) "Remote control allowed. Stop sharing or turn this off to revoke immediately." else "Remote control is off.") }
+        sendStatus()
+    }
+    fun canControl(): Boolean = authenticated && controlConsent && state.role == Role.HOST && state.capturing
