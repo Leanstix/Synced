@@ -28,3 +28,8 @@ public final class RemoteControlService extends AccessibilityService {
         try {
             switch (command.getString("kind")) {
                 case "gesture": if (safeTarget()) gesture(command); break;
+                case "text": if (safeTarget()) typeText(command.getString("text")); break;
+                case "action": action(command.getString("action")); break;
+                default: fail("Unsupported command.");
+            }
+        } catch (Exception e) { fail("The requested action is unavailable on this screen."); }
