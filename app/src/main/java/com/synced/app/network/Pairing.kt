@@ -17,3 +17,12 @@ object Pairing {
     private fun name(): String = "${Build.MANUFACTURER} ${Build.MODEL}".take(80)
     private fun verificationCode(secret: ByteArray, client: ByteArray, host: ByteArray): String {
         val bytes = Crypto.derive(secret, client, host, "verification code")
+        val number = java.nio.ByteBuffer.wrap(bytes).int.toLong() and 0xffffffffL
+        return (number % 1_000_000).toString().padStart(6, '0')
+    }
+    fun host(socket: Socket, secret: ByteArray, approve: (String) -> Boolean): Pair<SecureChannel, String> {
+        val hello = receive(socket, secret)
+        require(hello.getString("type") == "hello" && hello.getInt("version") == 1)
+        val clientNonce = nonce(hello, "nonce")
+        val hostNonce = Crypto.randomBytes(32)
+        val peer = hello.getString("name").filter { !it.isISOControl() }.take(80)
