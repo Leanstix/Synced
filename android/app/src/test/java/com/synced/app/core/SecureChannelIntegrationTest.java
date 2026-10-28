@@ -21,3 +21,9 @@ public class SecureChannelIntegrationTest {
             host.send(SecureChannel.STATUS, new byte[] {1}); assertEquals(SecureChannel.STATUS, client.read().type);
             client.send(SecureChannel.CONTROL, "back".getBytes()); assertEquals("back", new String(host.read().body));
             host.send(SecureChannel.FRAME, new byte[] {4, 5, 6}); assertArrayEquals(new byte[] {4, 5, 6}, client.read().body);
+        }
+    }
+    @Test public void wrongDirectionalKeyFailsOnRealSocket() throws Exception {
+        try (Sockets sockets = new Sockets()) {
+            byte[] key = Crypto.random(32); SecureChannel host = new SecureChannel(sockets.host, key, key), client = new SecureChannel(sockets.client, key, Crypto.random(32));
+            host.send(SecureChannel.STATUS, new byte[] {1}); assertThrows(javax.crypto.AEADBadTagException.class, client::read);
