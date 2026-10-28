@@ -51,3 +51,9 @@ Text uses Android's focused editable-field action. It replaces the field's curre
 
 ## Resource ownership
 
+React Native owns the interface, local consent dialogs, and typed action adapter. The Android module owns the platform capture-consent result. The process-scoped session owns sockets and ephemeral authorization. The capture foreground service owns its worker, projection, image reader, and virtual display. The accessibility service can remain Android-enabled after a session, but input remains gated by active session consent.
+
+There is no boot receiver or automatic capture restart. Android may end projection on lock or process death, and OEM battery policies may end the process. A live connection must never be presented as permanent unattended access.
+
+## Native/TypeScript frame delivery
+
