@@ -12,3 +12,8 @@ public class SecureChannelIntegrationTest {
         final Socket client = new Socket("127.0.0.1", listener.getLocalPort());
         final Socket host = listener.accept();
         Sockets() throws Exception { client.setSoTimeout(2000); host.setSoTimeout(2000); }
+        @Override public void close() throws Exception { client.close(); host.close(); listener.close(); }
+    }
+    @Test public void framesAndCommandsCrossRealSocket() throws Exception {
+        byte[] outbound = Crypto.random(32), inbound = Crypto.random(32);
+        try (Sockets sockets = new Sockets()) {
