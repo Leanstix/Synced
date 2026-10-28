@@ -133,3 +133,9 @@ class ScreenCaptureService : Service() {
         width = size.first; height = size.second
         reader = makeReader(width, height)
         display?.resize(width, height, density)
+        display?.surface = reader!!.surface
+        old?.close()
+    }
+    private fun makeReader(w: Int, h: Int): ImageReader = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2).also { source ->
+        source.setOnImageAvailableListener({ available ->
+            val image = runCatching { available.acquireLatestImage() }.getOrNull() ?: return@setOnImageAvailableListener
