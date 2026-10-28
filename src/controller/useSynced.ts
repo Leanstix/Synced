@@ -82,3 +82,16 @@ const native = NativeModules.Synced as SyncedBridge | undefined;
 export function useSynced(): { state: UiState; actions: UiActions } {
   const [state, setState] = useState<UiState>(initialState);
   useEffect(() => {
+    if (!native) {
+      setState((previous) => ({
+        ...previous,
+        error:
+          "The Android Synced module is unavailable. Install the native Android build.",
+      }));
+      return;
+    }
+    let disposed = false;
+    let liveVersion = 0;
+    let sessionId = -1;
+    const apply = (next: NativeState) => {
+      const sameSession = sessionId === (next._sessionId ?? 0);
