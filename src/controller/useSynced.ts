@@ -196,3 +196,34 @@ export function useSynced(): { state: UiState; actions: UiActions } {
           ) &&
           Number.isFinite(duration)
         ) {
+          native?.sendGesture(
+            sx,
+            sy,
+            ex,
+            ey,
+            Math.max(50, Math.min(1500, Math.round(duration)))
+          );
+        }
+      },
+      sendText: (text) => {
+        if (text.length > 0 && text.length <= 1000) native?.sendText(text);
+      },
+      sendAction: (action) => {
+        if (
+          [
+            "back",
+            "home",
+            "recents",
+            "alarms",
+            "dismiss_alarm",
+            "snooze_alarm",
+          ].includes(action) ||
+          /^set_alarm:([01]?\d|2[0-3]):([0-5]?\d)$/.test(action)
+        )
+          native?.sendAction(action);
+      },
+    }),
+    []
+  );
+  return { state, actions };
+}
