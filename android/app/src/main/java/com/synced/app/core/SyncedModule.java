@@ -84,3 +84,9 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod public void ackFrame() { frameAwaitingAck.set(false); }
     @Override public void onFrame(int sessionId, byte[] jpeg) {
         if (!uiActive || !getReactApplicationContext().hasActiveReactInstance() || !frameAwaitingAck.compareAndSet(false, true)) return;
+        WritableMap event = Arguments.createMap(); event.putInt("sessionId", sessionId); event.putString("uri", "data:image/jpeg;base64," + Base64.encodeToString(jpeg, Base64.NO_WRAP)); emit("SyncedFrame", event);
+    }
+    private void emit(String name, WritableMap value) {
+        getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(name, value);
+    }
+    private static WritableMap map(JSONObject json) {
