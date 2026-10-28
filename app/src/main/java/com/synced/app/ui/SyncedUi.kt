@@ -55,3 +55,8 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     }
     init {
         activity.window.statusBarColor = s.background
+        activity.window.navigationBarColor = s.background
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            activity.window.setDecorFitsSystemWindows(false)
+            activity.window.insetsController?.setSystemBarsAppearance(0,
+                android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
