@@ -142,3 +142,7 @@ object AppSession {
                             status = "Phone approved. Start screen sharing when you are ready.", error = null) }
                         sendStatus()
                         receiveHost(id, secure)
+                        return@execute
+                    } catch (e: Exception) {
+                        accepted.close()
+                        if (isCurrent(id)) updateCurrent(id) { it.copy(pendingPeer = null, status = "Connection declined or authentication failed. Share the invitation only with your intended phone.", error = null) }
