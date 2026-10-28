@@ -18,3 +18,22 @@ export function SyncedMark({ size = 38 }: { size?: number }) {
 }
 
 function Phone({
+  x,
+  y,
+  w,
+  h,
+  angle,
+  primary,
+}: {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  angle: number;
+  primary?: boolean;
+}) {
+  return (
+    <G rotation={angle} origin={`${x + w / 2}, ${y + h / 2}`}>
+      <Rect x={x + 5} y={y + 8} width={w} height={h} rx={14} fill="#080B09" />
+      <Rect
+        x={x}
