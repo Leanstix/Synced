@@ -235,3 +235,13 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                     (activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(clip)
                     Toast.makeText(activity, "Invitation copied", Toast.LENGTH_SHORT).show()
                 }, full())
+            } else addView(s.text("Preparing your invitation…", 14f, s.warning))
+            addView(s.space(12)); addView(s.text("Same Wi-Fi · Approval required", 11f, s.muted))
+        }, full())
+    }
+
+    private fun pendingRequest() {
+        content.addView(s.card().apply {
+            background = s.shape(s.surface, 24, s.warning)
+            addView(s.label("CONNECTION REQUEST").apply { setTextColor(s.warning) }); addView(s.space(12))
+            addView(s.text(state.pendingPeer.orEmpty(), 21f, s.ink, true)); addView(s.space(8))
