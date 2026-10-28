@@ -151,3 +151,28 @@ export function SyncedScreen({ state, actions }: Props) {
               setInvitation(value);
               setInputError("");
             }}
+            placeholder="Paste your invitation"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            multiline
+            numberOfLines={2}
+            autoCapitalize="none"
+            autoCorrect={false}
+            maxLength={8192}
+          />
+          {!!inputError && (
+            <Text
+              accessibilityRole="alert"
+              style={[styles.caption, styles.danger]}
+            >
+              {inputError}
+            </Text>
+          )}
+          <Button primary onPress={connect}>
+            Connect to phone
+          </Button>
+        </Card>
+      )}
+      <Text style={[styles.caption, styles.centered]}>
+        ◎ Both phones need to be on the same Wi-Fi.
+      </Text>
