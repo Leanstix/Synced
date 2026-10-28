@@ -56,3 +56,8 @@ public final class RemoteControlService extends AccessibilityService {
         if (focused == null || !focused.isEditable() || focused.isPassword()) { fail("Tap a normal editable field first. Password fields require local input."); return; }
         Bundle args = new Bundle(); args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
         if (!focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) fail("This app does not accept accessibility text input.");
+    }
+    private void action(String value) {
+        Integer global = value.equals("back") ? GLOBAL_ACTION_BACK : value.equals("home") ? GLOBAL_ACTION_HOME : value.equals("recents") ? GLOBAL_ACTION_RECENTS : null;
+        if (global != null) { if (!performGlobalAction(global)) fail("Android could not perform this navigation action."); return; }
+        if (!safeTarget()) return;
