@@ -200,3 +200,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
 
     private fun hostScreen() {
         content.addView(s.label(if (state.connected) "SHARING FROM THIS PHONE" else "READY WHEN YOU ARE"))
+        addGap(12)
+        content.addView(s.text(if (state.connected) "You're in control." else "An invitation\nto connect.", 32f, s.ink, true).apply { letterSpacing = -.04f })
+        addGap(14)
+        content.addView(statusCard(if (state.connected) state.peerName.ifBlank { "Your other phone" } else "Waiting for your other phone", state.status))
