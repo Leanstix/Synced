@@ -96,3 +96,8 @@ public final class ScreenCaptureService extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(11, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION); else startForeground(11, notice);
     }
     @SuppressWarnings("deprecation") private DisplayMetrics metrics() {
+        DisplayMetrics result = new DisplayMetrics(); ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(result); return result;
+    }
+    private int[] scaled(int w, int h) {
+        if (w < 1 || h < 1) throw new IllegalArgumentException("Invalid display size");
+        double scale = Math.min(1, 1280.0 / Math.max(w, h)); return new int[] { Math.max(1, (int) Math.round(w * scale)), Math.max(1, (int) Math.round(h * scale)) };
