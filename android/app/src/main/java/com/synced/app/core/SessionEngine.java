@@ -110,3 +110,7 @@ public final class SessionEngine {
                 if (addresses.isEmpty()) throw new IllegalArgumentException("Connect both phones to the same Wi-Fi or enable a phone's hotspot first.");
                 ServerSocket local = new ServerSocket(0); local.setSoTimeout(1000); if (!claim(id, local)) return;
                 byte[] secret = Crypto.random(32); long expiry = System.currentTimeMillis() + 10 * 60_000;
+                String invitation = new Invitation(addresses.get(0), local.getLocalPort(), secret, expiry).encode();
+                update(id, s -> { s.invitation = invitation; s.addresses = addresses.get(0) + ":" + local.getLocalPort(); s.status = "Invitation ready for 10 minutes. Keep it private; approve the connecting phone here."; });
+                while (current(id) && System.currentTimeMillis() < expiry) {
+                    Socket peer;
