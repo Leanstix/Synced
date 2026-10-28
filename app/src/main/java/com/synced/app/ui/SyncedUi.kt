@@ -45,3 +45,13 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     private val content = s.column().apply { setPadding(s.dp(24), s.dp(20), s.dp(24), s.dp(28)) }
     val root: View = FrameLayout(activity).apply {
         setBackgroundColor(s.background)
+        addView(scroll, FrameLayout.LayoutParams(-1, -1))
+        val centering = FrameLayout(activity)
+        scroll.addView(centering, FrameLayout.LayoutParams(-1, -2))
+        centering.addView(content, FrameLayout.LayoutParams(-1, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+            val availableWidth = activity.resources.displayMetrics.widthPixels
+            width = minOf(availableWidth, s.dp(600))
+        })
+    }
+    init {
+        activity.window.statusBarColor = s.background
