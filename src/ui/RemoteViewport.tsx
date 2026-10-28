@@ -78,3 +78,15 @@ export const RemoteViewport = React.memo(function RemoteViewport({
   return (
     <View style={styles.remoteShell}>
       <View
+        style={[styles.remote, { height: Math.min(440, layout.width * 1.5) }]}
+        onLayout={(event) => {
+          const { width, height } = event.nativeEvent.layout;
+          setLayout((previous) =>
+            previous.width === width && previous.height === height
+              ? previous
+              : { width, height }
+          );
+        }}
+        accessibilityLabel={
+          enabled
+            ? "Remote phone screen. Tap or swipe to control."
