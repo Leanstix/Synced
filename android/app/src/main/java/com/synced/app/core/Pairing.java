@@ -32,3 +32,8 @@ public final class Pairing {
     private static String name() { return clean(Build.MANUFACTURER + " " + Build.MODEL); }
     private static String clean(String name) { return name.replaceAll("\\p{Cntrl}", "").substring(0, Math.min(name.replaceAll("\\p{Cntrl}", "").length(), 80)); }
     private static String verification(byte[] secret, byte[] client, byte[] host) throws Exception {
+        long number = ByteBuffer.wrap(Crypto.derive(secret, client, host, "verification code")).getInt() & 0xffffffffL;
+        return String.format(Locale.ROOT, "%06d", number % 1_000_000);
+    }
+    public static Result host(Socket socket, byte[] secret, Approval approve) throws Exception {
+        JSONObject hello = receive(socket, secret);
