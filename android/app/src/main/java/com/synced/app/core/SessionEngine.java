@@ -97,3 +97,11 @@ public final class SessionEngine {
     private synchronized boolean claim(int id, ServerSocket value) { if (!current(id)) { close(value); return false; } server = value; return true; }
     private synchronized boolean activate(int id, SecureChannel value) { if (!current(id)) return false; channel = value; authenticated = true; return true; }
     public void startHosting() {
+        disconnect("Creating a private local invitation…"); int id = generation();
+        update(id, s -> { s.role = "HOST"; s.error = null; });
+        workers.execute(() -> {
+            try {
+                List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+                interfaces.sort(Comparator.comparingInt(n -> n.getName().startsWith("wlan") || n.getName().startsWith("ap") || n.getName().startsWith("swlan") ? 0 : 1));
+                List<String> addresses = new ArrayList<>();
+                for (NetworkInterface net : interfaces) if (net.isUp() && !net.isLoopback()) {
