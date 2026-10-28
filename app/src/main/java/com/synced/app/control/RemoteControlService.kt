@@ -43,3 +43,12 @@ class RemoteControlService : AccessibilityService() {
         val target = rootInActiveWindow?.packageName?.toString() ?: return false
         val blocked = target == packageName || target.contains(".settings") || target.contains("permissioncontroller") ||
             target.contains("packageinstaller") || target == "com.android.systemui" || target.contains("securitycenter")
+        if (blocked) fail("This protected screen requires interaction on the host phone.")
+        return !blocked
+    }
+    @Suppress("DEPRECATION") private fun gesture(data: JSONObject) {
+        val sx = data.getDouble("sx"); val sy = data.getDouble("sy")
+        val ex = data.getDouble("ex"); val ey = data.getDouble("ey")
+        require(listOf(sx, sy, ex, ey).all { it.isFinite() && it in 0.0..1.0 })
+        val duration = data.getLong("duration").coerceIn(50, 1500)
+        val metrics = DisplayMetrics()
