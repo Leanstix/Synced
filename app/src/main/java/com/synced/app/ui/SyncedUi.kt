@@ -174,3 +174,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                 addView(s.text("Open Share in Synced on your other phone, then paste its invitation here.", 14f, s.muted)); addView(s.space(18))
                 val field = input("Paste your invitation", invitationDraft).apply {
                     contentDescription = "Invitation from the phone you want to connect to"
+                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    maxLines = 3
+                    addTextChangedListener(object : TextWatcher {
+                        override fun beforeTextChanged(value: CharSequence?, start: Int, count: Int, after: Int) = Unit
