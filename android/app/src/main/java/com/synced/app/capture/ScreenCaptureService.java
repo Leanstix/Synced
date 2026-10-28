@@ -32,3 +32,8 @@ public final class ScreenCaptureService extends Service {
     private boolean screenReceiverRegistered;
     private final BroadcastReceiver screenReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_SCREEN_OFF.equals(intent.getAction())) { engine.disconnect(sessionId, "Host screen turned off. Sharing and control stopped."); stopSelf(); }
+        }
+    };
+    private final DisplayManager.DisplayListener displayListener = new DisplayManager.DisplayListener() {
+        public void onDisplayAdded(int id) {}
