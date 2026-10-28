@@ -52,3 +52,11 @@ class ScreenCaptureService : Service() {
     private val callback = object : MediaProjection.Callback() {
         override fun onStop() { stopSelf() }
         override fun onCapturedContentResize(w: Int, h: Int) {
+            // OEMs can override full-display capture. Never map remote touches into an app-only capture.
+            AppSession.setControlAllowed(false, sessionId)
+            handler.postDelayed({
+                if (!stopping && sessionId == AppSession.currentGeneration()) {
+                    val full = realMetrics()
+                    if (w != full.widthPixels || h != full.heightPixels) {
+                        AppSession.report("Full-display sharing is required. Select the entire screen and start sharing again.")
+                        stopSelf()
