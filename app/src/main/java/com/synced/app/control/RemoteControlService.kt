@@ -67,3 +67,8 @@ class RemoteControlService : AccessibilityService() {
             fail("Tap a normal editable field on the host first. Password fields require local input."); return
         }
         val args = Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) }
+        if (!focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) fail("This app does not accept accessibility text input.")
+    }
+    private fun action(value: String) {
+        val global = when (value) { "back" -> GLOBAL_ACTION_BACK; "home" -> GLOBAL_ACTION_HOME; "recents" -> GLOBAL_ACTION_RECENTS; else -> null }
+        if (global != null) {
