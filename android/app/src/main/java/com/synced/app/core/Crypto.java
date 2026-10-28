@@ -31,3 +31,12 @@ public final class Crypto {
         if (secret.length != 32 || client.length != 32 || host.length != 32) throw new IllegalArgumentException("Invalid key material");
         byte[] extract = hmac(join(client, host), secret);
         return hmac(extract, join(("Synced v1 " + direction).getBytes(StandardCharsets.UTF_8), new byte[] {1}));
+    }
+    private static byte[] hmac(byte[] key, byte[] data) throws GeneralSecurityException {
+        Mac mac = Mac.getInstance("HmacSHA256"); mac.init(new SecretKeySpec(key, "HmacSHA256")); return mac.doFinal(data);
+    }
+    static byte[] crypt(int mode, byte[] key, byte[] nonce, byte[] data, byte[] aad) throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(mode, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce)); cipher.updateAAD(aad); return cipher.doFinal(data);
+    }
+}
