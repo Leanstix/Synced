@@ -22,3 +22,26 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
     buildFeatures { buildConfig true }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            manifestPlaceholders.usesCleartextTraffic = 'true'
+        }
+        preview {
+            initWith debug
+            debuggable false
+            manifestPlaceholders.usesCleartextTraffic = 'false'
+            signingConfig signingConfigs.debug
+            matchingFallbacks = ['debug']
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+dependencies {
+    implementation 'com.facebook.react:react-android'
+    implementation 'com.facebook.react:hermes-android'
+    testImplementation 'junit:junit:4.13.2'
+}
