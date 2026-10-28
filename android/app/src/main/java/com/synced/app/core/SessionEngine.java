@@ -114,3 +114,11 @@ public final class SessionEngine {
                 update(id, s -> { s.invitation = invitation; s.addresses = addresses.get(0) + ":" + local.getLocalPort(); s.status = "Invitation ready for 10 minutes. Keep it private; approve the connecting phone here."; });
                 while (current(id) && System.currentTimeMillis() < expiry) {
                     Socket peer;
+                    try { peer = local.accept(); } catch (SocketTimeoutException ignored) { continue; }
+                    if (!claim(id, peer)) return;
+                    try {
+                        peer.setSoTimeout(12_000); peer.setTcpNoDelay(true);
+                        Pairing.Result result = Pairing.host(peer, secret, name -> {
+                            ApprovalGate gate = new ApprovalGate();
+                            synchronized (this) {
+                                if (current(id)) { approval = gate; update(id, s -> { s.pendingPeer = name; s.status = "Compare this code with the connecting phone before approving."; }); }
