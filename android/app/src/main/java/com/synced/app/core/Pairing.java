@@ -21,3 +21,9 @@ public final class Pairing {
     }
     private static void send(Socket socket, byte[] secret, JSONObject json) throws Exception {
         Framing.write(new DataOutputStream(socket.getOutputStream()), Crypto.seal(secret, json.toString().getBytes(StandardCharsets.UTF_8)), MAX_HANDSHAKE);
+    }
+    private static JSONObject receive(Socket socket, byte[] secret) throws Exception {
+        return new JSONObject(new String(Crypto.open(secret, Framing.read(new DataInputStream(socket.getInputStream()), MAX_HANDSHAKE)), StandardCharsets.UTF_8));
+    }
+    private static byte[] nonce(JSONObject json, String name) throws Exception {
+        byte[] bytes = Invitation.decodeBytes(json.getString(name));
