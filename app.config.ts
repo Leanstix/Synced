@@ -29,7 +29,7 @@ const config: ExpoConfig = {
       android: { audioType: 'media', enableScreenShareService: true },
     }],
     ['expo-build-properties', {
-      android: { minSdkVersion: 26, compileSdkVersion: 36, targetSdkVersion: 36, buildToolsVersion: '36.0.0' },
+      android: { minSdkVersion: 26, compileSdkVersion: 37, targetSdkVersion: 36, buildToolsVersion: '37.0.0' },
     }],
   ],
 };
