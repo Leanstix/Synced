@@ -87,3 +87,7 @@ public final class ScreenCaptureService extends Service {
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel("sharing", "Active screen sharing", NotificationManager.IMPORTANCE_LOW));
         int immutable = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+        PendingIntent open = PendingIntent.getActivity(this, 1, new Intent(this, MainActivity.class), immutable);
+        PendingIntent stop = PendingIntent.getService(this, 2, new Intent(this, ScreenCaptureService.class).setAction("STOP"), immutable);
+        Notification notice = new Notification.Builder(this, "sharing").setSmallIcon(android.R.drawable.ic_menu_view)
+            .setContentTitle("Synced · your screen is being shared").setContentText("One approved phone can view this screen. Stop to revoke.")
