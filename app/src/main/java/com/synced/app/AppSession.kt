@@ -155,3 +155,7 @@ object AppSession {
         }
     }
     @Synchronized fun approvePeer(allow: Boolean) {
+        val id = generation.get()
+        if (pendingApproval == null) return
+        pendingApproval?.resolve(allow)
+        updateCurrent(id) { it.copy(pendingPeer = null, status = if (allow) "Phone approved. Establishing encrypted session…" else "Connection declined.") }
