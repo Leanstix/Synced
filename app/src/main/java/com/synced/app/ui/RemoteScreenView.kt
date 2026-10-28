@@ -29,3 +29,8 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
     }
     fun show(bitmap: Bitmap?) {
         frame = bitmap
+        contentDescription = if (controlEnabled) "Remote phone screen. Tap or swipe to control the other phone." else "Remote phone screen. View only."
+        invalidate()
+    }
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val w = MeasureSpec.getSize(widthMeasureSpec)
