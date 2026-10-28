@@ -24,3 +24,22 @@ export interface UiState {
   error: string | null;
 }
 export interface UiActions {
+  startHosting(): void;
+  connect(invitation: string): void;
+  approvePeer(): void;
+  rejectPeer(): void;
+  startScreenSharing(): void;
+  openAccessibilitySettings(): void;
+  setControlAllowed(allowed: boolean): void;
+  disconnect(): void;
+  sendGesture(
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    durationMs: number
+  ): void;
+  sendText(text: string): void;
+  sendAction(action: string): void;
+}
+type NativeState = Omit<UiState, "remoteFrame"> & { _sessionId?: number };
