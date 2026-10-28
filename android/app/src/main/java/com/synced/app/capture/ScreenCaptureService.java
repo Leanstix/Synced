@@ -119,3 +119,8 @@ public final class ScreenCaptureService extends Service {
                     Bitmap padded = Bitmap.createBitmap(image.getWidth() + padding / plane.getPixelStride(), image.getHeight(), Bitmap.Config.ARGB_8888);
                     Bitmap cropped = null;
                     try {
+                        padded.copyPixelsFromBuffer(plane.getBuffer()); cropped = Bitmap.createBitmap(padded, 0, 0, image.getWidth(), image.getHeight());
+                        ByteArrayOutputStream bytes = new ByteArrayOutputStream(); cropped.compress(Bitmap.CompressFormat.JPEG, 58, bytes); engine.sendFrame(bytes.toByteArray(), sessionId);
+                    } finally { if (cropped != null && cropped != padded) cropped.recycle(); padded.recycle(); }
+                }
+            } catch (Exception ignored) { /* Drop one frame during resize or teardown. */ }
