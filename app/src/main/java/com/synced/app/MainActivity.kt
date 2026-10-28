@@ -77,3 +77,7 @@ class MainActivity : Activity(), UiActions {
         startActivityForResult(capture, 700)
     }
     @Deprecated("Activity result API is retained to keep this app dependency-free")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != 700) return
+        if (resultCode == RESULT_OK && data != null && captureGeneration == AppSession.currentGeneration() && AppSession.state.connected && AppSession.state.role == Role.HOST) {
