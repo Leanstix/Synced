@@ -90,3 +90,12 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
         getReactApplicationContext().getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit(name, value);
     }
     private static WritableMap map(JSONObject json) {
+        WritableMap map = Arguments.createMap(); Iterator<String> keys = json.keys();
+        while (keys.hasNext()) {
+            String key = keys.next(); Object value = json.opt(key);
+            if (value == null || value == JSONObject.NULL) map.putNull(key);
+            else if (value instanceof Boolean) map.putBoolean(key, (Boolean) value);
+            else if (value instanceof Number) map.putDouble(key, ((Number) value).doubleValue());
+            else map.putString(key, value.toString());
+        }
+        return map;
