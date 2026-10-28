@@ -391,3 +391,23 @@ export function SyncedScreen({ state, actions }: Props) {
         Set text on the other phone
       </Button>
       <Card>
+        <Eyebrow>CLOCK SHORTCUTS</Eyebrow>
+        <Text style={styles.heading}>A little help with alarms.</Text>
+        <Text style={styles.caption}>
+          Open the clock or request an alarm action. Your other phone may ask
+          you to confirm.
+        </Text>
+        <View style={styles.row}>
+          <Button
+            style={styles.fill}
+            disabled={!canControl}
+            onPress={() => actions.sendAction("alarms")}
+          >
+            Open clock
+          </Button>
+          <Button
+            style={styles.fill}
+            disabled={!canControl}
+            onPress={() => {
+              setAlarmError("");
+              setDialog("alarm");
