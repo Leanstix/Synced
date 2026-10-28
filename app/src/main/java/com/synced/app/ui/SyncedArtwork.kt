@@ -16,3 +16,11 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
     private val lime = Color.rgb(212, 255, 116)
     init { importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }
     override fun onDraw(c: Canvas) {
+        super.onDraw(c)
+        val s = width / 350f
+        c.save(); c.scale(s, s)
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1f
+        p.color = Color.rgb(47, 54, 49)
+        c.drawOval(RectF(28f, 23f, 324f, 183f), p)
+        c.drawOval(RectF(59f, -12f, 293f, 218f), p)
+        p.color = Color.rgb(36, 42, 37)
