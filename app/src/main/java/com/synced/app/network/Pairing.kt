@@ -26,3 +26,7 @@ object Pairing {
         val clientNonce = nonce(hello, "nonce")
         val hostNonce = Crypto.randomBytes(32)
         val peer = hello.getString("name").filter { !it.isISOControl() }.take(80)
+        send(socket, secret, JSONObject().put("type", "challenge").put("client", Invitation.encodeBytes(clientNonce))
+            .put("host", Invitation.encodeBytes(hostNonce)).put("name", name()))
+        val proof = receive(socket, secret)
+        require(proof.getString("type") == "proof" && MessageDigest.isEqual(nonce(proof, "host"), hostNonce))
