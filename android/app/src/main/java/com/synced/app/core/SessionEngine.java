@@ -198,3 +198,9 @@ public final class SessionEngine {
                 if (message.body.length > 8192) throw new IllegalArgumentException("Status too large");
                 JSONObject data = new JSONObject(new String(message.body, StandardCharsets.UTF_8));
                 update(id, s -> { s.capturing = data.optBoolean("capturing"); s.controlAllowed = data.optBoolean("control"); s.accessibilityEnabled = data.optBoolean("accessibility"); s.status = data.optString("message"); if (s.status.isEmpty()) s.status = s.capturing ? "Live · encrypted local connection" : "Connected. Host screen sharing is paused."; });
+            } else throw new IllegalArgumentException("Unexpected message");
+        }
+    }
+    public synchronized void setControlAllowed(boolean allowed) { setControlAllowed(allowed, generation()); }
+    public synchronized void setControlAllowed(boolean allowed, int id) {
+        if (!current(id)) return; controlEpoch.incrementAndGet();
