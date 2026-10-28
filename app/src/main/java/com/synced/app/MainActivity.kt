@@ -24,3 +24,13 @@ class MainActivity : Activity(), UiActions {
         AppSession.initialize(this)
         captureGeneration = savedInstanceState?.getInt("captureGeneration", -1) ?: -1
         window.statusBarColor = 0xFF101518.toInt()
+        window.navigationBarColor = 0xFF101518.toInt()
+        ui = SyncedUi(this, this)
+        setContentView(ui.root)
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("captureGeneration", captureGeneration)
+        super.onSaveInstanceState(outState)
+    }
+    override fun onResume() {
+        super.onResume()
