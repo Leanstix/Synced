@@ -84,3 +84,12 @@ public final class SessionEngine {
     public synchronized void disconnect(String message) {
         generation.incrementAndGet(); latestFrame.set(null); authenticated = false; controlConsent = false; controlEpoch.incrementAndGet();
         if (approval != null) approval.resolve(false); approval = null;
+        close(socket); socket = null; close(server); server = null; channel = null;
+        context.stopService(new Intent(context, ScreenCaptureService.class));
+        update(s -> {
+            s.role = "IDLE"; s.status = message; s.invitation = ""; s.addresses = ""; s.pendingPeer = null; s.peerName = ""; s.error = null;
+            s.connected = false; s.capturing = false; s.controlAllowed = false; s.accessibilityEnabled = RemoteControlService.instance != null;
+        });
+    }
+    public synchronized void disconnect(int id, String message) { if (current(id)) disconnect(message); }
+    private static void close(java.io.Closeable object) { if (object != null) try { object.close(); } catch (Exception ignored) {} }
