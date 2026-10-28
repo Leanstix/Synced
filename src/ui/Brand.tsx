@@ -86,3 +86,32 @@ function Phone({
           height={13}
           rx={4}
           fill={primary && i === 0 ? "#506437" : "#232E20"}
+        />
+      ))}
+      <Rect
+        x={x + w / 2 - 13}
+        y={y + h - 13}
+        width={26}
+        height={3}
+        rx={2}
+        fill="#586850"
+      />
+    </G>
+  );
+}
+
+export function PhoneArtwork() {
+  return (
+    <Svg width="100%" height={176} viewBox="0 0 350 202" accessible={false}>
+      <Ellipse
+        cx={176}
+        cy={103}
+        rx={148}
+        ry={80}
+        stroke="#2F3631"
+        fill="none"
+      />
+      <Ellipse
+        cx={176}
+        cy={103}
+        rx={117}
