@@ -522,3 +522,19 @@ export function SyncedScreen({ state, actions }: Props) {
               high-performance game streaming aren’t supported.
             </Text>
           </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <Modal
+        transparent
+        visible={dialog !== null}
+        animationType="fade"
+        onRequestClose={closeDialog}
+        statusBarTranslucent
+      >
+        <KeyboardAvoidingView
+          style={styles.overlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <View style={styles.modal} accessibilityViewIsModal>
+            <Text style={styles.heading}>
+              {dialog === "guide"
