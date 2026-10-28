@@ -90,3 +90,11 @@ class RemoteControlService : AccessibilityService() {
                     .putExtra(AlarmClock.EXTRA_SKIP_UI, false)
             }
             else -> { fail("Unsupported action."); return }
+        }
+        // Clock app behavior varies. Its own picker or confirmation remains visible to the host.
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try { startActivity(intent); AppSession.sendRemoteMessage("Alarm action sent to the host's clock app. Confirm the visible result.") }
+        catch (_: Exception) { fail("No compatible clock app handled this alarm action.") }
+    }
+    private fun fail(message: String) = AppSession.sendRemoteMessage(message)
+}
