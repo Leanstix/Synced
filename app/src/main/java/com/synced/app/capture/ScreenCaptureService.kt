@@ -80,3 +80,7 @@ class ScreenCaptureService : Service() {
         try {
             createNotification()
             if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
+            else @Suppress("DEPRECATION") registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
+            screenReceiverRegistered = true
+            val resultCode = intent.getIntExtra("resultCode", Activity.RESULT_CANCELED)
+            val data = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra("data", Intent::class.java) else @Suppress("DEPRECATION") (intent.getParcelableExtra("data") as? Intent)
