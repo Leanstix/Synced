@@ -267,3 +267,8 @@ object AppSession {
     @Synchronized private fun sendStatus() {
         if (state.role != Role.HOST || !authenticated) return
         sendPacket(SecureChannel.STATUS, JSONObject().put("capturing", state.capturing).put("control", controlConsent)
+            .put("accessibility", RemoteControlService.instance != null).toString().toByteArray())
+    }
+    @Synchronized fun sendRemoteMessage(message: String) {
+        sendPacket(SecureChannel.STATUS, JSONObject().put("capturing", state.capturing).put("control", controlConsent)
+            .put("accessibility", RemoteControlService.instance != null).put("message", message).toString().toByteArray())
