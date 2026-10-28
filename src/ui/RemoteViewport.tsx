@@ -103,3 +103,16 @@ export const RemoteViewport = React.memo(function RemoteViewport({
             onLoad={(event) => {
               if (latest.current.uri !== uri) return;
               const { width, height } = event.nativeEvent.source;
+              if (width > 0 && height > 0)
+                setFrame((previous) =>
+                  previous.width === width && previous.height === height
+                    ? previous
+                    : { width, height }
+                );
+            }}
+          />
+        ) : (
+          <View style={styles.waiting} pointerEvents="none">
+            <ActivityIndicator color={colors.lime} />
+            <Text style={[styles.caption, styles.centered]}>
+              Waiting for your other phone's screen
