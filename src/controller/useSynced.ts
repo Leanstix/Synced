@@ -151,3 +151,13 @@ export function useSynced(): { state: UiState; actions: UiActions } {
       rejectPeer: () => native?.approvePeer(false),
       disconnect: () => native?.disconnect(),
       startScreenSharing: () => {
+        void (async () => {
+          if (Platform.OS === "android" && Number(Platform.Version) >= 33) {
+            await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+            );
+          }
+          native?.startCapture();
+        })().catch(() => native?.startCapture());
+      },
+      openAccessibilitySettings: () =>
