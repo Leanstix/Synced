@@ -106,3 +106,12 @@ public final class ScreenCaptureService extends Service {
         if (stopping || display == null) return; int[] size = scaled(w, h); if (size[0] == width && size[1] == height) return;
         engine.setControlAllowed(false, sessionId); ImageReader old = reader; width = size[0]; height = size[1]; reader = makeReader(width, height);
         display.resize(width, height, density); display.setSurface(reader.getSurface()); if (old != null) old.close();
+    }
+    private ImageReader makeReader(int w, int h) {
+        ImageReader source = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2);
+        source.setOnImageAvailableListener(available -> {
+            Image image; try { image = available.acquireLatestImage(); } catch (Exception e) { return; } if (image == null) return;
+            try {
+                long now = SystemClock.elapsedRealtime();
+                if (!stopping && getSystemService(KeyguardManager.class).isKeyguardLocked()) { engine.disconnect(sessionId, "Host locked. Sharing and control stopped."); stopSelf(); }
+                else if (!stopping && engine.isCapturing() && now - lastFrame >= 250) {
