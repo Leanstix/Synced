@@ -103,3 +103,7 @@ object AppSession {
         io.execute {
             try {
                 val candidates = NetworkInterface.getNetworkInterfaces().toList().filter { it.isUp && !it.isLoopback }
+                    .sortedBy { if (it.name.startsWith("wlan") || it.name.startsWith("ap") || it.name.startsWith("swlan")) 0 else 1 }
+                    .flatMap { net -> net.inetAddresses.toList().filterIsInstance<Inet4Address>() }
+                    .filter { it.isSiteLocalAddress || it.isLinkLocalAddress }.mapNotNull { it.hostAddress }.distinct()
+                require(candidates.isNotEmpty()) { "Connect both phones to the same Wi-Fi or turn on a phone's hotspot first." }
