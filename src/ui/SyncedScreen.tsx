@@ -272,3 +272,19 @@ export function SyncedScreen({ state, actions }: Props) {
             <Text style={styles.caption}>Preparing your invitation…</Text>
           )}
           <Text style={styles.fine}>Same Wi-Fi · Approval required</Text>
+        </Card>
+      ) : (
+        <Card>
+          <Eyebrow>SCREEN SHARING</Eyebrow>
+          <Text style={styles.heading}>
+            {state.capturing
+              ? "Your screen is visible."
+              : "Ready to share your screen?"}
+          </Text>
+          <Text style={styles.copy}>
+            {state.capturing
+              ? "The connected phone can see the screen you approved. End the session at any time below."
+              : "Android will ask for screen capture permission. Approve it on this phone to begin sharing."}
+          </Text>
+          {!state.capturing && (
+            <Button primary onPress={actions.startScreenSharing}>
