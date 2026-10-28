@@ -47,3 +47,8 @@ public final class RemoteControlService extends AccessibilityService {
         DisplayMetrics metrics = new DisplayMetrics(); ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
         Path path = new Path(); path.moveTo((float) (sx * (metrics.widthPixels - 1)), (float) (sy * (metrics.heightPixels - 1)));
         if (sx != ex || sy != ey) path.lineTo((float) (ex * (metrics.widthPixels - 1)), (float) (ey * (metrics.heightPixels - 1)));
+        GestureDescription gesture = new GestureDescription.Builder().addStroke(new GestureDescription.StrokeDescription(path, 0, duration)).build();
+        if (!dispatchGesture(gesture, null, null)) fail("Android could not perform this gesture.");
+    }
+    private void typeText(String text) {
+        if (text.isEmpty() || text.length() > 1000) throw new IllegalArgumentException("Invalid text length");
