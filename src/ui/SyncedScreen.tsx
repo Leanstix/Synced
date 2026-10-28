@@ -494,3 +494,15 @@ export function SyncedScreen({ state, actions }: Props) {
                 {state.error
                   ? "CONNECTION NEEDS ATTENTION"
                   : "CONNECTION UPDATE"}
+              </Eyebrow>
+              <Text accessibilityRole="alert" style={styles.caption}>
+                {notice}
+              </Text>
+            </Card>
+          )}
+          {state.role === "HOST"
+            ? host
+            : state.role === "CONTROLLER" && state.connected
+            ? controller
+            : welcome}
+          {state.role !== "IDLE" && !!state.error && (
