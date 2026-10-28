@@ -39,3 +39,7 @@ object Pairing {
         val clientNonce = Crypto.randomBytes(32)
         send(socket, secret, JSONObject().put("type", "hello").put("version", 1).put("nonce", Invitation.encodeBytes(clientNonce)).put("name", name()))
         val challenge = receive(socket, secret)
+        require(challenge.getString("type") == "challenge" && MessageDigest.isEqual(nonce(challenge, "client"), clientNonce))
+        val hostNonce = nonce(challenge, "host")
+        send(socket, secret, JSONObject().put("type", "proof").put("host", Invitation.encodeBytes(hostNonce)))
+        showCode(verificationCode(secret, clientNonce, hostNonce))
