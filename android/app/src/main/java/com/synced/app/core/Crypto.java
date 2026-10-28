@@ -26,3 +26,8 @@ public final class Crypto {
     public static byte[] open(byte[] key, byte[] sealed) throws GeneralSecurityException {
         if (sealed.length < 28) throw new IllegalArgumentException("Truncated authentication packet");
         return crypt(Cipher.DECRYPT_MODE, key, Arrays.copyOfRange(sealed, 0, 12), Arrays.copyOfRange(sealed, 12, sealed.length), "Synced handshake v1".getBytes(StandardCharsets.UTF_8));
+    }
+    public static byte[] derive(byte[] secret, byte[] client, byte[] host, String direction) throws GeneralSecurityException {
+        if (secret.length != 32 || client.length != 32 || host.length != 32) throw new IllegalArgumentException("Invalid key material");
+        byte[] extract = hmac(join(client, host), secret);
+        return hmac(extract, join(("Synced v1 " + direction).getBytes(StandardCharsets.UTF_8), new byte[] {1}));
