@@ -57,3 +57,12 @@ public final class SessionEngine {
         }
     }
     public synchronized JSONObject snapshot() {
+        JSONObject json = state.json();
+        try { json.put("_sessionId", generation()); } catch (Exception ignored) {}
+        return json;
+    }
+    public void setListener(Listener value) { listener = value; publish(); }
+    public synchronized void clearListener(Listener value) { if (listener == value) listener = null; }
+    private synchronized void update(Consumer<State> change) { change.accept(state); publish(); }
+    private void publish() {
+        if (uiQueued.compareAndSet(false, true)) main.post(() -> {
