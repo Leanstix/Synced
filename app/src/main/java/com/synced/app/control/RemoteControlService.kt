@@ -39,3 +39,7 @@ class RemoteControlService : AccessibilityService() {
         } catch (_: Exception) { fail("The requested action is unavailable on this screen.") }
     }
     /** Never let a remote gesture grant permissions, approve a peer, or alter Synced's controls. */
+    private fun safeTarget(): Boolean {
+        val target = rootInActiveWindow?.packageName?.toString() ?: return false
+        val blocked = target == packageName || target.contains(".settings") || target.contains("permissioncontroller") ||
+            target.contains("packageinstaller") || target == "com.android.systemui" || target.contains("securitycenter")
