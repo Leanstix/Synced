@@ -10,3 +10,7 @@ Never commit live invitations, private screenshots, message contents, signing ke
 
 A shared network does not authenticate a peer. Transport changes must preserve explicit host approval, capture consent, control consent, bounded allocation, session IDs, replay checks, and revocation. Protocol changes need negative tests and a compatibility/version decision.
 
+Remote input must remain tied to a live approved capture. Do not add automatic permission-granting, device-authentication bypasses, invisible capture, or actions that remotely approve Synced's own dialogs.
+
+Show observed state. Do not invent paired devices, latency, frame rate, battery percentages, alarm completion, or call support. Dispatching an intent is different from confirming another app completed it.
+
