@@ -14,3 +14,6 @@ Remote input must remain tied to a live approved capture. Do not add automatic p
 
 Show observed state. Do not invent paired devices, latency, frame rate, battery percentages, alarm completion, or call support. Dispatching an intent is different from confirming another app completed it.
 
+For device reports include both models, Android builds, APK commit, clock version, hotspot/router topology, reproduction steps, actual result, and sanitized evidence. Follow [the acceptance matrix](docs/DEVICE_TESTING.md).
+
+Before distributing a production release, complete independent security review, physical-device testing, accessibility review, production signing, and applicable distribution-policy checks.
