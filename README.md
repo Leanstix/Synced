@@ -54,3 +54,12 @@ The **preview** variant includes its TypeScript/JavaScript bundle and Hermes run
 
 ## Connect your phones
 
+1. Install Synced on both Android phones. Connect both to the same Wi-Fi, or connect the controller to the sharing phone's hotspot.
+2. On the phone to access, open **Share** and create an invitation. Transfer it privately; it contains a secret.
+3. On the phone in your hand, open **Connect**, paste the complete invitation, and connect.
+4. Compare the six-digit pairing code on both phones. Approve only the intended matching request on the sharing phone.
+5. On the sharing phone, start screen sharing and choose the **entire screen** in Android's dialog.
+6. For touch input, read the accessibility disclosure, enable Synced in Android settings, return, and explicitly allow control.
+7. Use the remote view or clock shortcuts. If the host is still showing Synced, use remote **Home** first; Synced protects its own controls from remote input.
+8. End the session with **Stop** or **Disconnect**. After host rotation, allow control locally again.
+
