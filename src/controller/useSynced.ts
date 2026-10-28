@@ -112,3 +112,20 @@ export function useSynced(): { state: UiState; actions: UiActions } {
       }
     );
     const frames = DeviceEventEmitter.addListener(
+      "SyncedFrame",
+      (frame: { uri: string; sessionId?: number }) => {
+        native.ackFrame?.();
+        if ((frame.sessionId ?? 0) !== sessionId) return;
+        setState((previous) =>
+          previous.connected &&
+          previous.role === "CONTROLLER" &&
+          previous.capturing
+            ? { ...previous, remoteFrame: frame.uri }
+            : previous
+        );
+      }
+    );
+    native
+      .getState()
+      .then((next) => {
+        if (!disposed && liveVersion === 0) apply(next);
