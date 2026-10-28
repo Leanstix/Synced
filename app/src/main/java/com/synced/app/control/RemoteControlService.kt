@@ -52,3 +52,7 @@ class RemoteControlService : AccessibilityService() {
         require(listOf(sx, sy, ex, ey).all { it.isFinite() && it in 0.0..1.0 })
         val duration = data.getLong("duration").coerceIn(50, 1500)
         val metrics = DisplayMetrics()
+        (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(metrics)
+        val path = Path().apply {
+            moveTo((sx * (metrics.widthPixels - 1)).toFloat(), (sy * (metrics.heightPixels - 1)).toFloat())
+            if (sx != ex || sy != ey) lineTo((ex * (metrics.widthPixels - 1)).toFloat(), (ey * (metrics.heightPixels - 1)).toFloat())
