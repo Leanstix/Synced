@@ -474,3 +474,23 @@ export function SyncedScreen({ state, actions }: Props) {
                 key={String(label)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: sharing === value }}
+                onPress={() => chooseRole(value === true)}
+                style={[styles.tab, sharing === value && styles.tabSelected]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    sharing === value && styles.tabTextSelected,
+                  ]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {state.role === "IDLE" && !!notice && (
+            <Card>
+              <Eyebrow>
+                {state.error
+                  ? "CONNECTION NEEDS ATTENTION"
+                  : "CONNECTION UPDATE"}
