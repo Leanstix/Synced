@@ -105,3 +105,8 @@ public final class SessionEngine {
                 interfaces.sort(Comparator.comparingInt(n -> n.getName().startsWith("wlan") || n.getName().startsWith("ap") || n.getName().startsWith("swlan") ? 0 : 1));
                 List<String> addresses = new ArrayList<>();
                 for (NetworkInterface net : interfaces) if (net.isUp() && !net.isLoopback()) {
+                    for (InetAddress address : Collections.list(net.getInetAddresses())) if (address instanceof Inet4Address && (address.isSiteLocalAddress() || address.isLinkLocalAddress())) addresses.add(address.getHostAddress());
+                }
+                if (addresses.isEmpty()) throw new IllegalArgumentException("Connect both phones to the same Wi-Fi or enable a phone's hotspot first.");
+                ServerSocket local = new ServerSocket(0); local.setSoTimeout(1000); if (!claim(id, local)) return;
+                byte[] secret = Crypto.random(32); long expiry = System.currentTimeMillis() + 10 * 60_000;
