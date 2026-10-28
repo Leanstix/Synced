@@ -300,3 +300,17 @@ export function SyncedScreen({ state, actions }: Props) {
       <Card>
         <View style={styles.spread}>
           <Text style={[styles.title, styles.fill]}>Allow remote control</Text>
+          <Switch
+            accessibilityLabel="Allow the connected phone to control this phone"
+            value={state.controlAllowed}
+            onValueChange={actions.setControlAllowed}
+            disabled={
+              !state.accessibilityEnabled ||
+              !state.connected ||
+              !state.capturing
+            }
+            thumbColor={state.controlAllowed ? colors.lime : colors.muted}
+            trackColor={{ false: colors.border, true: "#4B6539" }}
+          />
+        </View>
+        <Text style={styles.caption}>
