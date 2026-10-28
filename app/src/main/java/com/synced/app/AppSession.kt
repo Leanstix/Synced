@@ -45,3 +45,8 @@ object AppSession {
     @Volatile private var socket: Socket? = null
     @Volatile private var channel: SecureChannel? = null
     @Volatile private var pendingApproval: ApprovalGate? = null
+    @Volatile private var authenticated = false
+    @Volatile private var controlConsent = false
+
+    fun initialize(value: Context) { context = value.applicationContext }
+    fun observe(value: ((UiState) -> Unit)?) { listener = value; value?.invoke(state) }
