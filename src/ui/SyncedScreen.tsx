@@ -59,3 +59,20 @@ export function SyncedScreen({ state, actions }: Props) {
         ]
       );
     } else setSharing(next);
+  };
+  const connect = () => {
+    if (!invitation.trim()) {
+      setInputError("Paste the invitation from your other phone.");
+      return;
+    }
+    Keyboard.dismiss();
+    setInputError("");
+    actions.connect(invitation.trim());
+  };
+  const shareInvitation = async () => {
+    try {
+      await Share.share({
+        message: state.invitation,
+        title: "Synced private invitation",
+      });
+    } catch {
