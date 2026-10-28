@@ -17,3 +17,14 @@ These are manual acceptance cases, not claims of completed physical-device tests
 
 ## Screen and gestures
 
+11. Entire-screen capture displays a real current frame on the controller.
+12. An app-only selection is rejected or cannot enable mismatched full-display control.
+13. Portrait and landscape frames fit without stretching; letterbox regions ignore touches.
+14. Tapping each display corner hits the expected remote target.
+15. A short tap remains a tap, a long press retains duration, and a swipe follows the expected path.
+16. Back, Home, and Recents run only after control is enabled on the host.
+17. Disabling the host's control switch immediately rejects new input.
+18. Disabling the accessibility service makes control unavailable without affecting local use.
+19. Text reaches the focused editable field; it does not send a message automatically.
+20. Password and secure windows follow Android/app protection; Synced does not remove those protections.
+
