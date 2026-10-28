@@ -16,3 +16,9 @@ Protocol v1 uses AES-256-GCM and a random invitation secret. Authentication mess
 
 Each encrypted traffic packet authenticates an eight-byte sequence number. A per-direction counter supplies the GCM nonce and must match exactly on receipt. Reordered, repeated, modified, truncated, and oversized packets are rejected. Packet lengths are bounded before allocation; decoded image dimensions are also checked before full bitmap decode.
 
+This is an application-specific protocol, not TLS or an independently audited protocol. It does not provide forward secrecy: disclosure of an invitation secret together with a recorded handshake can compromise that session. Prefer a reviewed standard protocol for a future public release.
+
+## Local-only scope
+
+Invitations accept numeric private or link-local IPv4 addresses. The app has no discovery service, cloud account, internet relay, analytics service, or server database. A local network is transport reachability, not authorization. A router administrator can observe endpoints, timing, and traffic size even when payloads are encrypted.
+
