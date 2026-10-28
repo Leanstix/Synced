@@ -43,3 +43,24 @@ export interface UiActions {
   sendAction(action: string): void;
 }
 type NativeState = Omit<UiState, "remoteFrame"> & { _sessionId?: number };
+interface SyncedBridge {
+  getState(): Promise<NativeState>;
+  ackFrame?(): void;
+  startHosting(): void;
+  connect(invitation: string): void;
+  approvePeer(allow: boolean): void;
+  startCapture(): void;
+  openAccessibilitySettings(): void;
+  setControlAllowed(allowed: boolean): void;
+  disconnect(): void;
+  sendGesture(
+    sx: number,
+    sy: number,
+    ex: number,
+    ey: number,
+    duration: number
+  ): void;
+  sendText(text: string): void;
+  sendAction(action: string): void;
+}
+export const initialState: UiState = {
