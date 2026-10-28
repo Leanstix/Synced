@@ -226,3 +226,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                     typeface = Typeface.MONOSPACE; maxLines = 2; ellipsize = TextUtils.TruncateAt.END
                     setPadding(s.dp(12), s.dp(12), s.dp(12), s.dp(12)); background = s.shape(s.background, 10)
                 }, full())
+                addView(s.space(12))
+                addView(s.button("Copy invitation", primary = true) {
+                    val clip = ClipData.newPlainText("Synced private invitation", state.invitation)
+                    if (android.os.Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
