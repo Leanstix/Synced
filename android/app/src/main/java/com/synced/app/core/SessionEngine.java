@@ -223,3 +223,8 @@ public final class SessionEngine {
     }
     private synchronized void sendStatus() {
         if (!authenticated || !"HOST".equals(state.role)) return;
+        try { sendPacket(SecureChannel.STATUS, new JSONObject().put("capturing", state.capturing).put("control", controlConsent).put("accessibility", RemoteControlService.instance != null).toString().getBytes(StandardCharsets.UTF_8)); }
+        catch (Exception e) { report("Could not send session status."); }
+    }
+    public synchronized void remoteMessage(String message) {
+        try { sendPacket(SecureChannel.STATUS, new JSONObject().put("capturing", state.capturing).put("control", controlConsent).put("accessibility", RemoteControlService.instance != null).put("message", message).toString().getBytes(StandardCharsets.UTF_8)); }
