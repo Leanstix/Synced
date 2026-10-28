@@ -16,3 +16,8 @@ public final class Pairing {
     public interface Approval { boolean approve(String name) throws Exception; }
     public interface Code { void show(String code); }
     public static final class Result {
+        public final SecureChannel channel; public final String peer;
+        Result(SecureChannel channel, String peer) { this.channel = channel; this.peer = peer; }
+    }
+    private static void send(Socket socket, byte[] secret, JSONObject json) throws Exception {
+        Framing.write(new DataOutputStream(socket.getOutputStream()), Crypto.seal(secret, json.toString().getBytes(StandardCharsets.UTF_8)), MAX_HANDSHAKE);
