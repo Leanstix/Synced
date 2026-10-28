@@ -169,3 +169,11 @@ class ScreenCaptureService : Service() {
             getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
             display?.release(); display = null
             reader?.close(); reader = null
+            projection?.unregisterCallback(callback)
+            projection?.stop(); projection = null
+            worker.quitSafely()
+        }
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        super.onDestroy()
+    }
+}
