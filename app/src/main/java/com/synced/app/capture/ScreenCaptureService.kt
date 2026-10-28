@@ -92,3 +92,7 @@ class ScreenCaptureService : Service() {
                     val metrics = realMetrics(); density = metrics.densityDpi
                     val dimensions = scaled(metrics.widthPixels, metrics.heightPixels)
                     width = dimensions.first; height = dimensions.second
+                    reader = makeReader(width, height)
+                    display = projection!!.createVirtualDisplay("Synced screen", width, height, density,
+                        DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader!!.surface, null, handler)
+                    getSystemService(DisplayManager::class.java).registerDisplayListener(displayListener, handler)
