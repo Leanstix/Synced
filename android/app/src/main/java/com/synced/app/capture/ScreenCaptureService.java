@@ -45,3 +45,12 @@ public final class ScreenCaptureService extends Service {
         @Override public void onCapturedContentResize(int w, int h) {
             engine.setControlAllowed(false, sessionId);
             handler.postDelayed(() -> {
+                if (stopping || sessionId != engine.generation()) return;
+                DisplayMetrics full = metrics();
+                if (w != full.widthPixels || h != full.heightPixels) { engine.report(sessionId, "Full-display sharing is required. Select the entire screen and start sharing again."); stopSelf(); }
+                else resize(w, h);
+            }, 180);
+        }
+    };
+    @Override public void onCreate() { super.onCreate(); engine = SessionEngine.get(this); worker.start(); handler = new Handler(worker.getLooper()); }
+    @Override public IBinder onBind(Intent intent) { return null; }
