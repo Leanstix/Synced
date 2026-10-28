@@ -62,3 +62,8 @@ class RemoteControlService : AccessibilityService() {
     }
     private fun typeText(text: String) {
         require(text.length in 1..1000)
+        val focused = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        if (focused == null || !focused.isEditable || focused.isPassword) {
+            fail("Tap a normal editable field on the host first. Password fields require local input."); return
+        }
+        val args = Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text) }
