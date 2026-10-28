@@ -101,3 +101,8 @@ public final class ScreenCaptureService extends Service {
     private int[] scaled(int w, int h) {
         if (w < 1 || h < 1) throw new IllegalArgumentException("Invalid display size");
         double scale = Math.min(1, 1280.0 / Math.max(w, h)); return new int[] { Math.max(1, (int) Math.round(w * scale)), Math.max(1, (int) Math.round(h * scale)) };
+    }
+    private void resize(int w, int h) {
+        if (stopping || display == null) return; int[] size = scaled(w, h); if (size[0] == width && size[1] == height) return;
+        engine.setControlAllowed(false, sessionId); ImageReader old = reader; width = size[0]; height = size[1]; reader = makeReader(width, height);
+        display.resize(width, height, density); display.setSurface(reader.getSurface()); if (old != null) old.close();
