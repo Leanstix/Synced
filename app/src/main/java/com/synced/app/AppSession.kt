@@ -78,3 +78,14 @@ object AppSession {
     }
     @Synchronized fun disconnectCurrent(id: Int, message: String) {
         if (isCurrent(id)) disconnect(message)
+    }
+    fun currentGeneration(): Int = generation.get()
+    @Synchronized private fun updateCurrent(id: Int, change: (UiState) -> UiState) {
+        if (isCurrent(id)) update(change)
+    }
+    @Synchronized private fun claimSocket(id: Int, value: Socket): Boolean {
+        if (!isCurrent(id)) { value.close(); return false }
+        socket = value; return true
+    }
+    @Synchronized private fun claimServer(id: Int, value: ServerSocket): Boolean {
+        if (!isCurrent(id)) { value.close(); return false }
