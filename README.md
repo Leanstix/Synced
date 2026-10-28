@@ -69,3 +69,17 @@ There is no automatic discovery. Some routers/hotspots isolate clients and block
 
 Initial pairing cannot bypass Android's per-session screen-capture consent. Locking the host, stopping projection, losing the process/network, or ending the session can require fresh approval. This app deliberately blocks locked-phone input and cannot guarantee dismissal of an arbitrary clock app's alarm while the host is locked and unattended. Clock behavior must be checked on your actual devices.
 
+## Review and validation
+
+- [Validation status](docs/VALIDATION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security model](SECURITY.md)
+- [Physical-device acceptance matrix](docs/DEVICE_TESTING.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Android references
+
+[MediaProjection](https://developer.android.com/media/grow/media-projection) · [Accessibility gestures](https://developer.android.com/guide/topics/ui/accessibility/service) · [Clock intents](https://developer.android.com/reference/android/provider/AlarmClock) · [React Native Android modules](https://reactnative.dev/docs/legacy/native-modules-android)
+
+MIT. See [LICENSE](LICENSE).
