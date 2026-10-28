@@ -288,3 +288,13 @@ object AppSession {
         }
     }
     private fun enqueue(id: Int, task: () -> Unit) {
+        try { outgoing.execute(task) }
+        catch (_: RejectedExecutionException) { frameBusy.set(false); disconnectCurrent(id, "Connection overloaded. Sharing and control stopped.") }
+    }
+    private fun friendly(e: Exception): String = when (e) {
+        is SocketTimeoutException -> "Timed out. Check the Wi-Fi/hotspot connection and approve on the host."
+        is java.net.ConnectException -> "Host unreachable. Check the invitation and use the same Wi-Fi or hotspot; some networks isolate devices."
+        is IllegalArgumentException -> e.message ?: "Invalid invitation or protocol data."
+        else -> "The peer closed the connection or authentication failed."
+    }
+}
