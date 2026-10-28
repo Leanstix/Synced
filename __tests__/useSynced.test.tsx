@@ -146,3 +146,16 @@ it("rejects stale-session frames and clears the previous session image", async (
     capturing: true,
     _sessionId: 7,
   });
+  act(() => native.__emit("SyncedFrame", { uri: "old", sessionId: 7 }));
+  expect(current.state.remoteFrame).toBe("old");
+  status({
+    role: "CONTROLLER",
+    connected: true,
+    capturing: true,
+    _sessionId: 8,
+  });
+  expect(current.state.remoteFrame).toBeNull();
+  act(() => native.__emit("SyncedFrame", { uri: "stale", sessionId: 7 }));
+  expect(current.state.remoteFrame).toBeNull();
+  expect(native.NativeModules.Synced.ackFrame).toHaveBeenCalled();
+});
