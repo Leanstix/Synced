@@ -54,3 +54,7 @@ public final class ScreenCaptureService extends Service {
     };
     @Override public void onCreate() { super.onCreate(); engine = SessionEngine.get(this); worker.start(); handler = new Handler(worker.getLooper()); }
     @Override public IBinder onBind(Intent intent) { return null; }
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "STOP".equals(intent.getAction())) { engine.disconnect(sessionId, "Sharing stopped locally. Connection revoked."); stopSelf(); return START_NOT_STICKY; }
+        if (projection != null) return START_NOT_STICKY;
+        if (intent == null || !engine.isHostReady()) { stopSelf(); return START_NOT_STICKY; }
