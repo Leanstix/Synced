@@ -231,3 +231,7 @@ object AppSession {
                 }
                 SecureChannel.STATUS -> {
                     require(bytes.size <= 8192)
+                    val data = JSONObject(String(bytes))
+                    updateCurrent(id) { it.copy(capturing = data.optBoolean("capturing"), controlAllowed = data.optBoolean("control"),
+                        accessibilityEnabled = data.optBoolean("accessibility"), remoteFrame = if (data.optBoolean("capturing")) it.remoteFrame else null,
+                        status = data.optString("message").ifBlank { if (data.optBoolean("capturing")) "Live · encrypted local connection" else "Connected. Host screen sharing is paused." }) }
