@@ -44,3 +44,18 @@ export function SyncedScreen({ state, actions }: Props) {
   const chooseRole = (next: boolean) => {
     if (state.role !== "IDLE" && next !== sharing) {
       Alert.alert(
+        "End this session?",
+        "Switching phones ends the current connection and screen sharing.",
+        [
+          { text: "Keep session", style: "cancel" },
+          {
+            text: "End and switch",
+            style: "destructive",
+            onPress: () => {
+              setSharing(next);
+              actions.disconnect();
+            },
+          },
+        ]
+      );
+    } else setSharing(next);
