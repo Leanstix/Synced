@@ -65,3 +65,22 @@ export function Status({
   subtitle,
   connected,
 }: {
+  title: string;
+  subtitle: string;
+  connected?: boolean;
+}) {
+  return (
+    <View style={styles.status}>
+      <View
+        style={[
+          styles.dot,
+          { backgroundColor: connected ? colors.lime : colors.warning },
+        ]}
+      />
+      <View style={[styles.smallStack, styles.fill]}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.caption}>{subtitle}</Text>
+      </View>
+    </View>
+  );
+}
