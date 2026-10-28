@@ -32,3 +32,16 @@ import java.util.Calendar
 class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     private val s = UiStyle(activity)
     private var state = UiState()
+    private var structuralState: UiState? = null
+    private var shareSelected = false
+    private var invitationDraft = ""
+    private var remoteView: RemoteScreenView? = null
+    private val scroll = ScrollView(activity).apply {
+        isFillViewport = true
+        clipToPadding = false
+        setBackgroundColor(s.background)
+        isVerticalScrollBarEnabled = false
+    }
+    private val content = s.column().apply { setPadding(s.dp(24), s.dp(20), s.dp(24), s.dp(28)) }
+    val root: View = FrameLayout(activity).apply {
+        setBackgroundColor(s.background)
