@@ -14,3 +14,11 @@ Intentional invitations, per-session host approval, encrypted local transport, e
 - Confirm Google Play accessibility policy eligibility, disclosures, and declarations before store submission.
 - Complete a real-device accessibility, screen-reader, large-font, and contrast audit.
 
+## Trusted device product
+
+Use Android Keystore-backed identity keys, a reviewed pairing exchange, host-confirmed verification, encrypted storage, a device list with individual revocation, key rotation, and explicit permission scopes. Persistent pairing must not imply permission to bypass screen-capture consent or device authentication.
+
+## More connection options
+
+Add QR invitations and optional local discovery after permission review. Explore Bluetooth for pairing and small control messages; screen video should use Wi-Fi or a measured alternative. Add internet access only with a separate authenticated signaling/relay design, clear account recovery, and revocation behavior.
+
