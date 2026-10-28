@@ -202,3 +202,7 @@ object AppSession {
                     error("Too many pending commands")
                 }
                 main.post {
+                    try {
+                        if (isCurrent(id) && epoch == controlEpoch.get() && canControl()) RemoteControlService.instance?.execute(command)
+                        else if (isCurrent(id)) sendRemoteMessage("The host must share its unlocked screen and allow remote control first.")
+                    } finally { pendingCommands.decrementAndGet() }
