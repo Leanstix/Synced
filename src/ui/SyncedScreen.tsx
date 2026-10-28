@@ -127,3 +127,15 @@ export function SyncedScreen({ state, actions }: Props) {
           <Text style={styles.heading}>Make the connection.</Text>
           <Text style={styles.copy}>
             Create a private invitation, then paste it into Synced on your other
+            Android phone.
+          </Text>
+          <Button primary onPress={actions.startHosting}>
+            Create invitation
+          </Button>
+          <Text style={styles.fine}>
+            You’ll approve the phone before it can connect.
+          </Text>
+        </Card>
+      ) : (
+        <Card>
+          <Eyebrow>01 · CONNECT TO YOUR OTHER PHONE</Eyebrow>
