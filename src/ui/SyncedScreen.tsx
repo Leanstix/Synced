@@ -587,3 +587,20 @@ export function SyncedScreen({ state, actions }: Props) {
                 </View>
               </>
             ) : (
+              <>
+                <Text style={styles.copy}>
+                  Choose a 24-hour time. The clock on your other phone may ask
+                  you to confirm.
+                </Text>
+                <View style={styles.row}>
+                  <View style={[styles.stack, styles.fill]}>
+                    <Text style={styles.caption}>Hour</Text>
+                    <TextInput
+                      style={styles.input}
+                      accessibilityLabel="Alarm hour, 0 to 23"
+                      value={hour}
+                      onChangeText={setHour}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                    />
+                  </View>
