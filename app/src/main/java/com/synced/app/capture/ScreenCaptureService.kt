@@ -43,3 +43,12 @@ class ScreenCaptureService : Service() {
         }
     }
     private var lastFrame = 0L
+    @Volatile private var stopping = false
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(id: Int) = Unit
+        override fun onDisplayRemoved(id: Int) = Unit
+        override fun onDisplayChanged(id: Int) { if (Build.VERSION.SDK_INT < 34) resizeFromDisplay() }
+    }
+    private val callback = object : MediaProjection.Callback() {
+        override fun onStop() { stopSelf() }
+        override fun onCapturedContentResize(w: Int, h: Int) {
