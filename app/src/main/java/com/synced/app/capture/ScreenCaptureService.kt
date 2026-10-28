@@ -125,3 +125,11 @@ class ScreenCaptureService : Service() {
     }
     private fun resizeFromDisplay() { val metrics = realMetrics(); resize(metrics.widthPixels, metrics.heightPixels) }
     private fun resize(w: Int, h: Int) {
+        if (stopping || display == null) return
+        val size = scaled(w, h)
+        if (size.first == width && size.second == height) return
+        AppSession.setControlAllowed(false, sessionId)
+        val old = reader
+        width = size.first; height = size.second
+        reader = makeReader(width, height)
+        display?.resize(width, height, density)
