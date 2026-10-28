@@ -8,3 +8,12 @@ Synced is a **React Native and TypeScript** Android app for viewing and operatin
 
 ## Stack
 
+- React Native 0.88.1, React 19.3, strict TypeScript.
+- TypeScript interface, session state adapter, local consent dialogs, action validation, and remote viewport gesture mapping.
+- Java Android adapters for sockets/cryptography, MediaProjection, AccessibilityService, notifications, and clock intents. No authored Kotlin application code.
+- Direct encrypted local TCP connections; no cloud account, relay, message-platform login, or analytics backend.
+
+Android's screen capture and system input APIs require native adapters. The application interface is React Native; the Java platform bridge supplies those Android capabilities.
+
+## Implemented
+
