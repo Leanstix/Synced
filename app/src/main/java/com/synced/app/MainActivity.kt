@@ -81,3 +81,14 @@ class MainActivity : Activity(), UiActions {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode != 700) return
         if (resultCode == RESULT_OK && data != null && captureGeneration == AppSession.currentGeneration() && AppSession.state.connected && AppSession.state.role == Role.HOST) {
+            startForegroundService(Intent(this, ScreenCaptureService::class.java).putExtra("resultCode", resultCode).putExtra("data", data).putExtra("generation", captureGeneration))
+        } else AppSession.report("Screen sharing was not started. Your screen remains private.")
+    }
+    override fun sendGesture(startX: Float, startY: Float, endX: Float, endY: Float, durationMs: Long) {
+        AppSession.sendCommand(JSONObject().put("kind", "gesture").put("sx", startX).put("sy", startY).put("ex", endX).put("ey", endY).put("duration", durationMs))
+    }
+    override fun sendText(text: String) {
+        if (text.isNotBlank() && text.length <= 1000) AppSession.sendCommand(JSONObject().put("kind", "text").put("text", text))
+    }
+    override fun sendAction(action: String) = AppSession.sendCommand(JSONObject().put("kind", "action").put("action", action))
+}
