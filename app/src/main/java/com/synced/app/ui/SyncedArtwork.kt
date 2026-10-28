@@ -68,3 +68,14 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
             c.drawRoundRect(RectF(x + 14, y + 64 + i * 18, x + w - 14, y + 77 + i * 18), 4f, 4f, p)
         }
         p.color = Color.rgb(88, 104, 80)
+        c.drawRoundRect(RectF(x + w / 2 - 13, y + h - 13, x + w / 2 + 13, y + h - 10), 2f, 2f, p)
+        c.restore()
+    }
+}
+
+class SyncedMark(context: Context) : View(context) {
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+    init { importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO }
+    override fun onDraw(c: Canvas) {
+        val s = width / 40f
+        c.save(); c.scale(s, s)
