@@ -277,3 +277,14 @@ object AppSession {
         if (authenticated && state.role == Role.CONTROLLER && state.capturing && state.controlAllowed) {
             sendPacket(SecureChannel.CONTROL, command.toString().toByteArray())
         } else report("The host must share its screen and allow remote control first.")
+    }
+    @Synchronized private fun sendPacket(type: Int, bytes: ByteArray) {
+        val id = generation.get()
+        val secure = channel ?: return
+        val epoch = controlEpoch.get()
+        enqueue(id) {
+            try { if (isCurrent(id) && (type != SecureChannel.CONTROL || epoch == controlEpoch.get())) secure.send(type, bytes) }
+            catch (_: Exception) { disconnectCurrent(id, "Connection lost. Sharing and control stopped.") }
+        }
+    }
+    private fun enqueue(id: Int, task: () -> Unit) {
