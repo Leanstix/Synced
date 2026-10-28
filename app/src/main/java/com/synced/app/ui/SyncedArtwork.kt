@@ -51,3 +51,11 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
         p.shader = LinearGradient(x, y, x + w, y + h,
             if (primary) Color.rgb(71, 82, 64) else Color.rgb(43, 49, 45),
             Color.rgb(22, 28, 24), Shader.TileMode.CLAMP)
+        c.drawRoundRect(RectF(x, y, x + w, y + h), 14f, 14f, p); p.shader = null
+        p.style = Paint.Style.STROKE; p.strokeWidth = 1.5f
+        p.color = if (primary) Color.rgb(139, 161, 119) else Color.rgb(93, 105, 94)
+        c.drawRoundRect(RectF(x, y, x + w, y + h), 14f, 14f, p)
+        p.style = Paint.Style.FILL; p.color = Color.rgb(14, 20, 16)
+        c.drawRoundRect(RectF(x + 5, y + 6, x + w - 5, y + h - 6), 10f, 10f, p)
+        p.color = Color.rgb(80, 94, 76)
+        c.drawRoundRect(RectF(x + w / 2 - 11, y + 10, x + w / 2 + 11, y + 14), 3f, 3f, p)
