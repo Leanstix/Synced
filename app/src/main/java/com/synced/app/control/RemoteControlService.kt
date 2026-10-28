@@ -56,3 +56,9 @@ class RemoteControlService : AccessibilityService() {
         val path = Path().apply {
             moveTo((sx * (metrics.widthPixels - 1)).toFloat(), (sy * (metrics.heightPixels - 1)).toFloat())
             if (sx != ex || sy != ey) lineTo((ex * (metrics.widthPixels - 1)).toFloat(), (ey * (metrics.heightPixels - 1)).toFloat())
+        }
+        val gesture = GestureDescription.Builder().addStroke(GestureDescription.StrokeDescription(path, 0, duration)).build()
+        if (!dispatchGesture(gesture, null, null)) fail("Android could not perform this gesture.")
+    }
+    private fun typeText(text: String) {
+        require(text.length in 1..1000)
