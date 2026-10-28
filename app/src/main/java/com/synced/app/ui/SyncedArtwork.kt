@@ -46,3 +46,8 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
     }
     private fun phone(c: Canvas, x: Float, y: Float, w: Float, h: Float, angle: Float, primary: Boolean) {
         c.save(); c.rotate(angle, x + w / 2, y + h / 2)
+        p.style = Paint.Style.FILL; p.color = Color.rgb(8, 11, 9)
+        c.drawRoundRect(RectF(x + 5, y + 8, x + w + 5, y + h + 8), 15f, 15f, p)
+        p.shader = LinearGradient(x, y, x + w, y + h,
+            if (primary) Color.rgb(71, 82, 64) else Color.rgb(43, 49, 45),
+            Color.rgb(22, 28, 24), Shader.TileMode.CLAMP)
