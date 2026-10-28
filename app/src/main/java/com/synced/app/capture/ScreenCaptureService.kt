@@ -151,3 +151,12 @@ class ScreenCaptureService : Service() {
                     val padded = Bitmap.createBitmap(image.width + padding / plane.pixelStride, image.height, Bitmap.Config.ARGB_8888)
                     padded.copyPixelsFromBuffer(plane.buffer)
                     val cropped = Bitmap.createBitmap(padded, 0, 0, image.width, image.height)
+                    val bytes = ByteArrayOutputStream()
+                    cropped.compress(Bitmap.CompressFormat.JPEG, 58, bytes)
+                    if (cropped !== padded) cropped.recycle()
+                    padded.recycle()
+                    AppSession.sendFrame(bytes.toByteArray(), sessionId)
+                }
+            } catch (_: Exception) { /* Drop a frame during resize or teardown. */ }
+            finally { image.close() }
+        }, handler)
