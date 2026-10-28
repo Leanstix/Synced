@@ -139,3 +139,15 @@ export function SyncedScreen({ state, actions }: Props) {
       ) : (
         <Card>
           <Eyebrow>01 · CONNECT TO YOUR OTHER PHONE</Eyebrow>
+          <Text style={styles.heading}>Have an invitation?</Text>
+          <Text style={styles.copy}>
+            Open Share in Synced on your other phone, then paste its invitation
+            here.
+          </Text>
+          <TextInput
+            accessibilityLabel="Invitation from your other phone"
+            value={invitation}
+            onChangeText={(value) => {
+              setInvitation(value);
+              setInputError("");
+            }}
