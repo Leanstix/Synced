@@ -38,3 +38,8 @@ public final class RemoteControlService extends AccessibilityService {
         AccessibilityNodeInfo root = getRootInActiveWindow(); if (root == null || root.getPackageName() == null) return false;
         String target = root.getPackageName().toString();
         boolean blocked = target.equals(getPackageName()) || target.contains(".settings") || target.contains("permissioncontroller") || target.contains("packageinstaller") || target.equals("com.android.systemui") || target.contains("securitycenter");
+        if (blocked) fail("This protected screen requires interaction on the host phone."); return !blocked;
+    }
+    @SuppressWarnings("deprecation") private void gesture(JSONObject data) throws Exception {
+        double sx = data.getDouble("sx"), sy = data.getDouble("sy"), ex = data.getDouble("ex"), ey = data.getDouble("ey");
+        for (double value : new double[] {sx, sy, ex, ey}) if (!Double.isFinite(value) || value < 0 || value > 1) throw new IllegalArgumentException("Invalid coordinates");
