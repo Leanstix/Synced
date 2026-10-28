@@ -40,3 +40,13 @@ npm start
 npm run android
 ```
 
+Set `ANDROID_HOME` or create untracked `android/local.properties` with `sdk.dir=/absolute/path/to/android-sdk`. Development debug builds use Metro. The Gradle wrapper pins9.4.1; the React Native Gradle plugin pins Android Gradle Plugin9.2.1.
+
+## Build an installable preview
+
+```sh
+cd android
+./gradlew testDebugUnitTest lintDebug assemblePreview
+adb install -r app/build/outputs/apk/preview/app-preview.apk
+```
+
