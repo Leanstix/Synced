@@ -13,3 +13,22 @@ function Probe() {
 }
 async function mount() {
   await act(async () => {
+    mounted = create(<Probe />);
+  });
+}
+function status(state: Partial<UiState> & { _sessionId?: number }) {
+  act(() => native.__emit("SyncedState", { ...initialState, ...state }));
+}
+
+beforeEach(() => {
+  native.__listeners.clear();
+  Object.values(native.NativeModules.Synced).forEach((value) =>
+    (value as jest.Mock).mockReset()
+  );
+  native.Alert.alert.mockReset();
+  native.NativeModules.Synced.getState.mockResolvedValue(initialState);
+});
+afterEach(async () => {
+  await act(async () => mounted?.unmount());
+  mounted = undefined;
+});
