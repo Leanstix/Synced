@@ -85,3 +85,18 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             rebuild()
         }
         remoteView?.controlEnabled = next.controlAllowed
+        remoteView?.show(next.remoteFrame)
+    }
+
+    private fun rebuild() {
+        val previousScroll = scroll.scrollY
+        content.removeAllViews(); remoteView = null
+        header()
+        addGap(28)
+        roleTabs()
+        addGap(28)
+        if (state.role == Role.CONTROLLER && state.connected) controllerScreen()
+        else if (state.role == Role.HOST) hostScreen()
+        else welcomeScreen()
+        state.error?.takeIf { it.isNotBlank() }?.let { error ->
+            addGap(16)
