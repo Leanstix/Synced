@@ -72,3 +72,7 @@ class ScreenCaptureService : Service() {
     }
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == "STOP") { AppSession.disconnect("Sharing stopped locally. Connection revoked."); stopSelf(); return START_NOT_STICKY }
+        if (projection != null) return START_NOT_STICKY
+        if (intent == null || AppSession.state.role != Role.HOST || !AppSession.state.connected) { stopSelf(); return START_NOT_STICKY }
+        sessionId = intent.getIntExtra("generation", -1)
