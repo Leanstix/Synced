@@ -164,3 +164,7 @@ public final class SessionEngine {
         try {
             while (current(id)) {
                 SecureChannel.Message message = secure.read();
+                if (message.type == SecureChannel.PING) { if (message.body.length != 0) throw new IllegalArgumentException("Invalid heartbeat"); continue; }
+                if (message.type != SecureChannel.CONTROL || message.body.length > 8192) throw new IllegalArgumentException("Unexpected command");
+                long now = System.nanoTime(); if (now - window > 1_000_000_000L) { window = now; commands = 0; }
+                if (++commands > 30) throw new IllegalArgumentException("Command rate exceeded");
