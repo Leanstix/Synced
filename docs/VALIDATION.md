@@ -23,3 +23,6 @@ The GitHub Actions workflow runs TypeScript checks, JavaScript tests, native uni
 
 No completed React Native emulator run or physical two-phone acceptance run is claimed. Screen-capture permission flow, native-module registration at runtime, OEM hotspot reachability, rotation, background behavior, clock intents, secure surfaces, and gesture accuracy still require device validation.
 
+Bluetooth, internet relay, persistent trusted-device pairing, iPhone hosting, call-audio forwarding, multi-touch, and low-latency gaming remain outside this implementation. The security protocol has not received independent audit.
+
+Use [the device matrix](DEVICE_TESTING.md) to record actual results before relying on Synced for an unattended alarm or distributing it as a production application.
