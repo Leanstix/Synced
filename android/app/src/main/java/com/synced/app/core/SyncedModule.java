@@ -55,3 +55,7 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
     }
     @Override public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
         if (requestCode != CAPTURE_REQUEST) return;
+        capturePending = false;
+        if (resultCode == Activity.RESULT_OK && data != null && captureGeneration == engine.generation() && engine.isHostReady()) {
+            try { activity.startForegroundService(new Intent(activity, ScreenCaptureService.class).putExtra("resultCode", resultCode).putExtra("data", data).putExtra("generation", captureGeneration)); }
+            catch (Exception e) { engine.report(captureGeneration, "Android could not start foreground sharing. Keep Synced open and try again."); }
