@@ -197,3 +197,29 @@ export function SyncedScreen({ state, actions }: Props) {
             <View style={[styles.smallStack, styles.fill]}>
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.caption}>{copy}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </>
+  );
+
+  const host = (
+    <>
+      <View style={styles.stack}>
+        <Eyebrow>
+          {state.connected ? "SHARING FROM THIS PHONE" : "READY WHEN YOU ARE"}
+        </Eyebrow>
+        <Text style={styles.hero}>
+          {state.connected
+            ? "You’re in control."
+            : "An invitation\nto connect."}
+        </Text>
+      </View>
+      <Status
+        title={
+          state.connected
+            ? state.peerName || "Your other phone"
+            : "Waiting for your other phone"
+        }
+        subtitle={state.status}
