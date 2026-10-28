@@ -538,3 +538,19 @@ export function SyncedScreen({ state, actions }: Props) {
           <View style={styles.modal} accessibilityViewIsModal>
             <Text style={styles.heading}>
               {dialog === "guide"
+                ? "Two phones. One connection."
+                : dialog === "keyboard"
+                ? "Type on your other phone"
+                : "Set an alarm"}
+            </Text>
+            {dialog === "guide" ? (
+              <>
+                <ScrollView>
+                  <Text style={styles.copy}>{GUIDE}</Text>
+                </ScrollView>
+                <Button primary onPress={closeDialog}>
+                  Got it
+                </Button>
+              </>
+            ) : dialog === "keyboard" ? (
+              <>
