@@ -33,3 +33,8 @@ public final class RemoteControlService extends AccessibilityService {
                 default: fail("Unsupported command.");
             }
         } catch (Exception e) { fail("The requested action is unavailable on this screen."); }
+    }
+    private boolean safeTarget() {
+        AccessibilityNodeInfo root = getRootInActiveWindow(); if (root == null || root.getPackageName() == null) return false;
+        String target = root.getPackageName().toString();
+        boolean blocked = target.equals(getPackageName()) || target.contains(".settings") || target.contains("permissioncontroller") || target.contains("packageinstaller") || target.equals("com.android.systemui") || target.contains("securitycenter");
