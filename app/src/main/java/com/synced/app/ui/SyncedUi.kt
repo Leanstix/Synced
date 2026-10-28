@@ -245,3 +245,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             background = s.shape(s.surface, 24, s.warning)
             addView(s.label("CONNECTION REQUEST").apply { setTextColor(s.warning) }); addView(s.space(12))
             addView(s.text(state.pendingPeer.orEmpty(), 21f, s.ink, true)); addView(s.space(8))
+            addView(s.text("Compare the six-digit code on both phones. Approve only if the codes match and this is your phone. Screen sharing and control need separate permission.", 14f, s.muted)); addView(s.space(18))
+            addView(twoButtons(s.button("Decline") { actions.rejectPeer() }, s.button("Approve", primary = true) { actions.approvePeer() }), full())
+        }, full())
+        addGap(16)
