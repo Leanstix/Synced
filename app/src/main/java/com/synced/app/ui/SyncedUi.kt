@@ -255,3 +255,8 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         content.addView(s.card().apply {
             addView(s.label("SCREEN SHARING")); addView(s.space(12))
             addView(s.text(if (state.capturing) "Your screen is visible." else "Ready to share your screen?", 21f, s.ink, true)); addView(s.space(10))
+            addView(s.text(if (state.capturing) "The connected phone can see the screen you approved. End the session at any time below." else "Android will ask what you want to share. Choose the entire screen for reliable remote navigation.", 14f, s.muted))
+            if (!state.capturing) {
+                addView(s.space(18)); addView(s.button("Share screen", primary = true) { actions.startScreenSharing() }, full())
+            }
+            addView(s.space(12)); addView(s.text("Sensitive apps may hide content. On Android 15+, locking this phone ends capture.", 11f, s.muted))
