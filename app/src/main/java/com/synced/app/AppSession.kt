@@ -23,3 +23,12 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+
+/** Process-scoped session; no invitation, peer credential, frame, or typed text is persisted. */
+object AppSession {
+    private lateinit var context: Context
+    private val main = Handler(Looper.getMainLooper())
+    private val io = Executors.newCachedThreadPool()
+    private val outgoing = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(32))
+    private val heartbeat = Executors.newSingleThreadScheduledExecutor().apply {
