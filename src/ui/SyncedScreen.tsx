@@ -571,3 +571,19 @@ export function SyncedScreen({ state, actions }: Props) {
                 />
                 <View style={styles.row}>
                   <Button style={styles.fill} onPress={closeDialog}>
+                    Cancel
+                  </Button>
+                  <Button
+                    style={styles.fill}
+                    primary
+                    disabled={!canControl || !text.trim()}
+                    onPress={() => {
+                      actions.sendText(text);
+                      closeDialog();
+                    }}
+                  >
+                    Set text
+                  </Button>
+                </View>
+              </>
+            ) : (
