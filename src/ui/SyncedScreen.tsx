@@ -252,3 +252,23 @@ export function SyncedScreen({ state, actions }: Props) {
           <Text style={styles.heading}>Send it to your other phone.</Text>
           <Text style={styles.copy}>
             Share the invitation and paste it into Connect on the other phone.
+            Keep it private.
+          </Text>
+          {state.invitation ? (
+            <>
+              <Text selectable style={styles.invitation}>
+                {state.invitation}
+              </Text>
+              <Button
+                primary
+                onPress={() => {
+                  void shareInvitation();
+                }}
+              >
+                Share invitation
+              </Button>
+            </>
+          ) : (
+            <Text style={styles.caption}>Preparing your invitation…</Text>
+          )}
+          <Text style={styles.fine}>Same Wi-Fi · Approval required</Text>
