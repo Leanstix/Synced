@@ -129,3 +129,25 @@ export function useSynced(): { state: UiState; actions: UiActions } {
       .getState()
       .then((next) => {
         if (!disposed && liveVersion === 0) apply(next);
+      })
+      .catch(() => {
+        if (!disposed)
+          setState((previous) => ({
+            ...previous,
+            error: "Could not read the native session.",
+          }));
+      });
+    return () => {
+      disposed = true;
+      status.remove();
+      frames.remove();
+    };
+  }, []);
+  const actions = useMemo<UiActions>(
+    () => ({
+      startHosting: () => native?.startHosting(),
+      connect: (invitation) => native?.connect(invitation.trim()),
+      approvePeer: () => native?.approvePeer(true),
+      rejectPeer: () => native?.approvePeer(false),
+      disconnect: () => native?.disconnect(),
+      startScreenSharing: () => {
