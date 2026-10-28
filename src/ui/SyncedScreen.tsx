@@ -76,3 +76,21 @@ export function SyncedScreen({ state, actions }: Props) {
         title: "Synced private invitation",
       });
     } catch {
+      Alert.alert(
+        "Could not open sharing",
+        "You can select and copy the invitation text instead."
+      );
+    }
+  };
+  const setAlarm = () => {
+    if (
+      !/^\d{1,2}$/.test(hour) ||
+      !/^\d{1,2}$/.test(minute) ||
+      Number(hour) > 23 ||
+      Number(minute) > 59
+    ) {
+      setAlarmError("Use a time between 00:00 and 23:59.");
+      return;
+    }
+    actions.sendAction(`set_alarm:${Number(hour)}:${Number(minute)}`);
+    closeDialog();
