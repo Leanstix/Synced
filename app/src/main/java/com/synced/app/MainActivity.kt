@@ -72,3 +72,8 @@ class MainActivity : Activity(), UiActions {
         if (!AppSession.state.connected || AppSession.state.role != Role.HOST || AppSession.state.capturing) return
         captureGeneration = AppSession.currentGeneration()
         val manager = getSystemService(MediaProjectionManager::class.java)
+        val capture = if (Build.VERSION.SDK_INT >= 34) manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay()) else manager.createScreenCaptureIntent()
+        @Suppress("DEPRECATION")
+        startActivityForResult(capture, 700)
+    }
+    @Deprecated("Activity result API is retained to keep this app dependency-free")
