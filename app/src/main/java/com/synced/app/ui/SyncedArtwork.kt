@@ -59,3 +59,12 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
         c.drawRoundRect(RectF(x + 5, y + 6, x + w - 5, y + h - 6), 10f, 10f, p)
         p.color = Color.rgb(80, 94, 76)
         c.drawRoundRect(RectF(x + w / 2 - 11, y + 10, x + w / 2 + 11, y + 14), 3f, 3f, p)
+        p.color = if (primary) lime else Color.rgb(91, 113, 84)
+        c.drawRoundRect(RectF(x + 15, y + 33, x + w - 15, y + 39), 3f, 3f, p)
+        p.color = Color.rgb(47, 60, 43)
+        c.drawRoundRect(RectF(x + 15, y + 46, x + w - 27, y + 50), 2f, 2f, p)
+        for (i in 0..2) {
+            p.color = if (primary && i == 0) Color.rgb(80, 100, 55) else Color.rgb(35, 46, 32)
+            c.drawRoundRect(RectF(x + 14, y + 64 + i * 18, x + w - 14, y + 77 + i * 18), 4f, 4f, p)
+        }
+        p.color = Color.rgb(88, 104, 80)
