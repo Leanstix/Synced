@@ -72,3 +72,12 @@ class RemoteControlService : AccessibilityService() {
     private fun action(value: String) {
         val global = when (value) { "back" -> GLOBAL_ACTION_BACK; "home" -> GLOBAL_ACTION_HOME; "recents" -> GLOBAL_ACTION_RECENTS; else -> null }
         if (global != null) {
+            if (!performGlobalAction(global)) fail("Android could not perform this navigation action.")
+            return
+        }
+        if (!safeTarget()) return
+        val intent = when {
+            value == "alarms" -> Intent(AlarmClock.ACTION_SHOW_ALARMS)
+            value == "dismiss_alarm" -> Intent(AlarmClock.ACTION_DISMISS_ALARM)
+            value == "snooze_alarm" -> Intent(AlarmClock.ACTION_SNOOZE_ALARM)
+            value.startsWith("set_alarm:") -> {
