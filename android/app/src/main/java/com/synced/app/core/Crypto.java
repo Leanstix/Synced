@@ -21,3 +21,8 @@ public final class Crypto {
     }
     public static byte[] seal(byte[] key, byte[] plain) throws GeneralSecurityException {
         byte[] nonce = random(12);
+        return join(nonce, crypt(Cipher.ENCRYPT_MODE, key, nonce, plain, "Synced handshake v1".getBytes(StandardCharsets.UTF_8)));
+    }
+    public static byte[] open(byte[] key, byte[] sealed) throws GeneralSecurityException {
+        if (sealed.length < 28) throw new IllegalArgumentException("Truncated authentication packet");
+        return crypt(Cipher.DECRYPT_MODE, key, Arrays.copyOfRange(sealed, 0, 12), Arrays.copyOfRange(sealed, 12, sealed.length), "Synced handshake v1".getBytes(StandardCharsets.UTF_8));
