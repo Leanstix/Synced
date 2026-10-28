@@ -120,3 +120,8 @@ class ScreenCaptureService : Service() {
     }
     private fun scaled(w: Int, h: Int): Pair<Int, Int> {
         require(w > 0 && h > 0)
+        val scale = minOf(1.0, 1280.0 / max(w, h))
+        return max(1, (w * scale).roundToInt()) to max(1, (h * scale).roundToInt())
+    }
+    private fun resizeFromDisplay() { val metrics = realMetrics(); resize(metrics.widthPixels, metrics.heightPixels) }
+    private fun resize(w: Int, h: Int) {
