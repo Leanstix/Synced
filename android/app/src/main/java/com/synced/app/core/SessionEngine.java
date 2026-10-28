@@ -176,3 +176,13 @@ public final class SessionEngine {
                         else if (current(id)) remoteMessage("The host must share its unlocked screen and allow remote control first.");
                     } finally { pendingCommands.decrementAndGet(); }
                 });
+            }
+        } catch (Exception e) { disconnect(id, "Remote phone disconnected. Sharing and control have stopped."); }
+    }
+    private void receiveController(int id, SecureChannel secure) throws Exception {
+        long lastFrame = 0;
+        while (current(id)) {
+            SecureChannel.Message message = secure.read(); if (!current(id)) return;
+            if (message.type == SecureChannel.PING) { if (message.body.length != 0) throw new IllegalArgumentException("Invalid heartbeat"); }
+            else if (message.type == SecureChannel.FRAME) {
+                long now = System.nanoTime(); if (now - lastFrame < 150_000_000L) continue; lastFrame = now;
