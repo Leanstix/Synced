@@ -9,6 +9,7 @@ This file records evidence for the React Native/TypeScript implementation. It do
 - `npm run lint -- --quiet`: ESLint passed with no errors.
 - `npm test -- --silent`:18tests passed across the session hook and viewport geometry.
 - Direct JDK17 compilation and JUnit4 execution of the Java protocol classes:30tests passed, including6real loopback socket tests.
+- Metro production bundle generation succeeded. Android resources compiled with AAPT2, and React Native CLI resolved the Android package/activity and native dependencies.
 - Source inspection confirms no authored `.kt` or `.kts` application files.
 
 The JavaScript tests cover local consent before control, invalid gesture/action/text rejection, subscription cleanup, delayed initial-state races, stale-session frame rejection, capture-stop clearing, letterbox mapping, and layout edge cases. Java tests cover authentication/tampering, directional keys, strict sequence/replay rejection, allocation limits, approval decisions, framing, and bidirectional encrypted sockets.
