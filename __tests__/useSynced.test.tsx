@@ -90,3 +90,23 @@ it("requires the positive local consent action before allowing input", async () 
   ).toHaveBeenLastCalledWith(false);
 });
 it("rejects invalid gesture coordinates at the TypeScript bridge boundary", async () => {
+  await mount();
+  current.actions.sendGesture(NaN, 0, 1, 1, 100);
+  current.actions.sendGesture(0, -1, 1, 1, 100);
+  current.actions.sendGesture(0, 0, Infinity, 1, 100);
+  current.actions.sendGesture(0, 0, 1, 1, NaN);
+  expect(native.NativeModules.Synced.sendGesture).not.toHaveBeenCalled();
+});
+it("bounds gesture duration before crossing the native bridge", async () => {
+  await mount();
+  current.actions.sendGesture(0, 0, 1, 1, 5000);
+  expect(native.NativeModules.Synced.sendGesture).toHaveBeenLastCalledWith(
+    0,
+    0,
+    1,
+    1,
+    1500
+  );
+});
+it("does not dispatch arbitrary actions or invalid clock times", async () => {
+  await mount();
