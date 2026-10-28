@@ -4,3 +4,5 @@ The application is React Native and strict TypeScript. Use Java only for Android
 
 Run `npm ci`, `npm run typecheck`, `npm run lint`, and `npm test`. For native changes, run `cd android && ./gradlew testDebugUnitTest lintDebug assemblePreview`. Install the preview on both phones when capture, input, lifecycle, permissions, or network behavior changes.
 
+Keep changes small and describe the actual behavior changed. Development micro-commits can establish a model, implement a bounded operation, add a lifecycle guard, define a view, or document a constraint. The integration head is the validation target; intermediate development commits are not standalone releases.
+
