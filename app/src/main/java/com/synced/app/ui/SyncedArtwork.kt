@@ -79,3 +79,15 @@ class SyncedMark(context: Context) : View(context) {
     override fun onDraw(c: Canvas) {
         val s = width / 40f
         c.save(); c.scale(s, s)
+        p.color = Color.rgb(212, 255, 116); p.style = Paint.Style.FILL
+        c.drawRoundRect(RectF(0f, 0f, 40f, 40f), 13f, 13f, p)
+        p.color = Color.rgb(16, 24, 13); p.style = Paint.Style.STROKE
+        p.strokeWidth = 4f; p.strokeCap = Paint.Cap.ROUND; p.strokeJoin = Paint.Join.ROUND
+        c.drawPath(Path().apply {
+            moveTo(26f, 11f); lineTo(18f, 11f); cubicTo(8f, 11f, 9f, 21f, 18f, 21f)
+            lineTo(22f, 21f); moveTo(14f, 29f); lineTo(22f, 29f)
+            cubicTo(32f, 29f, 31f, 19f, 22f, 19f); lineTo(18f, 19f)
+        }, p)
+        c.restore()
+    }
+}
