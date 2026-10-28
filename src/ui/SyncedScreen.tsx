@@ -440,3 +440,19 @@ export function SyncedScreen({ state, actions }: Props) {
   );
 
   return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" />
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.body}
+        >
+          <View style={styles.spread}>
+            <View style={styles.row}>
+              <SyncedMark />
+              <Text style={styles.brand}>Synced</Text>
+            </View>
