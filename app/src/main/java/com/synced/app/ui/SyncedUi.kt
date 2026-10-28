@@ -100,3 +100,14 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         else welcomeScreen()
         state.error?.takeIf { it.isNotBlank() }?.let { error ->
             addGap(16)
+            content.addView(s.card().apply {
+                addView(s.text("Let's try that again", 16f, s.danger, true))
+                addView(s.space(8)); addView(s.text(error, 13f, s.muted))
+            }, full())
+        }
+        addGap(24)
+        footer()
+        scroll.post { scroll.scrollTo(0, previousScroll) }
+    }
+
+    private fun header() {
