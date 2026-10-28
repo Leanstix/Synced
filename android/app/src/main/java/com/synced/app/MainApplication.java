@@ -16,3 +16,16 @@ public class MainApplication extends Application implements ReactApplication {
     @Override public synchronized ReactHost getReactHost() {
         if (host == null) {
             List<ReactPackage> packages = new PackageList(this).getPackages();
+            packages.add(new SyncedPackage());
+            host = DefaultReactHost.getDefaultReactHost(
+                this, packages, "index", "index.android.bundle", null, null,
+                BuildConfig.DEBUG, Collections.emptyList(),
+                error -> { throw new RuntimeException(error); }, null);
+        }
+        return host;
+    }
+    @Override public void onCreate() {
+        super.onCreate();
+        ReactNativeApplicationEntryPoint.loadReactNative(this);
+    }
+}
