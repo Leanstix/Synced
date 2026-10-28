@@ -181,3 +181,18 @@ export function useSynced(): { state: UiState; actions: UiActions } {
           "Allow this phone to control your screen?",
           "Your approved phone can tap, swipe, replace normal text fields, navigate and open clock actions while sharing is active. Keep private apps closed. Stop sharing or turn control off to revoke.",
           [
+            { text: "Keep control off", style: "cancel" },
+            {
+              text: "Allow control",
+              onPress: () => native?.setControlAllowed(true),
+            },
+          ]
+        );
+      },
+      sendGesture: (sx, sy, ex, ey, duration) => {
+        if (
+          [sx, sy, ex, ey].every(
+            (n) => Number.isFinite(n) && n >= 0 && n <= 1
+          ) &&
+          Number.isFinite(duration)
+        ) {
