@@ -110,3 +110,15 @@ it("bounds gesture duration before crossing the native bridge", async () => {
 });
 it("does not dispatch arbitrary actions or invalid clock times", async () => {
   await mount();
+  ["unlock", "grant_permissions", "set_alarm:24:00", "set_alarm:12:60"].forEach(
+    (value) => current.actions.sendAction(value)
+  );
+  expect(native.NativeModules.Synced.sendAction).not.toHaveBeenCalled();
+  current.actions.sendAction("set_alarm:7:05");
+  expect(native.NativeModules.Synced.sendAction).toHaveBeenCalledWith(
+    "set_alarm:7:05"
+  );
+});
+it("bounds text while preserving Unicode content", async () => {
+  await mount();
+  current.actions.sendText("");
