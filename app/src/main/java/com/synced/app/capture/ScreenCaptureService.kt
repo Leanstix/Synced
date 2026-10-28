@@ -110,3 +110,7 @@ class ScreenCaptureService : Service() {
         val notification = Notification.Builder(this, "sharing").setSmallIcon(android.R.drawable.ic_menu_view)
             .setContentTitle("Synced · your screen is being shared")
             .setContentText("One approved phone can view this screen. Tap Stop to revoke.")
+            .setContentIntent(open).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE)
+            .addAction(Notification.Action.Builder(null, "Stop & revoke", stop).build()).build()
+        if (Build.VERSION.SDK_INT >= 29) startForeground(11, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        else startForeground(11, notification)
