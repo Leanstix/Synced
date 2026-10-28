@@ -60,3 +60,15 @@ class ScreenCaptureService : Service() {
                     if (w != full.widthPixels || h != full.heightPixels) {
                         AppSession.report("Full-display sharing is required. Select the entire screen and start sharing again.")
                         stopSelf()
+                    } else resize(w, h)
+                }
+            }, 180)
+        }
+    }
+    override fun onCreate() {
+        super.onCreate()
+        AppSession.initialize(this)
+        worker.start(); handler = Handler(worker.looper)
+    }
+    override fun onBind(intent: Intent?): IBinder? = null
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
