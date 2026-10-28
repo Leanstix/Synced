@@ -134,3 +134,14 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                         .setPositiveButton("End and switch") { _, _ -> shareSelected = share; actions.disconnect() }.show()
                 } else { shareSelected = share; rebuild() }
             }.apply {
+                background = s.shape(if (selected) s.elevated else Color.TRANSPARENT, 12)
+                setTextColor(if (selected) s.lime else s.muted)
+                isSelected = selected
+                contentDescription = "$label tab${if (selected) ", selected" else ""}"
+                minHeight = s.dp(46); minimumHeight = s.dp(46)
+            }, LinearLayout.LayoutParams(0, -2, 1f))
+        }
+        content.addView(row, full())
+    }
+
+    private fun welcomeScreen() {
