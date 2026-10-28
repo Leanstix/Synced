@@ -68,3 +68,14 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
             for (double value : new double[] {sx, sy, ex, ey}) if (!Double.isFinite(value) || value < 0 || value > 1) throw new IllegalArgumentException();
             if (!Double.isFinite(duration)) throw new IllegalArgumentException();
             engine.command(new JSONObject().put("kind", "gesture").put("sx", sx).put("sy", sy).put("ex", ex).put("ey", ey).put("duration", Math.max(50, Math.min(1500, (long) duration))));
+        } catch (Exception e) { engine.report("Invalid remote gesture."); }
+    }
+    @ReactMethod public void sendText(String text) {
+        try { if (text == null || text.isEmpty() || text.length() > 1000) return; engine.command(new JSONObject().put("kind", "text").put("text", text)); }
+        catch (Exception e) { engine.report("Invalid remote text."); }
+    }
+    @ReactMethod public void sendAction(String action) {
+        try { engine.command(new JSONObject().put("kind", "action").put("action", action)); }
+        catch (Exception e) { engine.report("Invalid remote action."); }
+    }
+    @Override public void onState(JSONObject state) {
