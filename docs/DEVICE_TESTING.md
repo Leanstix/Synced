@@ -39,3 +39,14 @@ These are manual acceptance cases, not claims of completed physical-device tests
 
 ## Lifecycle and network
 
+27. Stop capture through Android's status chip; frames and control must stop appropriately.
+28. Lock the host on Android 15 QPR1+; projection ends and the UI reflects it.
+29. Rotate either phone during a session and after returning from another app.
+30. Switch Wi-Fi, disable hotspot, or walk out of range; the app reports disconnect without freezing.
+31. Abruptly kill either process and reconnect; no old approval survives.
+32. Try a router with client isolation and confirm a clear connection failure.
+33. Deny notification permission, then retry after granting it.
+34. Background the app, switch to WhatsApp/Clock, and test OEM battery restrictions.
+35. Spam malformed or oversized frames from a test peer; memory and thread usage remain bounded.
+36. Repeat sessions at least twenty times and check memory, socket, bitmap, display, and thread cleanup.
+
