@@ -30,3 +30,7 @@ object Pairing {
             .put("host", Invitation.encodeBytes(hostNonce)).put("name", name()))
         val proof = receive(socket, secret)
         require(proof.getString("type") == "proof" && MessageDigest.isEqual(nonce(proof, "host"), hostNonce))
+        val channel = SecureChannel(socket, Crypto.derive(secret, clientNonce, hostNonce, "host to controller"), Crypto.derive(secret, clientNonce, hostNonce, "controller to host"))
+        require(approve("$peer · code ${verificationCode(secret, clientNonce, hostNonce)}")) { "Connection was declined or approval expired." }
+        channel.send(SecureChannel.STATUS, JSONObject().put("approved", true).put("name", name()).toString().toByteArray())
+        return channel to peer
