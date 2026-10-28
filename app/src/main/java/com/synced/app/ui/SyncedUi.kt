@@ -111,3 +111,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     }
 
     private fun header() {
+        val row = s.row()
+        row.addView(SyncedMark(activity), LinearLayout.LayoutParams(s.dp(36), s.dp(36)))
+        row.addView(s.text("Synced", 25f, s.ink, true).apply { letterSpacing = -.04f }, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = s.dp(10) })
+        row.addView(s.button("Guide") { showGuide() }.apply {
