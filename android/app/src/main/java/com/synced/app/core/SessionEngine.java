@@ -151,3 +151,7 @@ public final class SessionEngine {
         workers.execute(() -> {
             try {
                 Invitation invite = Invitation.parse(invitation); Socket client = new Socket(); if (!claim(id, client)) return;
+                client.connect(new InetSocketAddress(invite.host, invite.port), 8000); client.setSoTimeout(100_000); client.setTcpNoDelay(true);
+                Pairing.Result result = Pairing.controller(client, invite.secret, code -> update(id, s -> s.status = "Pairing code " + code + " · Compare on the host, then approve there."));
+                if (!activate(id, result.channel)) { close(client); return; } client.setSoTimeout(15_000);
+                update(id, s -> { s.connected = true; s.peerName = result.peer; s.status = "Connected. Waiting for the host to start screen sharing."; s.error = null; });
