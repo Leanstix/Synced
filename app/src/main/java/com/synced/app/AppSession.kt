@@ -214,3 +214,11 @@ object AppSession {
     }
     private fun receiveController(id: Int, secure: SecureChannel) {
         var lastDecodedFrame = 0L
+        while (isCurrent(id)) {
+            val (type, bytes) = secure.read()
+            if (!isCurrent(id)) return
+            when (type) {
+                SecureChannel.PING -> require(bytes.isEmpty())
+                SecureChannel.FRAME -> {
+                    val now = System.nanoTime()
+                    if (now - lastDecodedFrame < 150_000_000L) continue
