@@ -32,3 +32,7 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
         p.style = Paint.Style.FILL; p.color = lime
         c.drawRoundRect(RectF(151f, 83f, 197f, 125f), 15f, 15f, p)
         p.color = Color.rgb(23, 29, 22); p.style = Paint.Style.STROKE
+        p.strokeWidth = 2.5f; p.strokeCap = Paint.Cap.ROUND; p.strokeJoin = Paint.Join.ROUND
+        val path = Path().apply {
+            moveTo(164f, 99f); lineTo(184f, 99f); lineTo(180f, 95f)
+            moveTo(184f, 109f); lineTo(164f, 109f); lineTo(168f, 113f)
