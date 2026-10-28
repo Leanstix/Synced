@@ -16,3 +16,8 @@ public class ProtocolSecurityTest {
     @Test public void directionalKeysDiffer() throws Exception { assertFalse(java.util.Arrays.equals(Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, host, "controller to host"))); }
     @Test public void freshConnectionKeysDiffer() throws Exception { assertFalse(java.util.Arrays.equals(Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, bytes(2), "host to controller"))); }
     @Test public void orderedPacketsRoundTrip() throws Exception {
+        PacketCipher send = new PacketCipher(secret), receive = new PacketCipher(secret);
+        for (int i = 0; i < 4; i++) assertArrayEquals(new byte[] {(byte) i}, receive.decrypt(send.encrypt(new byte[] {(byte) i})));
+    }
+    @Test public void replayRejected() throws Exception { PacketCipher receive = new PacketCipher(secret); byte[] packet = new PacketCipher(secret).encrypt(new byte[] {1}); receive.decrypt(packet); assertThrows(IllegalArgumentException.class, () -> receive.decrypt(packet)); }
+    @Test public void reorderedPacketRejected() throws Exception { PacketCipher send = new PacketCipher(secret); send.encrypt(new byte[] {1}); byte[] second = send.encrypt(new byte[] {2}); assertThrows(IllegalArgumentException.class, () -> new PacketCipher(secret).decrypt(second)); }
