@@ -51,3 +51,13 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
             canvas.drawBitmap(image, null, bounds, paint)
         } else {
             bounds.setEmpty()
+            paint.color = Color.rgb(165, 177, 161)
+            paint.textSize = 14 * resources.displayMetrics.scaledDensity
+            paint.textAlign = Paint.Align.CENTER
+            canvas.drawText("Waiting for the other phone's screen", width / 2f, height / 2f, paint)
+        }
+        canvas.restore()
+    }
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!controlEnabled || frame == null || bounds.isEmpty) return false
+        when (event.actionMasked) {
