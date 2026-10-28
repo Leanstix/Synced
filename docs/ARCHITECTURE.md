@@ -57,3 +57,6 @@ There is no boot receiver or automatic capture restart. Android may end projecti
 
 ## Native/TypeScript frame delivery
 
+The Java engine bounds decoded image dimensions before exposing JPEG bytes. State and frame events carry session IDs; TypeScript ignores stale-session frames and clears displayed images when capture stops or the session changes. The native module permits one outstanding frame event until JavaScript acknowledges it, reducing bridge backlog. Neither frames nor credentials are persisted.
+
+The preview build embeds the Metro-produced bundle and Hermes runtime. Debug development builds use Metro. The preview variant disables cleartext HTTP and developer support; the peer protocol encrypts its socket payload independently.
