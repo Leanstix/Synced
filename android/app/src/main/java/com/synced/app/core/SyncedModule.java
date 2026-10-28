@@ -59,3 +59,12 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
         if (resultCode == Activity.RESULT_OK && data != null && captureGeneration == engine.generation() && engine.isHostReady()) {
             try { activity.startForegroundService(new Intent(activity, ScreenCaptureService.class).putExtra("resultCode", resultCode).putExtra("data", data).putExtra("generation", captureGeneration)); }
             catch (Exception e) { engine.report(captureGeneration, "Android could not start foreground sharing. Keep Synced open and try again."); }
+        } else engine.report(captureGeneration, "Screen sharing was not started. Your screen remains private.");
+    }
+    @Override public void onNewIntent(Intent intent) {}
+    @Override public void onUserLeaveHint(Activity activity) {}
+    @ReactMethod public void sendGesture(double sx, double sy, double ex, double ey, double duration) {
+        try {
+            for (double value : new double[] {sx, sy, ex, ey}) if (!Double.isFinite(value) || value < 0 || value > 1) throw new IllegalArgumentException();
+            if (!Double.isFinite(duration)) throw new IllegalArgumentException();
+            engine.command(new JSONObject().put("kind", "gesture").put("sx", sx).put("sy", sy).put("ex", ex).put("ey", ey).put("duration", Math.max(50, Math.min(1500, (long) duration))));
