@@ -190,3 +190,7 @@ public final class SessionEngine {
                 BitmapFactory.decodeByteArray(message.body, 0, message.body.length, bounds);
                 if (bounds.outWidth < 1 || bounds.outHeight < 1 || bounds.outWidth > 1600 || bounds.outHeight > 1600 || (long) bounds.outWidth * bounds.outHeight > 2_560_000) throw new IllegalArgumentException("Invalid image dimensions");
                 latestFrame.set(new PendingFrame(id, message.body));
+                if (frameUiQueued.compareAndSet(false, true)) main.post(() -> {
+                    frameUiQueued.set(false); PendingFrame frame = latestFrame.getAndSet(null); Listener target = listener;
+                    if (frame != null && current(frame.generation) && target != null) target.onFrame(frame.generation, frame.jpeg);
+                });
