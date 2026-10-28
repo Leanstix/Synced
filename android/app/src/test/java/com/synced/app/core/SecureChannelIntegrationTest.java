@@ -33,3 +33,9 @@ public class SecureChannelIntegrationTest {
         try (Sockets sockets = new Sockets()) {
             byte[] key = Crypto.random(32), packet = new PacketCipher(key).encrypt(new byte[] {SecureChannel.STATUS, 1});
             DataOutputStream output = new DataOutputStream(sockets.host.getOutputStream()); SecureChannel client = new SecureChannel(sockets.client, key, key);
+            Framing.write(output, packet); client.read(); Framing.write(output, packet); assertThrows(IllegalArgumentException.class, client::read);
+        }
+    }
+    @Test public void maliciousNetworkLengthFailsBeforeAllocation() throws Exception {
+        try (Sockets sockets = new Sockets()) {
+            byte[] key = Crypto.random(32); new DataOutputStream(sockets.host.getOutputStream()).writeInt(Integer.MAX_VALUE);
