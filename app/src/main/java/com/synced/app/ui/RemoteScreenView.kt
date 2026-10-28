@@ -74,3 +74,16 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
                 if (!tracking) return false
                 val endX = ((event.x - bounds.left) / bounds.width()).coerceIn(0f, 1f)
                 val endY = ((event.y - bounds.top) / bounds.height()).coerceIn(0f, 1f)
+                tracking = false; parent.requestDisallowInterceptTouchEvent(false)
+                gesture(startX, startY, endX, endY, max(1L, event.eventTime - started).coerceAtMost(2000L))
+                performClick()
+                return true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                tracking = false; parent.requestDisallowInterceptTouchEvent(false); return true
+            }
+        }
+        return tracking
+    }
+    override fun performClick(): Boolean { super.performClick(); return true }
+}
