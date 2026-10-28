@@ -45,3 +45,12 @@ public final class Pairing {
         SecureChannel channel = new SecureChannel(socket, Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, host, "controller to host"));
         if (!approve.approve(peer + " · code " + verification(secret, client, host))) throw new IllegalArgumentException("Connection declined or approval expired.");
         channel.send(SecureChannel.STATUS, new JSONObject().put("approved", true).put("name", name()).toString().getBytes(StandardCharsets.UTF_8));
+        return new Result(channel, peer);
+    }
+    public static Result controller(Socket socket, byte[] secret, Code show) throws Exception {
+        byte[] client = Crypto.random(32);
+        send(socket, secret, new JSONObject().put("type", "hello").put("version", 1).put("nonce", Invitation.encodeBytes(client)).put("name", name()));
+        JSONObject challenge = receive(socket, secret);
+        if (!"challenge".equals(challenge.getString("type")) || !MessageDigest.isEqual(nonce(challenge, "client"), client)) throw new IllegalArgumentException("Invalid challenge");
+        byte[] host = nonce(challenge, "host");
+        send(socket, secret, new JSONObject().put("type", "proof").put("host", Invitation.encodeBytes(host)));
