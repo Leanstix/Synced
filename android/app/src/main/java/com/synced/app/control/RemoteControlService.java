@@ -69,3 +69,13 @@ public final class RemoteControlService extends AccessibilityService {
             default:
                 if (!value.startsWith("set_alarm:")) { fail("Unsupported action."); return; }
                 String[] parts = value.split(":"); if (parts.length != 3) throw new IllegalArgumentException("Invalid alarm");
+                int hour = Integer.parseInt(parts[1]), minute = Integer.parseInt(parts[2]);
+                if (hour < 0 || hour > 23 || minute < 0 || minute > 59) throw new IllegalArgumentException("Invalid alarm time");
+                intent = new Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_HOUR, hour).putExtra(AlarmClock.EXTRA_MINUTES, minute).putExtra(AlarmClock.EXTRA_MESSAGE, "Synced").putExtra(AlarmClock.EXTRA_SKIP_UI, false);
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(intent); engine.remoteMessage("Alarm action sent to the host clock app. Confirm the visible result."); }
+        catch (Exception e) { fail("No compatible clock app handled this alarm action."); }
+    }
+    private void fail(String message) { engine.remoteMessage(message); }
+}
