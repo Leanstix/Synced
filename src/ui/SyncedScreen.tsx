@@ -288,3 +288,15 @@ export function SyncedScreen({ state, actions }: Props) {
           </Text>
           {!state.capturing && (
             <Button primary onPress={actions.startScreenSharing}>
+              Share screen
+            </Button>
+          )}
+          <Text style={styles.fine}>
+            Sensitive apps may hide content. On Android 15+, locking this phone
+            ends capture.
+          </Text>
+        </Card>
+      )}
+      <Card>
+        <View style={styles.spread}>
+          <Text style={[styles.title, styles.fill]}>Allow remote control</Text>
