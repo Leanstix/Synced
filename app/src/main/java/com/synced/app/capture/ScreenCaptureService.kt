@@ -76,3 +76,7 @@ class ScreenCaptureService : Service() {
         if (projection != null) return START_NOT_STICKY
         if (intent == null || AppSession.state.role != Role.HOST || !AppSession.state.connected) { stopSelf(); return START_NOT_STICKY }
         sessionId = intent.getIntExtra("generation", -1)
+        if (sessionId != AppSession.currentGeneration()) { stopSelf(); return START_NOT_STICKY }
+        try {
+            createNotification()
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF), Context.RECEIVER_NOT_EXPORTED)
