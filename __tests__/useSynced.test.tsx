@@ -41,3 +41,11 @@ it("reads native state without starting a connection or screen capture", async (
 });
 it("ignores a frame until an approved controller session is sharing", async () => {
   await mount();
+  act(() => native.__emit("SyncedFrame", { uri: "private-frame" }));
+  expect(current.state.remoteFrame).toBeNull();
+  status({ role: "CONTROLLER", connected: true, capturing: true });
+  act(() => native.__emit("SyncedFrame", { uri: "approved-frame" }));
+  expect(current.state.remoteFrame).toBe("approved-frame");
+});
+it("clears displayed frames when the host stops capture", async () => {
+  await mount();
