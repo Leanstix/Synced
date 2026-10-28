@@ -32,3 +32,8 @@ object AppSession {
     private val io = Executors.newCachedThreadPool()
     private val outgoing = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(32))
     private val heartbeat = Executors.newSingleThreadScheduledExecutor().apply {
+        scheduleAtFixedRate({ if (authenticated) sendPacket(SecureChannel.PING, byteArrayOf()) }, 5, 5, TimeUnit.SECONDS)
+    }
+    private val generation = AtomicInteger()
+    private val pendingCommands = AtomicInteger()
+    private val controlEpoch = AtomicInteger()
