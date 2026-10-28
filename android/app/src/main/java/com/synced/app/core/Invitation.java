@@ -21,3 +21,11 @@ public final class Invitation {
         String host = data.getString("host");
         if (!host.matches("[0-9.]{7,15}")) throw new IllegalArgumentException("Use a local IPv4 address.");
         InetAddress address = InetAddress.getByName(host);
+        if (!address.isSiteLocalAddress() && !address.isLinkLocalAddress()) throw new IllegalArgumentException("Only local network addresses are supported.");
+        int port = data.getInt("port"); byte[] secret = decodeBytes(data.getString("key")); long expiry = data.getLong("expires");
+        if (port < 1024 || port > 65535 || secret.length != 32) throw new IllegalArgumentException("Invalid invitation.");
+        long now = System.currentTimeMillis();
+        if (expiry <= now || expiry > now + 11 * 60_000) throw new IllegalArgumentException("Invitation expired. Create a new one.");
+        return new Invitation(host, port, secret, expiry);
+    }
+}
