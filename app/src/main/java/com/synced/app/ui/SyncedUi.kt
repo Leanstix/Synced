@@ -76,3 +76,12 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
     }
 
     fun render(next: UiState) {
+        state = next
+        val structure = next.copy(remoteFrame = null)
+        if (structure != structuralState) {
+            structuralState = structure
+            if (next.role == Role.HOST) shareSelected = true
+            if (next.role == Role.CONTROLLER) shareSelected = false
+            rebuild()
+        }
+        remoteView?.controlEnabled = next.controlAllowed
