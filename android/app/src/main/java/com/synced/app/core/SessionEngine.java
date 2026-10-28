@@ -155,3 +155,12 @@ public final class SessionEngine {
                 Pairing.Result result = Pairing.controller(client, invite.secret, code -> update(id, s -> s.status = "Pairing code " + code + " · Compare on the host, then approve there."));
                 if (!activate(id, result.channel)) { close(client); return; } client.setSoTimeout(15_000);
                 update(id, s -> { s.connected = true; s.peerName = result.peer; s.status = "Connected. Waiting for the host to start screen sharing."; s.error = null; });
+                receiveController(id, result.channel);
+            } catch (Exception e) { disconnect(id, "Connection ended: " + friendly(e)); }
+        });
+    }
+    private void receiveHost(int id, SecureChannel secure) {
+        long window = System.nanoTime(); int commands = 0;
+        try {
+            while (current(id)) {
+                SecureChannel.Message message = secure.read();
