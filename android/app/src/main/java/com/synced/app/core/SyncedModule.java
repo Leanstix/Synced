@@ -33,3 +33,12 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
     @ReactMethod public void approvePeer(boolean allow) { engine.approve(allow); }
     @ReactMethod public void disconnect() { engine.disconnect("Disconnected. Create a fresh invitation to pair again."); }
     @ReactMethod public void setControlAllowed(boolean allowed) { engine.setControlAllowed(allowed); }
+    @ReactMethod public void openAccessibilitySettings() {
+        UiThreadUtil.runOnUiThread(() -> {
+            Activity activity = getReactApplicationContext().getCurrentActivity();
+            if (activity != null) activity.startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+            else engine.report("Open Synced on the host before enabling accessibility.");
+        });
+    }
+    @ReactMethod public void startCapture() {
+        UiThreadUtil.runOnUiThread(() -> {
