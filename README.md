@@ -63,3 +63,9 @@ The **preview** variant includes its TypeScript/JavaScript bundle and Hermes run
 7. Use the remote view or clock shortcuts. If the host is still showing Synced, use remote **Home** first; Synced protects its own controls from remote input.
 8. End the session with **Stop** or **Disconnect**. After host rotation, allow control locally again.
 
+There is no automatic discovery. Some routers/hotspots isolate clients and block peer connections. Invitations currently choose the host's preferred local interface; multiple concurrent networks or a VPN may require changing the phone's network setup.
+
+## The morning-alarm constraint
+
+Initial pairing cannot bypass Android's per-session screen-capture consent. Locking the host, stopping projection, losing the process/network, or ending the session can require fresh approval. This app deliberately blocks locked-phone input and cannot guarantee dismissal of an arbitrary clock app's alarm while the host is locked and unattended. Clock behavior must be checked on your actual devices.
+
