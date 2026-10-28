@@ -37,3 +37,34 @@ function Phone({
       <Rect x={x + 5} y={y + 8} width={w} height={h} rx={14} fill="#080B09" />
       <Rect
         x={x}
+        y={y}
+        width={w}
+        height={h}
+        rx={14}
+        fill={primary ? "#344330" : "#252E27"}
+        stroke={primary ? "#8BA177" : "#5D695E"}
+        strokeWidth={1.3}
+      />
+      <Rect
+        x={x + 5}
+        y={y + 6}
+        width={w - 10}
+        height={h - 12}
+        rx={10}
+        fill="#0E1410"
+      />
+      <Rect
+        x={x + w / 2 - 11}
+        y={y + 10}
+        width={22}
+        height={4}
+        rx={2}
+        fill="#505E4C"
+      />
+      <Rect
+        x={x + 15}
+        y={y + 33}
+        width={w - 30}
+        height={6}
+        rx={3}
+        fill={primary ? "#D4FF74" : "#5B7154"}
