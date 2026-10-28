@@ -22,3 +22,9 @@ This is an application-specific protocol, not TLS or an independently audited pr
 
 Invitations accept numeric private or link-local IPv4 addresses. The app has no discovery service, cloud account, internet relay, analytics service, or server database. A local network is transport reachability, not authorization. A router administrator can observe endpoints, timing, and traffic size even when payloads are encrypted.
 
+The controlled phone's ordinary Android/app protections still apply. Synced does not unlock the keyguard, disable secure-window protections, grant its own permissions, or silently restart screen capture after Android revokes it.
+
+## Remote input
+
+Remote control is permitted only during an authenticated, approved, active screen-sharing session when the host explicitly enables control. The host can revoke it by switching it off, disconnecting, or stopping capture.
+
