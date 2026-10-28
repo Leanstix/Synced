@@ -19,3 +19,16 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Switch
+import android.widget.TextView
+import android.widget.Toast
+import com.synced.app.model.Role
+import com.synced.app.model.UiActions
+import com.synced.app.model.UiState
+import java.util.Calendar
+
+/** Native, state-driven interface. No device or session is presented as connected until it is. */
+class SyncedUi(private val activity: Activity, private val actions: UiActions) {
+    private val s = UiStyle(activity)
+    private var state = UiState()
