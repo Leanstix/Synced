@@ -629,3 +629,20 @@ export function SyncedScreen({ state, actions }: Props) {
                   <Button style={styles.fill} onPress={closeDialog}>
                     Cancel
                   </Button>
+                  <Button
+                    style={styles.fill}
+                    primary
+                    disabled={!canControl}
+                    onPress={setAlarm}
+                  >
+                    Request alarm
+                  </Button>
+                </View>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
+  );
+}
