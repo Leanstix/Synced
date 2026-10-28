@@ -78,3 +78,12 @@ public final class ScreenCaptureService extends Service {
                     reader = makeReader(width, height);
                     display = projection.createVirtualDisplay("Synced screen", width, height, density, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.getSurface(), null, handler);
                     getSystemService(DisplayManager.class).registerDisplayListener(displayListener, handler); engine.captureChanged(true, sessionId);
+                } catch (Exception e) { engine.report(sessionId, "Capture could not start. Grant a fresh sharing session."); stopSelf(); }
+            });
+        } catch (Exception e) { engine.report(sessionId, "Screen sharing permission was unavailable. Try sharing again."); stopSelf(); }
+        return START_NOT_STICKY;
+    }
+    private void notification() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.createNotificationChannel(new NotificationChannel("sharing", "Active screen sharing", NotificationManager.IMPORTANCE_LOW));
+        int immutable = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
