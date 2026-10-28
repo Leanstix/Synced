@@ -15,3 +15,12 @@ import com.synced.app.model.Role
 import com.synced.app.model.UiActions
 import com.synced.app.ui.SyncedUi
 import org.json.JSONObject
+
+class MainActivity : Activity(), UiActions {
+    private lateinit var ui: SyncedUi
+    private var captureGeneration = -1
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        AppSession.initialize(this)
+        captureGeneration = savedInstanceState?.getInt("captureGeneration", -1) ?: -1
+        window.statusBarColor = 0xFF101518.toInt()
