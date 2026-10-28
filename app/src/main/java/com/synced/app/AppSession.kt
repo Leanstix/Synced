@@ -99,3 +99,7 @@ object AppSession {
     fun startHosting() {
         disconnect()
         val id = generation.get()
+        updateCurrent(id) { it.copy(role = Role.HOST, status = "Creating a private local invitation…", error = null) }
+        io.execute {
+            try {
+                val candidates = NetworkInterface.getNetworkInterfaces().toList().filter { it.isUp && !it.isLoopback }
