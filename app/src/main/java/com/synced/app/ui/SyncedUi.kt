@@ -285,3 +285,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             })
             addView(heading, full()); addView(s.space(10))
             addView(s.text("Let your other phone tap, swipe, type, and use navigation on this phone. Enable only for a phone you trust.", 13f, s.muted))
+            if (!state.accessibilityEnabled) {
+                addView(s.space(12)); addView(s.text("Requires the Synced accessibility service. It can read screen content and perform actions while remote control is on.", 12f, s.muted))
+                addView(s.space(14)); addView(s.button("Open accessibility settings") { actions.openAccessibilitySettings() }, full())
+            } else {
