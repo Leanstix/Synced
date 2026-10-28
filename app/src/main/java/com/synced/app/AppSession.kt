@@ -134,3 +134,11 @@ object AppSession {
                             }
                         }
                         if (!isCurrent(id)) { accepted.close(); return@execute }
+                        localServer.close()
+                        synchronized(this) { if (isCurrent(id)) server = null }
+                        if (!activate(id, secure)) { accepted.close(); return@execute }
+                        accepted.soTimeout = 15_000
+                        updateCurrent(id) { it.copy(connected = true, pendingPeer = null, invitation = "", peerName = peer,
+                            status = "Phone approved. Start screen sharing when you are ready.", error = null) }
+                        sendStatus()
+                        receiveHost(id, secure)
