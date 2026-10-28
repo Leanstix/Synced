@@ -12,3 +12,7 @@ public final class PacketCipher {
     private final byte[] key;
     private long nextSend, nextReceive;
     public PacketCipher(byte[] key) { this.key = key.clone(); }
+    public synchronized byte[] encrypt(byte[] plain) throws GeneralSecurityException {
+        if (plain.length > MAX_PLAIN_BYTES) throw new IllegalArgumentException("Packet too large");
+        if (nextSend == Long.MAX_VALUE) throw new IllegalStateException("Session exhausted");
+        byte[] sequence = ByteBuffer.allocate(8).putLong(nextSend++).array();
