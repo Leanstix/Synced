@@ -115,3 +115,15 @@ export function SyncedScreen({ state, actions }: Props) {
       </View>
       <PhoneArtwork />
       {state.role === "CONTROLLER" ? (
+        <>
+          <Status title="Connecting to your phone" subtitle={state.status} />
+          <Button destructive onPress={actions.disconnect}>
+            Cancel connection
+          </Button>
+        </>
+      ) : sharing ? (
+        <Card>
+          <Eyebrow>01 · INVITE YOUR OTHER PHONE</Eyebrow>
+          <Text style={styles.heading}>Make the connection.</Text>
+          <Text style={styles.copy}>
+            Create a private invitation, then paste it into Synced on your other
