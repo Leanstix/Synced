@@ -178,3 +178,14 @@ object AppSession {
                 if (!activate(id, secure)) { client.close(); return@execute }
                 client.soTimeout = 15_000
                 updateCurrent(id) { it.copy(connected = true, peerName = peer, status = "Connected. Waiting for the host to start screen sharing.", error = null) }
+                receiveController(id, secure)
+            } catch (e: Exception) {
+                disconnectCurrent(id, "Connection ended: ${friendly(e)}")
+            }
+        }
+    }
+    private fun receiveHost(id: Int, secure: SecureChannel) {
+        var commandWindow = System.nanoTime()
+        var commands = 0
+        try {
+            while (isCurrent(id)) {
