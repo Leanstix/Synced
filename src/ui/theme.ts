@@ -94,3 +94,23 @@ export const styles = StyleSheet.create({
   fine: { fontSize: 11, lineHeight: 17, color: colors.muted },
   centered: { textAlign: "center" },
   card: {
+    backgroundColor: colors.surface,
+    padding: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  button: {
+    minHeight: 52,
+    paddingHorizontal: 16,
+    paddingVertical: 13,
+    backgroundColor: colors.elevated,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonPrimary: { backgroundColor: colors.lime, borderColor: colors.lime },
+  buttonText: {
