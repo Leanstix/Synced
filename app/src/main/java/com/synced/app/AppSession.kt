@@ -115,3 +115,11 @@ object AppSession {
                 updateCurrent(id) { it.copy(invitation = invitation, addresses = "${candidates.first()}:${localServer.localPort}", status = "Invitation ready for 10 minutes. Keep it private; approve the connecting phone here.") }
                 while (isCurrent(id) && System.currentTimeMillis() < expiry) {
                     val accepted = try { localServer.accept() } catch (_: SocketTimeoutException) { continue }
+                    if (!claimSocket(id, accepted)) return@execute
+                    try {
+                        accepted.soTimeout = 12_000
+                        accepted.tcpNoDelay = true
+                        val (secure, peer) = Pairing.host(accepted, secret) { name ->
+                            val gate = ApprovalGate()
+                            synchronized(this) {
+                                if (isCurrent(id)) {
