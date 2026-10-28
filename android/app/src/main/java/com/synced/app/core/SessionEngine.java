@@ -209,3 +209,8 @@ public final class SessionEngine {
     }
     public synchronized void captureChanged(boolean active, int id) {
         if (!current(id)) return;
+        if (!active) { controlConsent = false; controlEpoch.incrementAndGet(); }
+        update(s -> { s.capturing = active; s.controlAllowed = controlConsent; s.status = active ? "Screen sharing is live. Allow remote control when you are ready." : "Screen sharing stopped. Remote control revoked."; }); sendStatus();
+    }
+    public synchronized void sendFrame(byte[] jpeg, int id) {
+        if (!current(id) || !isCapturing() || !frameBusy.compareAndSet(false, true)) return;
