@@ -93,3 +93,7 @@ public final class SessionEngine {
     }
     public synchronized void disconnect(int id, String message) { if (current(id)) disconnect(message); }
     private static void close(java.io.Closeable object) { if (object != null) try { object.close(); } catch (Exception ignored) {} }
+    private synchronized boolean claim(int id, Socket value) { if (!current(id)) { close(value); return false; } socket = value; return true; }
+    private synchronized boolean claim(int id, ServerSocket value) { if (!current(id)) { close(value); return false; } server = value; return true; }
+    private synchronized boolean activate(int id, SecureChannel value) { if (!current(id)) return false; channel = value; authenticated = true; return true; }
+    public void startHosting() {
