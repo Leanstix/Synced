@@ -34,3 +34,8 @@ object Pairing {
         require(approve("$peer · code ${verificationCode(secret, clientNonce, hostNonce)}")) { "Connection was declined or approval expired." }
         channel.send(SecureChannel.STATUS, JSONObject().put("approved", true).put("name", name()).toString().toByteArray())
         return channel to peer
+    }
+    fun controller(socket: Socket, secret: ByteArray, showCode: (String) -> Unit): Pair<SecureChannel, String> {
+        val clientNonce = Crypto.randomBytes(32)
+        send(socket, secret, JSONObject().put("type", "hello").put("version", 1).put("nonce", Invitation.encodeBytes(clientNonce)).put("name", name()))
+        val challenge = receive(socket, secret)
