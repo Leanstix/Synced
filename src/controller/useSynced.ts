@@ -95,3 +95,20 @@ export function useSynced(): { state: UiState; actions: UiActions } {
     let sessionId = -1;
     const apply = (next: NativeState) => {
       const sameSession = sessionId === (next._sessionId ?? 0);
+      sessionId = next._sessionId ?? 0;
+      setState((previous) => ({
+        ...next,
+        remoteFrame:
+          sameSession && next.capturing && next.role === "CONTROLLER"
+            ? previous.remoteFrame
+            : null,
+      }));
+    };
+    const status = DeviceEventEmitter.addListener(
+      "SyncedState",
+      (next: NativeState) => {
+        liveVersion += 1;
+        apply(next);
+      }
+    );
+    const frames = DeviceEventEmitter.addListener(
