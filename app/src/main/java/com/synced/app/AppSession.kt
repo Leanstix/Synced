@@ -248,3 +248,7 @@ object AppSession {
         sendStatus()
     }
     fun canControl(): Boolean = authenticated && controlConsent && state.role == Role.HOST && state.capturing
+    @Synchronized fun captureChanged(active: Boolean, sessionId: Int) {
+        if (!isCurrent(sessionId)) return
+        if (!active) { controlConsent = false; controlEpoch.incrementAndGet() }
+        update { it.copy(capturing = active, controlAllowed = controlConsent, status = if (active) "Screen sharing is live. Remote control is off until you allow it." else "Screen sharing stopped. Remote control revoked.") }
