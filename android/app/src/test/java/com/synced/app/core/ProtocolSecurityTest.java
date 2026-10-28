@@ -12,3 +12,7 @@ public class ProtocolSecurityTest {
     @Test public void encryptedHandshakeRoundTrip() throws Exception { byte[] data = "private proof".getBytes(); assertArrayEquals(data, Crypto.open(secret, Crypto.seal(secret, data))); }
     @Test public void handshakeUsesFreshNonce() throws Exception { assertFalse(java.util.Arrays.equals(Crypto.seal(secret, new byte[] {1}), Crypto.seal(secret, new byte[] {1}))); }
     @Test public void wrongInvitationCannotAuthenticate() throws Exception { byte[] encrypted = Crypto.seal(secret, new byte[] {1}); assertThrows(AEADBadTagException.class, () -> Crypto.open(bytes(1), encrypted)); }
+    @Test public void handshakeTamperFails() throws Exception { byte[] encrypted = Crypto.seal(secret, new byte[] {1}); encrypted[encrypted.length - 1] ^= 1; assertThrows(AEADBadTagException.class, () -> Crypto.open(secret, encrypted)); }
+    @Test public void directionalKeysDiffer() throws Exception { assertFalse(java.util.Arrays.equals(Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, host, "controller to host"))); }
+    @Test public void freshConnectionKeysDiffer() throws Exception { assertFalse(java.util.Arrays.equals(Crypto.derive(secret, client, host, "host to controller"), Crypto.derive(secret, client, bytes(2), "host to controller"))); }
+    @Test public void orderedPacketsRoundTrip() throws Exception {
