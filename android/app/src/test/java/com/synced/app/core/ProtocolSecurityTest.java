@@ -25,3 +25,8 @@ public class ProtocolSecurityTest {
     @Test public void failedAuthenticationDoesNotAdvanceCounter() throws Exception {
         PacketCipher receive = new PacketCipher(secret); byte[] packet = new PacketCipher(secret).encrypt(new byte[] {8}), broken = packet.clone(); broken[broken.length - 1] ^= 1;
         assertThrows(AEADBadTagException.class, () -> receive.decrypt(broken)); assertArrayEquals(new byte[] {8}, receive.decrypt(packet));
+    }
+    @Test public void oversizedPlaintextRejected() { assertThrows(IllegalArgumentException.class, () -> new PacketCipher(secret).encrypt(new byte[PacketCipher.MAX_PLAIN_BYTES + 1])); }
+    @Test public void truncatedCiphertextRejected() { assertThrows(IllegalArgumentException.class, () -> new PacketCipher(secret).decrypt(new byte[23])); }
+    private DataInputStream length(int size) throws Exception { ByteArrayOutputStream data = new ByteArrayOutputStream(); new DataOutputStream(data).writeInt(size); return new DataInputStream(new ByteArrayInputStream(data.toByteArray())); }
+    @Test public void framingRoundTrip() throws Exception { ByteArrayOutputStream data = new ByteArrayOutputStream(); Framing.write(new DataOutputStream(data), new byte[] {1, 2}); assertArrayEquals(new byte[] {1, 2}, Framing.read(new DataInputStream(new ByteArrayInputStream(data.toByteArray())))); }
