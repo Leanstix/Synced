@@ -65,3 +65,12 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
                 if (!bounds.contains(event.x, event.y)) return false
                 startX = ((event.x - bounds.left) / bounds.width()).coerceIn(0f, 1f)
                 startY = ((event.y - bounds.top) / bounds.height()).coerceIn(0f, 1f)
+                started = event.eventTime; tracking = true
+                parent.requestDisallowInterceptTouchEvent(true)
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> return tracking
+            MotionEvent.ACTION_UP -> {
+                if (!tracking) return false
+                val endX = ((event.x - bounds.left) / bounds.width()).coerceIn(0f, 1f)
+                val endY = ((event.y - bounds.top) / bounds.height()).coerceIn(0f, 1f)
