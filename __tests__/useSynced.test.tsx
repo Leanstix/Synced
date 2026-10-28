@@ -49,3 +49,11 @@ it("ignores a frame until an approved controller session is sharing", async () =
 });
 it("clears displayed frames when the host stops capture", async () => {
   await mount();
+  status({ role: "CONTROLLER", connected: true, capturing: true });
+  act(() => native.__emit("SyncedFrame", { uri: "approved-frame" }));
+  status({ role: "CONTROLLER", connected: true, capturing: false });
+  expect(current.state.remoteFrame).toBeNull();
+});
+it("does not let a delayed initial snapshot overwrite a live status event", async () => {
+  let resolve!: (value: UiState) => void;
+  native.NativeModules.Synced.getState.mockReturnValue(
