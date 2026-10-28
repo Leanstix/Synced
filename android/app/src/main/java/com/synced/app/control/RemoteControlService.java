@@ -43,3 +43,7 @@ public final class RemoteControlService extends AccessibilityService {
     @SuppressWarnings("deprecation") private void gesture(JSONObject data) throws Exception {
         double sx = data.getDouble("sx"), sy = data.getDouble("sy"), ex = data.getDouble("ex"), ey = data.getDouble("ey");
         for (double value : new double[] {sx, sy, ex, ey}) if (!Double.isFinite(value) || value < 0 || value > 1) throw new IllegalArgumentException("Invalid coordinates");
+        long duration = Math.max(50, Math.min(1500, data.getLong("duration")));
+        DisplayMetrics metrics = new DisplayMetrics(); ((WindowManager) getSystemService(WINDOW_SERVICE)).getDefaultDisplay().getRealMetrics(metrics);
+        Path path = new Path(); path.moveTo((float) (sx * (metrics.widthPixels - 1)), (float) (sy * (metrics.heightPixels - 1)));
+        if (sx != ex || sy != ey) path.lineTo((float) (ex * (metrics.widthPixels - 1)), (float) (ey * (metrics.heightPixels - 1)));
