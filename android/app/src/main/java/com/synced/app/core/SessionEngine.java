@@ -233,3 +233,13 @@ public final class SessionEngine {
     public synchronized void command(JSONObject command) {
         if (authenticated && "CONTROLLER".equals(state.role) && state.capturing && state.controlAllowed) sendPacket(SecureChannel.CONTROL, command.toString().getBytes(StandardCharsets.UTF_8));
         else report("The host must share its screen and allow remote control first.");
+    }
+    private synchronized void sendPacket(int type, byte[] bytes) {
+        int id = generation(), epoch = controlEpoch.get(); SecureChannel secure = channel; if (secure == null) return;
+        enqueue(id, () -> {
+            try { if (current(id) && (type != SecureChannel.CONTROL || epoch == controlEpoch.get())) secure.send(type, bytes); }
+            catch (Exception e) { disconnect(id, "Connection lost. Sharing and control stopped."); }
+        });
+    }
+    private void enqueue(int id, Runnable task) {
+        try { writer.execute(task); }
