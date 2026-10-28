@@ -34,3 +34,12 @@ class MainActivity : Activity(), UiActions {
     }
     override fun onResume() {
         super.onResume()
+        AppSession.observe(ui::render)
+        if (AppSession.state.role != Role.CONTROLLER) AppSession.refreshAccessibility()
+    }
+    override fun onPause() { AppSession.observe(null); super.onPause() }
+    override fun startHosting() = AppSession.startHosting()
+    override fun connect(invitation: String) = AppSession.connect(invitation)
+    override fun approvePeer() = AppSession.approvePeer(true)
+    override fun rejectPeer() = AppSession.approvePeer(false)
+    override fun disconnect() = AppSession.disconnect()
