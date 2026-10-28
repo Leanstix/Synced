@@ -27,3 +27,9 @@ public class SecureChannelIntegrationTest {
         try (Sockets sockets = new Sockets()) {
             byte[] key = Crypto.random(32); SecureChannel host = new SecureChannel(sockets.host, key, key), client = new SecureChannel(sockets.client, key, Crypto.random(32));
             host.send(SecureChannel.STATUS, new byte[] {1}); assertThrows(javax.crypto.AEADBadTagException.class, client::read);
+        }
+    }
+    @Test public void replayedSocketPacketFails() throws Exception {
+        try (Sockets sockets = new Sockets()) {
+            byte[] key = Crypto.random(32), packet = new PacketCipher(key).encrypt(new byte[] {SecureChannel.STATUS, 1});
+            DataOutputStream output = new DataOutputStream(sockets.host.getOutputStream()); SecureChannel client = new SecureChannel(sockets.client, key, key);
