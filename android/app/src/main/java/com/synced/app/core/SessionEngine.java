@@ -186,3 +186,7 @@ public final class SessionEngine {
             if (message.type == SecureChannel.PING) { if (message.body.length != 0) throw new IllegalArgumentException("Invalid heartbeat"); }
             else if (message.type == SecureChannel.FRAME) {
                 long now = System.nanoTime(); if (now - lastFrame < 150_000_000L) continue; lastFrame = now;
+                BitmapFactory.Options bounds = new BitmapFactory.Options(); bounds.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(message.body, 0, message.body.length, bounds);
+                if (bounds.outWidth < 1 || bounds.outHeight < 1 || bounds.outWidth > 1600 || bounds.outHeight > 1600 || (long) bounds.outWidth * bounds.outHeight > 2_560_000) throw new IllegalArgumentException("Invalid image dimensions");
+                latestFrame.set(new PendingFrame(id, message.body));
