@@ -411,3 +411,32 @@ export function SyncedScreen({ state, actions }: Props) {
             onPress={() => {
               setAlarmError("");
               setDialog("alarm");
+            }}
+          >
+            Set alarm
+          </Button>
+        </View>
+        <View style={styles.row}>
+          <Button
+            style={styles.fill}
+            disabled={!canControl}
+            onPress={() => actions.sendAction("dismiss_alarm")}
+          >
+            Dismiss alarm
+          </Button>
+          <Button
+            style={styles.fill}
+            disabled={!canControl}
+            onPress={() => actions.sendAction("snooze_alarm")}
+          >
+            Snooze
+          </Button>
+        </View>
+      </Card>
+      <Button destructive onPress={actions.disconnect}>
+        Stop session
+      </Button>
+    </>
+  );
+
+  return (
