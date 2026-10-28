@@ -6,3 +6,7 @@ Run `npm ci`, `npm run typecheck`, `npm run lint`, and `npm test`. For native ch
 
 Keep changes small and describe the actual behavior changed. Development micro-commits can establish a model, implement a bounded operation, add a lifecycle guard, define a view, or document a constraint. The integration head is the validation target; intermediate development commits are not standalone releases.
 
+Never commit live invitations, private screenshots, message contents, signing keys, keystores, credentials, node_modules, SDK paths, Metro bundles, or build output. Use fabricated data in tests. Preserve package-lock.json so installs remain reproducible.
+
+A shared network does not authenticate a peer. Transport changes must preserve explicit host approval, capture consent, control consent, bounded allocation, session IDs, replay checks, and revocation. Protocol changes need negative tests and a compatibility/version decision.
+
