@@ -24,3 +24,11 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
         c.drawOval(RectF(28f, 23f, 324f, 183f), p)
         c.drawOval(RectF(59f, -12f, 293f, 218f), p)
         p.color = Color.rgb(36, 42, 37)
+        c.drawLine(9f, 104f, 342f, 104f, p)
+        c.drawLine(175f, 3f, 175f, 201f, p)
+        phone(c, 83f, 43f, 77f, 132f, -12f, false)
+        phone(c, 184f, 23f, 86f, 148f, 10f, true)
+        // A connection bridge deliberately reads as an illustration, never a live status.
+        p.style = Paint.Style.FILL; p.color = lime
+        c.drawRoundRect(RectF(151f, 83f, 197f, 125f), 15f, 15f, p)
+        p.color = Color.rgb(23, 29, 22); p.style = Paint.Style.STROKE
