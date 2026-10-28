@@ -189,3 +189,11 @@ export function SyncedScreen({ state, actions }: Props) {
             "Approve the connection. Stop whenever you like.",
           ],
         ].map(([title, copy], index) => (
+          <View
+            key={title}
+            style={[styles.row, { alignItems: "flex-start", marginTop: 5 }]}
+          >
+            <Text style={styles.stepNumber}>0{index + 1}</Text>
+            <View style={[styles.smallStack, styles.fill]}>
+              <Text style={styles.title}>{title}</Text>
+              <Text style={styles.caption}>{copy}</Text>
