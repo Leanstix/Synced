@@ -32,3 +32,26 @@ export const RemoteViewport = React.memo(function RemoteViewport({
   const point = (event: GestureResponderEvent, clamp: boolean) => {
     const { layout: box, frame: image } = latest.current;
     return normalizePoint(
+      event.nativeEvent.locationX,
+      event.nativeEvent.locationY,
+      box,
+      image,
+      clamp
+    );
+  };
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: (event) =>
+          latest.current.enabled &&
+          !!latest.current.uri &&
+          event.nativeEvent.touches.length === 1 &&
+          point(event, false) !== null,
+        onPanResponderGrant: (event) => {
+          const p = point(event, false);
+          start.current = p ? { ...p, time: Date.now() } : null;
+        },
+        onPanResponderMove: (event) => {
+          if (event.nativeEvent.touches.length > 1) start.current = null;
+        },
+        onPanResponderRelease: (event) => {
