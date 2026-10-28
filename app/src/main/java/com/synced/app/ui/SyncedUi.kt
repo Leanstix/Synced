@@ -218,3 +218,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
 
     private fun invitationCard() {
         content.addView(s.card().apply {
+            addView(s.label("PRIVATE INVITATION")); addView(s.space(12))
+            addView(s.text("Send it to your other phone.", 20f, s.ink, true)); addView(s.space(8))
+            addView(s.text("Copy the invitation and paste it into Connect on the other phone. Keep it private.", 14f, s.muted)); addView(s.space(18))
+            if (state.invitation.isNotBlank()) {
