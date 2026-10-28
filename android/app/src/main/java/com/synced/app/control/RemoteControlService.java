@@ -61,3 +61,11 @@ public final class RemoteControlService extends AccessibilityService {
         Integer global = value.equals("back") ? GLOBAL_ACTION_BACK : value.equals("home") ? GLOBAL_ACTION_HOME : value.equals("recents") ? GLOBAL_ACTION_RECENTS : null;
         if (global != null) { if (!performGlobalAction(global)) fail("Android could not perform this navigation action."); return; }
         if (!safeTarget()) return;
+        Intent intent;
+        switch (value) {
+            case "alarms": intent = new Intent(AlarmClock.ACTION_SHOW_ALARMS); break;
+            case "dismiss_alarm": intent = new Intent(AlarmClock.ACTION_DISMISS_ALARM); break;
+            case "snooze_alarm": intent = new Intent(AlarmClock.ACTION_SNOOZE_ALARM); break;
+            default:
+                if (!value.startsWith("set_alarm:")) { fail("Unsupported action."); return; }
+                String[] parts = value.split(":"); if (parts.length != 3) throw new IllegalArgumentException("Invalid alarm");
