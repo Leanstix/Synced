@@ -73,3 +73,8 @@ object AppSession {
         runCatching { socket?.close() }; socket = null
         runCatching { server?.close() }; server = null
         channel = null
+        if (::context.isInitialized) context.stopService(Intent(context, ScreenCaptureService::class.java))
+        update { UiState(status = message, accessibilityEnabled = RemoteControlService.instance != null) }
+    }
+    @Synchronized fun disconnectCurrent(id: Int, message: String) {
+        if (isCurrent(id)) disconnect(message)
