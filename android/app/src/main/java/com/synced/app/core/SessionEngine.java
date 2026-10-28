@@ -243,3 +243,12 @@ public final class SessionEngine {
     }
     private void enqueue(int id, Runnable task) {
         try { writer.execute(task); }
+        catch (RejectedExecutionException e) { frameBusy.set(false); disconnect(id, "Connection overloaded. Sharing and control stopped."); }
+    }
+    private static String friendly(Exception error) {
+        if (error instanceof SocketTimeoutException) return "Timed out. Check Wi-Fi/hotspot and approve on the host.";
+        if (error instanceof ConnectException) return "Host unreachable. Use the same Wi-Fi or hotspot; some networks isolate devices.";
+        if (error instanceof IllegalArgumentException) return error.getMessage() == null ? "Invalid invitation or protocol data." : error.getMessage();
+        return "The peer closed the connection or authentication failed.";
+    }
+}
