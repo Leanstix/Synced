@@ -19,3 +19,7 @@ One Android application serves two roles. The host is the phone being shared; th
 | `capture/ScreenCaptureService.java` | Foreground full-display capture, JPEG pipeline and teardown |
 | `control/RemoteControlService.java` | Host-enabled gestures, text, navigation and clock intents |
 
+The interface and application adapter are TypeScript. Java implements the Android capabilities that React Native cannot supply through JavaScript alone. No authored Kotlin application source is present.
+
+## Session sequence
+
