@@ -22,3 +22,10 @@ object Crypto {
     fun derive(secret: ByteArray, clientNonce: ByteArray, hostNonce: ByteArray, direction: String): ByteArray {
         require(secret.size == 32 && clientNonce.size == 32 && hostNonce.size == 32)
         val extract = hmac(clientNonce + hostNonce, secret)
+        return hmac(extract, "Synced v1 $direction".toByteArray() + byteArrayOf(1))
+    }
+    private fun hmac(key: ByteArray, value: ByteArray): ByteArray = Mac.getInstance("HmacSHA256").run {
+        init(SecretKeySpec(key, "HmacSHA256")); doFinal(value)
+    }
+    internal fun crypt(mode: Int, key: ByteArray, nonce: ByteArray, data: ByteArray, aad: ByteArray): ByteArray =
+        Cipher.getInstance("AES/GCM/NoPadding").run {
