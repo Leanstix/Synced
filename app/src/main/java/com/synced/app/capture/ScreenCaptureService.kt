@@ -139,3 +139,11 @@ class ScreenCaptureService : Service() {
     private fun makeReader(w: Int, h: Int): ImageReader = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2).also { source ->
         source.setOnImageAvailableListener({ available ->
             val image = runCatching { available.acquireLatestImage() }.getOrNull() ?: return@setOnImageAvailableListener
+            try {
+                val now = SystemClock.elapsedRealtime()
+                if (!stopping && getSystemService(KeyguardManager::class.java).isKeyguardLocked) {
+                    AppSession.disconnectCurrent(sessionId, "Host locked. Sharing and control have stopped.")
+                    stopSelf()
+                } else if (!stopping && AppSession.state.connected && now - lastFrame >= 250) {
+                    lastFrame = now
+                    val plane = image.planes[0]
