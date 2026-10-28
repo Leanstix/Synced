@@ -154,3 +154,11 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         content.addView(s.text(if (shareSelected) "Share this phone's screen. You choose who connects and what they can do." else "See and control your other Android phone, with permission at every step.", 15f, s.muted))
         addGap(8)
         content.addView(SyncedArtwork(activity, shareSelected), LinearLayout.LayoutParams(-1, s.dp(202)))
+        addGap(2)
+        if (state.role == Role.CONTROLLER) {
+            content.addView(statusCard("Connecting to your phone", state.status))
+            addGap(16)
+            content.addView(s.button("Cancel connection", destructive = true) { actions.disconnect() }, full())
+        } else if (shareSelected) {
+            content.addView(s.card().apply {
+                addView(s.label("01  ·  INVITE YOUR OTHER PHONE")); addView(s.space(14))
