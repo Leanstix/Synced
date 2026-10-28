@@ -82,3 +82,15 @@ export const styles = StyleSheet.create({
     color: colors.ink,
   },
   heading: {
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: "600",
+    letterSpacing: -0.5,
+    color: colors.ink,
+  },
+  title: { fontSize: 16, lineHeight: 22, fontWeight: "600", color: colors.ink },
+  copy: { fontSize: 14, lineHeight: 21, color: colors.muted },
+  caption: { fontSize: 12, lineHeight: 18, color: colors.muted },
+  fine: { fontSize: 11, lineHeight: 17, color: colors.muted },
+  centered: { textAlign: "center" },
+  card: {
