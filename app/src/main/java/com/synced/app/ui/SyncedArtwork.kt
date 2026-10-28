@@ -36,3 +36,13 @@ class SyncedArtwork(context: Context, private val sharing: Boolean = false) : Vi
         val path = Path().apply {
             moveTo(164f, 99f); lineTo(184f, 99f); lineTo(180f, 95f)
             moveTo(184f, 109f); lineTo(164f, 109f); lineTo(168f, 113f)
+        }
+        c.drawPath(path, p)
+        p.style = Paint.Style.FILL; p.color = lime
+        c.drawCircle(53f, 66f, 3f, p); c.drawCircle(302f, 145f, 3f, p)
+        p.color = Color.rgb(108, 123, 102)
+        c.drawCircle(283f, 35f, 2f, p); c.drawCircle(66f, 181f, 2f, p)
+        c.restore()
+    }
+    private fun phone(c: Canvas, x: Float, y: Float, w: Float, h: Float, angle: Float, primary: Boolean) {
+        c.save(); c.rotate(angle, x + w / 2, y + h / 2)
