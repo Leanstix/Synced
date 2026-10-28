@@ -260,3 +260,13 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                 addView(s.space(18)); addView(s.button("Share screen", primary = true) { actions.startScreenSharing() }, full())
             }
             addView(s.space(12)); addView(s.text("Sensitive apps may hide content. On Android 15+, locking this phone ends capture.", 11f, s.muted))
+        }, full())
+    }
+
+    private fun controlCard() {
+        content.addView(s.card().apply {
+            val heading = s.row()
+            heading.addView(s.text("Allow remote control", 17f, s.ink, true), LinearLayout.LayoutParams(0, -2, 1f))
+            heading.addView(Switch(activity).apply {
+                isChecked = state.controlAllowed
+                contentDescription = "Allow the connected phone to control this phone"
