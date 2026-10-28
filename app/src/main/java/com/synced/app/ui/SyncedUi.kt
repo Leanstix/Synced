@@ -212,3 +212,9 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         controlCard()
         addGap(18)
         content.addView(s.button(if (state.connected) "Stop session" else "Cancel invitation", destructive = true) { actions.disconnect() }, full())
+        addGap(10)
+        content.addView(s.text("Ending the session disconnects the other phone and stops screen sharing.", 11f, s.muted).apply { gravity = Gravity.CENTER })
+    }
+
+    private fun invitationCard() {
+        content.addView(s.card().apply {
