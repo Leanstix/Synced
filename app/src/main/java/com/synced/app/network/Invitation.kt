@@ -16,3 +16,7 @@ data class Invitation(val host: String, val port: Int, val secret: ByteArray, va
             require(text.length < 4096) { "Invitation is too long." }
             val data = JSONObject(String(decodeBytes(text.trim().removePrefix("synced1:"))))
             val host = data.getString("host")
+            // Numeric private/link-local addresses only: no remote DNS or Internet relay.
+            require(host.matches(Regex("[0-9.]{7,15}"))) { "Use a local IPv4 address." }
+            val address = InetAddress.getByName(host)
+            require(address.isSiteLocalAddress || address.isLinkLocalAddress) { "Only local network addresses are supported." }
