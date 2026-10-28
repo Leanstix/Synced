@@ -270,3 +270,11 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             heading.addView(Switch(activity).apply {
                 isChecked = state.controlAllowed
                 contentDescription = "Allow the connected phone to control this phone"
+                isEnabled = state.accessibilityEnabled && state.connected && state.capturing
+                thumbTintList = android.content.res.ColorStateList.valueOf(if (isChecked) s.lime else s.muted)
+                trackTintList = android.content.res.ColorStateList.valueOf(s.border)
+                var restoring = false
+                setOnCheckedChangeListener { toggle, checked ->
+                    if (!restoring) {
+                        restoring = true
+                        toggle.isChecked = state.controlAllowed
