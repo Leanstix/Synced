@@ -17,3 +17,9 @@ The JavaScript tests cover local consent before control, invalid gesture/action/
 
 A full React Native Android build requires React Native's native dependencies, Android Gradle Plugin9.2.1, SDK37, NDK27.1, and CMake. Local Gradle dependency resolution was blocked by the execution environment's network policy. Offline resolution confirmed a missing build dependency; it did not reveal an application compilation result.
 
+The GitHub Actions workflow runs TypeScript checks, JavaScript tests, native unit tests, Android lint, and an embedded-bundle preview build. Consult the actual workflow result for APK compilation and artifact availability. A workflow definition alone is not evidence of a successful build.
+
+## Not yet verified
+
+No completed React Native emulator run or physical two-phone acceptance run is claimed. Screen-capture permission flow, native-module registration at runtime, OEM hotspot reachability, rotation, background behavior, clock intents, secure surfaces, and gesture accuracy still require device validation.
+
