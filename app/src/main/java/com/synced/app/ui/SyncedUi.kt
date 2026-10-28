@@ -170,3 +170,7 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         } else {
             content.addView(s.card().apply {
                 addView(s.label("01  ·  CONNECT TO YOUR OTHER PHONE")); addView(s.space(14))
+                addView(s.text("Have an invitation?", 22f, s.ink, true)); addView(s.space(9))
+                addView(s.text("Open Share in Synced on your other phone, then paste its invitation here.", 14f, s.muted)); addView(s.space(18))
+                val field = input("Paste your invitation", invitationDraft).apply {
+                    contentDescription = "Invitation from the phone you want to connect to"
