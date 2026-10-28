@@ -249,3 +249,9 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             addView(twoButtons(s.button("Decline") { actions.rejectPeer() }, s.button("Approve", primary = true) { actions.approvePeer() }), full())
         }, full())
         addGap(16)
+    }
+
+    private fun sharingCard() {
+        content.addView(s.card().apply {
+            addView(s.label("SCREEN SHARING")); addView(s.space(12))
+            addView(s.text(if (state.capturing) "Your screen is visible." else "Ready to share your screen?", 21f, s.ink, true)); addView(s.space(10))
