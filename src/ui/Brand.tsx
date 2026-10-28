@@ -124,3 +124,18 @@ export function PhoneArtwork() {
       <Phone x={83} y={43} w={77} h={132} angle={-12} />
       <Phone x={184} y={23} w={86} h={148} angle={10} primary />
       <Rect x={151} y={83} width={46} height={42} rx={15} fill="#D4FF74" />
+      <Path
+        d="M164 99H184L180 95M184 109H164L168 113"
+        stroke="#171D16"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      <Circle cx={53} cy={66} r={3} fill="#D4FF74" />
+      <Circle cx={302} cy={145} r={3} fill="#D4FF74" />
+      <Circle cx={283} cy={35} r={2} fill="#6C7B66" />
+      <Circle cx={66} cy={181} r={2} fill="#6C7B66" />
+    </Svg>
+  );
+}
