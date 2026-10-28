@@ -178,3 +178,9 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                     maxLines = 3
                     addTextChangedListener(object : TextWatcher {
                         override fun beforeTextChanged(value: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                        override fun onTextChanged(value: CharSequence?, start: Int, before: Int, count: Int) { invitationDraft = value?.toString().orEmpty() }
+                        override fun afterTextChanged(value: Editable?) = Unit
+                    })
+                }
+                addView(field, full()); addView(s.space(12))
+                addView(s.button("Connect to phone", primary = true) {
