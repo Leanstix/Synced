@@ -66,4 +66,6 @@ CI runs these checks and builds an ARM64 preview APK. The preview uses generated
 
 The Accessibility dependency is experimental and pinned to [upstream source](https://github.com/bedda-tech/react-native-accessibility-controller/tree/133fdaf0a61044e1c899681391b79f1845c9c2ee). Its package omits compiled JS/declarations, so `postinstall` compiles its TypeScript without changing native code. Its screenshot APIs are not used. The pinned dependency and the security protocol need independent review before a public release.
 
+The prefixed WebRTC AAR contains an unused class-loader customization method that references an omitted generated JNI class. The Expo configuration suppresses only that exact R8 warning (`livekit.org.jni_zero.JniZeroJni`); normal initialization uses the default loader. Release optimization remains enabled. The configuration also overrides dependency labels and disclosures in generated resources so Accessibility settings identify Synced and explain local screen/control sharing correctly.
+
 Source layout: `src/ui` contains the native screens and viewport geometry; `src/core` contains protocol, transport, media and input; `src/controller` coordinates local permissions and session state. The linked-phone logo is maintained as a vector in `assets/logo.svg`.
