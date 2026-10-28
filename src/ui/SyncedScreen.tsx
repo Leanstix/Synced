@@ -334,3 +334,15 @@ export function SyncedScreen({ state, actions }: Props) {
               state.controlAllowed && { color: colors.lime },
             ]}
           >
+            {!state.connected
+              ? "Accessibility enabled · Connect a phone to allow control"
+              : !state.capturing
+              ? "Start screen sharing to allow remote control"
+              : `Accessibility enabled · Control is ${
+                  state.controlAllowed ? "on" : "off"
+                }`}
+          </Text>
+        )}
+      </Card>
+      <Button destructive onPress={actions.disconnect}>
+        {state.connected ? "Stop session" : "Cancel invitation"}
