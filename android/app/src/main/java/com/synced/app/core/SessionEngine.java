@@ -29,3 +29,16 @@ public final class SessionEngine {
     private final ScheduledExecutorService heartbeat = Executors.newSingleThreadScheduledExecutor();
     private final AtomicInteger generation = new AtomicInteger(), controlEpoch = new AtomicInteger(), pendingCommands = new AtomicInteger();
     private final AtomicBoolean frameBusy = new AtomicBoolean(), uiQueued = new AtomicBoolean(), frameUiQueued = new AtomicBoolean();
+    private final AtomicReference<PendingFrame> latestFrame = new AtomicReference<>();
+    private static final class PendingFrame {
+        final int generation; final byte[] jpeg;
+        PendingFrame(int generation, byte[] jpeg) { this.generation = generation; this.jpeg = jpeg; }
+    }
+    private final State state = new State();
+    private volatile Listener listener;
+    private volatile Socket socket;
+    private volatile ServerSocket server;
+    private volatile SecureChannel channel;
+    private volatile ApprovalGate approval;
+    private volatile boolean authenticated, controlConsent;
+    private SessionEngine(Context context) {
