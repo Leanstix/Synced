@@ -272,3 +272,8 @@ object AppSession {
     @Synchronized fun sendRemoteMessage(message: String) {
         sendPacket(SecureChannel.STATUS, JSONObject().put("capturing", state.capturing).put("control", controlConsent)
             .put("accessibility", RemoteControlService.instance != null).put("message", message).toString().toByteArray())
+    }
+    @Synchronized fun sendCommand(command: JSONObject) {
+        if (authenticated && state.role == Role.CONTROLLER && state.capturing && state.controlAllowed) {
+            sendPacket(SecureChannel.CONTROL, command.toString().toByteArray())
+        } else report("The host must share its screen and allow remote control first.")
