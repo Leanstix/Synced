@@ -20,3 +20,12 @@ data class Invitation(val host: String, val port: Int, val secret: ByteArray, va
             require(host.matches(Regex("[0-9.]{7,15}"))) { "Use a local IPv4 address." }
             val address = InetAddress.getByName(host)
             require(address.isSiteLocalAddress || address.isLinkLocalAddress) { "Only local network addresses are supported." }
+            val port = data.getInt("port")
+            val secret = decodeBytes(data.getString("key"))
+            val expiry = data.getLong("expires")
+            require(port in 1024..65535 && secret.size == 32) { "Invalid invitation." }
+            require(expiry > System.currentTimeMillis() && expiry < System.currentTimeMillis() + 11 * 60_000) { "Invitation expired. Create a new one." }
+            return Invitation(host, port, secret, expiry)
+        }
+    }
+}
