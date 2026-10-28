@@ -74,3 +74,7 @@ public final class ScreenCaptureService extends Service {
             handler.post(() -> {
                 try {
                     if (stopping || sessionId != engine.generation()) return;
+                    DisplayMetrics full = metrics(); density = full.densityDpi; int[] size = scaled(full.widthPixels, full.heightPixels); width = size[0]; height = size[1];
+                    reader = makeReader(width, height);
+                    display = projection.createVirtualDisplay("Synced screen", width, height, density, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, reader.getSurface(), null, handler);
+                    getSystemService(DisplayManager.class).registerDisplayListener(displayListener, handler); engine.captureChanged(true, sessionId);
