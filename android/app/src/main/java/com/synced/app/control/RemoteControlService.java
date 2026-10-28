@@ -20,3 +20,11 @@ public final class RemoteControlService extends AccessibilityService {
     private SessionEngine engine;
     @Override protected void onServiceConnected() { engine = SessionEngine.get(this); instance = this; engine.refreshAccessibility(); }
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {}
+    @Override public void onInterrupt() {}
+    @Override public void onDestroy() { instance = null; if (engine != null) { engine.setControlAllowed(false); engine.refreshAccessibility(); } super.onDestroy(); }
+    public void execute(JSONObject command) {
+        if (engine == null || !engine.canControl()) return;
+        if (getSystemService(KeyguardManager.class).isKeyguardLocked()) { fail("Unlock the host locally to continue."); return; }
+        try {
+            switch (command.getString("kind")) {
+                case "gesture": if (safeTarget()) gesture(command); break;
