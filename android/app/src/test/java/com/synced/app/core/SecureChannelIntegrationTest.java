@@ -17,3 +17,7 @@ public class SecureChannelIntegrationTest {
     @Test public void framesAndCommandsCrossRealSocket() throws Exception {
         byte[] outbound = Crypto.random(32), inbound = Crypto.random(32);
         try (Sockets sockets = new Sockets()) {
+            SecureChannel host = new SecureChannel(sockets.host, outbound, inbound), client = new SecureChannel(sockets.client, inbound, outbound);
+            host.send(SecureChannel.STATUS, new byte[] {1}); assertEquals(SecureChannel.STATUS, client.read().type);
+            client.send(SecureChannel.CONTROL, "back".getBytes()); assertEquals("back", new String(host.read().body));
+            host.send(SecureChannel.FRAME, new byte[] {4, 5, 6}); assertArrayEquals(new byte[] {4, 5, 6}, client.read().body);
