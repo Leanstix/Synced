@@ -33,3 +33,9 @@ class RemoteControlService : AccessibilityService() {
             when (command.getString("kind")) {
                 "gesture" -> if (safeTarget()) gesture(command)
                 "text" -> if (safeTarget()) typeText(command.getString("text"))
+                "action" -> action(command.getString("action"))
+                else -> fail("Unsupported command.")
+            }
+        } catch (_: Exception) { fail("The requested action is unavailable on this screen.") }
+    }
+    /** Never let a remote gesture grant permissions, approve a peer, or alter Synced's controls. */
