@@ -160,3 +160,12 @@ class ScreenCaptureService : Service() {
             } catch (_: Exception) { /* Drop a frame during resize or teardown. */ }
             finally { image.close() }
         }, handler)
+    }
+    override fun onDestroy() {
+        stopping = true
+        if (screenReceiverRegistered) { unregisterReceiver(screenReceiver); screenReceiverRegistered = false }
+        AppSession.captureChanged(false, sessionId)
+        handler.post {
+            getSystemService(DisplayManager::class.java).unregisterDisplayListener(displayListener)
+            display?.release(); display = null
+            reader?.close(); reader = null
