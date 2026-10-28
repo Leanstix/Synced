@@ -30,3 +30,8 @@ Remote control is permitted only during an authenticated, approved, active scree
 
 The accessibility implementation checks the active app before gestures/text and blocks recognized Android permission/settings/installer surfaces and Synced itself. It rejects password-field text entry. These checks are defense in depth, not a complete list of every manufacturer's protected UI. Review OEM overlays and multi-window behavior on real devices before trusting this boundary.
 
+The controller can interact with ordinary apps within the approved session. That includes potentially destructive actions available in those apps, such as sending or deleting messages. Only approve your own trusted controller, and stop sharing when finished.
+
+## Reporting
+
+For a security concern, privately contact the repository owner through a channel they publish. Do not open a public issue containing a live invitation, screen image, message contents, personal data, or exploit details before responsible coordination. This repository does not yet have a dedicated disclosure mailbox or response-time guarantee.
