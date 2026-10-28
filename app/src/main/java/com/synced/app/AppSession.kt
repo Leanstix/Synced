@@ -206,3 +206,11 @@ object AppSession {
                         if (isCurrent(id) && epoch == controlEpoch.get() && canControl()) RemoteControlService.instance?.execute(command)
                         else if (isCurrent(id)) sendRemoteMessage("The host must share its unlocked screen and allow remote control first.")
                     } finally { pendingCommands.decrementAndGet() }
+                }
+            }
+        } catch (e: Exception) {
+            disconnectCurrent(id, "Remote phone disconnected. Sharing and control have stopped.")
+        }
+    }
+    private fun receiveController(id: Int, secure: SecureChannel) {
+        var lastDecodedFrame = 0L
