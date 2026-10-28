@@ -64,3 +64,21 @@ interface SyncedBridge {
   sendAction(action: string): void;
 }
 export const initialState: UiState = {
+  role: "IDLE",
+  status: "Ready for a connection you approve.",
+  invitation: "",
+  addresses: "",
+  pendingPeer: null,
+  connected: false,
+  capturing: false,
+  accessibilityEnabled: false,
+  controlAllowed: false,
+  peerName: "",
+  remoteFrame: null,
+  error: null,
+};
+const native = NativeModules.Synced as SyncedBridge | undefined;
+
+export function useSynced(): { state: UiState; actions: UiActions } {
+  const [state, setState] = useState<UiState>(initialState);
+  useEffect(() => {
