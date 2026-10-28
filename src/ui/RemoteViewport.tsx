@@ -90,3 +90,16 @@ export const RemoteViewport = React.memo(function RemoteViewport({
         accessibilityLabel={
           enabled
             ? "Remote phone screen. Tap or swipe to control."
+            : "Remote phone screen. View only."
+        }
+        {...pan.panHandlers}
+      >
+        {uri ? (
+          <Image
+            source={{ uri }}
+            resizeMode="contain"
+            style={styles.fill}
+            pointerEvents="none"
+            onLoad={(event) => {
+              if (latest.current.uri !== uri) return;
+              const { width, height } = event.nativeEvent.source;
