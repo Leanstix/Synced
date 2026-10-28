@@ -61,3 +61,14 @@ class MainActivity : Activity(), UiActions {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 701)
             return
+        }
+        requestCapture()
+    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 701) requestCapture()
+    }
+    private fun requestCapture() {
+        if (!AppSession.state.connected || AppSession.state.role != Role.HOST || AppSession.state.capturing) return
+        captureGeneration = AppSession.currentGeneration()
+        val manager = getSystemService(MediaProjectionManager::class.java)
