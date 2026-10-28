@@ -66,3 +66,11 @@ public final class ScreenCaptureService extends Service {
             else registerReceiver(screenReceiver, new IntentFilter(Intent.ACTION_SCREEN_OFF));
             screenReceiverRegistered = true;
             int result = intent.getIntExtra("resultCode", Activity.RESULT_CANCELED);
+            Intent data = Build.VERSION.SDK_INT >= 33 ? intent.getParcelableExtra("data", Intent.class) : intent.getParcelableExtra("data");
+            if (result != Activity.RESULT_OK || data == null) throw new IllegalArgumentException("No capture consent");
+            projection = getSystemService(MediaProjectionManager.class).getMediaProjection(result, data);
+            if (projection == null) throw new IllegalStateException("No projection");
+            projection.registerCallback(callback, handler);
+            handler.post(() -> {
+                try {
+                    if (stopping || sessionId != engine.generation()) return;
