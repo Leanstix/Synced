@@ -27,3 +27,8 @@ public final class Pairing {
     }
     private static byte[] nonce(JSONObject json, String name) throws Exception {
         byte[] bytes = Invitation.decodeBytes(json.getString(name));
+        if (bytes.length != 32) throw new IllegalArgumentException("Invalid handshake nonce"); return bytes;
+    }
+    private static String name() { return clean(Build.MANUFACTURER + " " + Build.MODEL); }
+    private static String clean(String name) { return name.replaceAll("\\p{Cntrl}", "").substring(0, Math.min(name.replaceAll("\\p{Cntrl}", "").length(), 80)); }
+    private static String verification(byte[] secret, byte[] client, byte[] host) throws Exception {
