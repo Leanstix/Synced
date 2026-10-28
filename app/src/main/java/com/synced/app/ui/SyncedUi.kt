@@ -289,3 +289,10 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                 addView(s.space(12)); addView(s.text("Requires the Synced accessibility service. It can read screen content and perform actions while remote control is on.", 12f, s.muted))
                 addView(s.space(14)); addView(s.button("Open accessibility settings") { actions.openAccessibilitySettings() }, full())
             } else {
+                addView(s.space(12)); addView(s.text(if (state.connected && state.capturing) "Accessibility enabled · Control is ${if (state.controlAllowed) "on" else "off"}" else if (state.connected) "Start screen sharing to allow remote control" else "Accessibility enabled · Connect a phone to allow control", 11f, if (state.controlAllowed) s.lime else s.muted))
+            }
+        }, full())
+    }
+
+    private fun controllerScreen() {
+        content.addView(s.label("CONNECTED TO YOUR PHONE")); addGap(12)
