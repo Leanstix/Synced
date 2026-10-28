@@ -54,3 +54,10 @@ public class SecureChannelIntegrationTest {
         ExecutorService writers = Executors.newFixedThreadPool(4);
         try (Sockets sockets = new Sockets()) {
             byte[] key = Crypto.random(32); SecureChannel host = new SecureChannel(sockets.host, key, key), client = new SecureChannel(sockets.client, key, key);
+            java.util.List<Future<?>> sent = new java.util.ArrayList<>();
+            for (int i = 0; i < 20; i++) sent.add(writers.submit(() -> { try { host.send(SecureChannel.CONTROL, new byte[] {7}); } catch (Exception e) { throw new RuntimeException(e); } }));
+            for (int i = 0; i < 20; i++) assertArrayEquals(new byte[] {7}, client.read().body);
+            for (Future<?> task : sent) task.get(2, TimeUnit.SECONDS);
+        } finally { writers.shutdownNow(); }
+    }
+}
