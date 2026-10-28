@@ -43,3 +43,9 @@ object Pairing {
         val hostNonce = nonce(challenge, "host")
         send(socket, secret, JSONObject().put("type", "proof").put("host", Invitation.encodeBytes(hostNonce)))
         showCode(verificationCode(secret, clientNonce, hostNonce))
+        val channel = SecureChannel(socket, Crypto.derive(secret, clientNonce, hostNonce, "controller to host"), Crypto.derive(secret, clientNonce, hostNonce, "host to controller"))
+        val (type, body) = channel.read()
+        require(type == SecureChannel.STATUS && JSONObject(String(body)).getBoolean("approved"))
+        return channel to challenge.getString("name").filter { !it.isISOControl() }.take(80)
+    }
+}
