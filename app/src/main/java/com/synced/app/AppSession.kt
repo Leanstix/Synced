@@ -226,3 +226,8 @@ object AppSession {
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                     require(bounds.outWidth in 1..1600 && bounds.outHeight in 1..1600 && bounds.outWidth.toLong() * bounds.outHeight <= 2_560_000) { "Invalid image dimensions" }
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: error("Invalid image")
+                    if (isCurrent(id)) updateCurrent(id) { it.copy(remoteFrame = bitmap, capturing = true) }
+                }
+                SecureChannel.STATUS -> {
+                    require(bytes.size <= 8192)
