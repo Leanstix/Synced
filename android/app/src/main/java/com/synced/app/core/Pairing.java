@@ -54,3 +54,10 @@ public final class Pairing {
         if (!"challenge".equals(challenge.getString("type")) || !MessageDigest.isEqual(nonce(challenge, "client"), client)) throw new IllegalArgumentException("Invalid challenge");
         byte[] host = nonce(challenge, "host");
         send(socket, secret, new JSONObject().put("type", "proof").put("host", Invitation.encodeBytes(host)));
+        show.show(verification(secret, client, host));
+        SecureChannel channel = new SecureChannel(socket, Crypto.derive(secret, client, host, "controller to host"), Crypto.derive(secret, client, host, "host to controller"));
+        SecureChannel.Message approved = channel.read();
+        if (approved.type != SecureChannel.STATUS || !new JSONObject(new String(approved.body, StandardCharsets.UTF_8)).getBoolean("approved")) throw new IllegalArgumentException("Host did not approve");
+        return new Result(channel, clean(challenge.getString("name")));
+    }
+}
