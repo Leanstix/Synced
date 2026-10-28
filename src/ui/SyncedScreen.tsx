@@ -604,3 +604,16 @@ export function SyncedScreen({ state, actions }: Props) {
                       maxLength={2}
                     />
                   </View>
+                  <Text style={styles.heading}>:</Text>
+                  <View style={[styles.stack, styles.fill]}>
+                    <Text style={styles.caption}>Minute</Text>
+                    <TextInput
+                      style={styles.input}
+                      accessibilityLabel="Alarm minute, 0 to 59"
+                      value={minute}
+                      onChangeText={setMinute}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                    />
+                  </View>
+                </View>
