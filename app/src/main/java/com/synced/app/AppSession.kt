@@ -89,3 +89,13 @@ object AppSession {
     }
     @Synchronized private fun claimServer(id: Int, value: ServerSocket): Boolean {
         if (!isCurrent(id)) { value.close(); return false }
+        server = value; return true
+    }
+    @Synchronized private fun activate(id: Int, value: SecureChannel): Boolean {
+        if (!isCurrent(id)) return false
+        channel = value; authenticated = true; return true
+    }
+    private fun isCurrent(id: Int) = generation.get() == id
+    fun startHosting() {
+        disconnect()
+        val id = generation.get()
