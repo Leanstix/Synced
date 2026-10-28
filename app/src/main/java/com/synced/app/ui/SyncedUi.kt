@@ -115,3 +115,14 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         row.addView(SyncedMark(activity), LinearLayout.LayoutParams(s.dp(36), s.dp(36)))
         row.addView(s.text("Synced", 25f, s.ink, true).apply { letterSpacing = -.04f }, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = s.dp(10) })
         row.addView(s.button("Guide") { showGuide() }.apply {
+            textSize = 12f; minHeight = s.dp(44); minimumHeight = s.dp(44)
+            background = s.shape(s.surface, 22, s.border)
+            contentDescription = "Connection guide and supported features"
+        }, LinearLayout.LayoutParams(s.dp(78), s.dp(44)))
+        content.addView(row, full())
+    }
+
+    private fun roleTabs() {
+        val row = s.row().apply { background = s.shape(s.surface, 16); setPadding(s.dp(5), s.dp(5), s.dp(5), s.dp(5)) }
+        listOf("Connect" to false, "Share" to true).forEach { (label, share) ->
+            val selected = shareSelected == share
