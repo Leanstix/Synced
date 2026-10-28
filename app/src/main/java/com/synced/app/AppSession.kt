@@ -252,3 +252,12 @@ object AppSession {
         if (!isCurrent(sessionId)) return
         if (!active) { controlConsent = false; controlEpoch.incrementAndGet() }
         update { it.copy(capturing = active, controlAllowed = controlConsent, status = if (active) "Screen sharing is live. Remote control is off until you allow it." else "Screen sharing stopped. Remote control revoked.") }
+        sendStatus()
+    }
+    @Synchronized fun sendFrame(jpeg: ByteArray, sessionId: Int) {
+        if (!isCurrent(sessionId) || !authenticated || state.role != Role.HOST || !state.capturing || !frameBusy.compareAndSet(false, true)) return
+        val id = sessionId
+        val secure = channel ?: run { frameBusy.set(false); return }
+        enqueue(id) {
+            try { if (isCurrent(id) && state.capturing) secure.send(SecureChannel.FRAME, jpeg) }
+            catch (_: Exception) { disconnectCurrent(id, "Connection lost. Sharing and control stopped.") }
