@@ -456,3 +456,21 @@ export function SyncedScreen({ state, actions }: Props) {
               <SyncedMark />
               <Text style={styles.brand}>Synced</Text>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Connection guide and supported features"
+              style={styles.guideButton}
+              onPress={() => setDialog("guide")}
+            >
+              <Text style={styles.guideText}>Guide</Text>
+            </Pressable>
+          </View>
+          <View accessibilityRole="tablist" style={styles.tabs}>
+            {[
+              ["Connect", false],
+              ["Share", true],
+            ].map(([label, value]) => (
+              <Pressable
+                key={String(label)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: sharing === value }}
