@@ -91,3 +91,8 @@ public final class ScreenCaptureService extends Service {
         PendingIntent stop = PendingIntent.getService(this, 2, new Intent(this, ScreenCaptureService.class).setAction("STOP"), immutable);
         Notification notice = new Notification.Builder(this, "sharing").setSmallIcon(android.R.drawable.ic_menu_view)
             .setContentTitle("Synced · your screen is being shared").setContentText("One approved phone can view this screen. Stop to revoke.")
+            .setContentIntent(open).setOngoing(true).setCategory(Notification.CATEGORY_SERVICE)
+            .addAction(new Notification.Action.Builder((android.graphics.drawable.Icon) null, "Stop & revoke", stop).build()).build();
+        if (Build.VERSION.SDK_INT >= 29) startForeground(11, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION); else startForeground(11, notice);
+    }
+    @SuppressWarnings("deprecation") private DisplayMetrics metrics() {
