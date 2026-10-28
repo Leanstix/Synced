@@ -23,3 +23,13 @@ The interface and application adapter are TypeScript. Java implements the Androi
 
 ## Session sequence
 
+1. The host obtains a private local address, listens on an ephemeral TCP port, and generates a short-lived invitation.
+2. The controller validates the invitation and opens a direct TCP connection.
+3. An encrypted hello contains the controller's random nonce and display name.
+4. An encrypted challenge echoes that nonce and adds the host's fresh nonce.
+5. The controller authenticates the host's challenge and returns proof of the host nonce.
+6. The host displays the request and waits for local approval. It does not send screen data before approval.
+7. Both sides derive separate directional session keys; the host sends an authenticated approval status.
+8. The host separately starts Android screen sharing. Optional remote input requires accessibility and explicit control consent.
+9. Either side can end the connection. Capture termination revokes control.
+
