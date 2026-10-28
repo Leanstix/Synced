@@ -52,3 +52,7 @@ public final class RemoteControlService extends AccessibilityService {
     }
     private void typeText(String text) {
         if (text.isEmpty() || text.length() > 1000) throw new IllegalArgumentException("Invalid text length");
+        AccessibilityNodeInfo root = getRootInActiveWindow(), focused = root == null ? null : root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        if (focused == null || !focused.isEditable() || focused.isPassword()) { fail("Tap a normal editable field first. Password fields require local input."); return; }
+        Bundle args = new Bundle(); args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
+        if (!focused.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) fail("This app does not accept accessibility text input.");
