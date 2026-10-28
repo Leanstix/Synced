@@ -18,3 +18,33 @@ export function Button({
   disabled,
   style,
 }: ButtonProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        primary && styles.buttonPrimary,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+        style,
+      ]}
+    >
+      <Text
+        style={[
+          styles.buttonText,
+          primary && styles.buttonTextPrimary,
+          destructive && styles.danger,
+        ]}
+      >
+        {children}
+      </Text>
+    </Pressable>
+  );
+}
+export function Card({
+  children,
+  attention,
+}: {
