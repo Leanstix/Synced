@@ -141,3 +141,13 @@ public final class SessionEngine {
                 disconnect(id, "Invitation expired. Create a new invitation to host.");
             } catch (Exception e) { disconnect(id, "Could not host: " + friendly(e)); }
         });
+    }
+    public synchronized void approve(boolean allow) {
+        if (approval == null) return; approval.resolve(allow);
+        update(s -> { s.pendingPeer = null; s.status = allow ? "Phone approved. Establishing encrypted session…" : "Connection declined."; });
+    }
+    public void connect(String invitation) {
+        disconnect("Connecting securely. Approve this phone on the host…"); int id = generation(); update(id, s -> s.role = "CONTROLLER");
+        workers.execute(() -> {
+            try {
+                Invitation invite = Invitation.parse(invitation); Socket client = new Socket(); if (!claim(id, client)) return;
