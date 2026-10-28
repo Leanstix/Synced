@@ -122,3 +122,27 @@ it("does not dispatch arbitrary actions or invalid clock times", async () => {
 it("bounds text while preserving Unicode content", async () => {
   await mount();
   current.actions.sendText("");
+  current.actions.sendText("x".repeat(1001));
+  expect(native.NativeModules.Synced.sendText).not.toHaveBeenCalled();
+  current.actions.sendText("Ẹ káàárọ̀ 📱");
+  expect(native.NativeModules.Synced.sendText).toHaveBeenCalledWith(
+    "Ẹ káàárọ̀ 📱"
+  );
+});
+it("surfaces native initialization failure instead of pretending to connect", async () => {
+  native.NativeModules.Synced.getState.mockRejectedValue(
+    new Error("unavailable")
+  );
+  await mount();
+  expect(current.state.error).toBeTruthy();
+  expect(current.state.connected).toBe(false);
+});
+
+it("rejects stale-session frames and clears the previous session image", async () => {
+  await mount();
+  status({
+    role: "CONTROLLER",
+    connected: true,
+    capturing: true,
+    _sessionId: 7,
+  });
