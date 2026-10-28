@@ -15,3 +15,5 @@ These are manual acceptance cases, not claims of completed physical-device tests
 9. The host can stop from the app and the persistent capture notification.
 10. Reconnecting requires fresh host approval; stale secrets and old sockets cannot regain control.
 
+## Screen and gestures
+
