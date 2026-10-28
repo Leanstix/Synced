@@ -617,3 +617,15 @@ export function SyncedScreen({ state, actions }: Props) {
                     />
                   </View>
                 </View>
+                {!!alarmError && (
+                  <Text
+                    accessibilityRole="alert"
+                    style={[styles.caption, styles.danger]}
+                  >
+                    {alarmError}
+                  </Text>
+                )}
+                <View style={styles.row}>
+                  <Button style={styles.fill} onPress={closeDialog}>
+                    Cancel
+                  </Button>
