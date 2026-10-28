@@ -346,3 +346,28 @@ export function SyncedScreen({ state, actions }: Props) {
       </Card>
       <Button destructive onPress={actions.disconnect}>
         {state.connected ? "Stop session" : "Cancel invitation"}
+      </Button>
+      <Text style={[styles.fine, styles.centered]}>
+        Ending the session disconnects the other phone and stops screen sharing.
+      </Text>
+    </>
+  );
+
+  const controller = (
+    <>
+      <View style={styles.stack}>
+        <Eyebrow>CONNECTED TO YOUR PHONE</Eyebrow>
+        <Text style={styles.hero}>{state.peerName || "Your other phone"}</Text>
+        <Text style={styles.caption}>{state.status}</Text>
+      </View>
+      <RemoteViewport
+        uri={state.remoteFrame}
+        enabled={canControl}
+        onGesture={actions.sendGesture}
+      />
+      <View style={styles.row}>
+        {[
+          ["Back", "back"],
+          ["Home", "home"],
+          ["Apps", "recents"],
+        ].map(([label, action]) => (
