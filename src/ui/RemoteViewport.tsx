@@ -116,3 +116,21 @@ export const RemoteViewport = React.memo(function RemoteViewport({
             <ActivityIndicator color={colors.lime} />
             <Text style={[styles.caption, styles.centered]}>
               Waiting for your other phone's screen
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text
+        style={[
+          styles.fine,
+          styles.centered,
+          enabled && { color: colors.lime },
+        ]}
+      >
+        {enabled
+          ? "Touch control on · Tap or swipe the screen"
+          : "View only · Enable control on the sharing phone"}
+      </Text>
+    </View>
+  );
+});
