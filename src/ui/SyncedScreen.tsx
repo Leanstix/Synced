@@ -554,3 +554,20 @@ export function SyncedScreen({ state, actions }: Props) {
               </>
             ) : dialog === "keyboard" ? (
               <>
+                <Text style={styles.copy}>
+                  First tap a text field on the remote screen. This replaces the
+                  focused field’s text.
+                </Text>
+                <TextInput
+                  style={[styles.input, { minHeight: 100 }]}
+                  accessibilityLabel="Text to set on the other phone"
+                  placeholder="Text to type"
+                  placeholderTextColor={colors.muted}
+                  value={text}
+                  onChangeText={setText}
+                  multiline
+                  maxLength={1000}
+                  autoFocus
+                />
+                <View style={styles.row}>
+                  <Button style={styles.fill} onPress={closeDialog}>
