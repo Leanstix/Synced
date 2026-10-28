@@ -39,3 +39,13 @@ public class SecureChannelIntegrationTest {
     @Test public void maliciousNetworkLengthFailsBeforeAllocation() throws Exception {
         try (Sockets sockets = new Sockets()) {
             byte[] key = Crypto.random(32); new DataOutputStream(sockets.host.getOutputStream()).writeInt(Integer.MAX_VALUE);
+            assertThrows(IllegalArgumentException.class, new SecureChannel(sockets.client, key, key)::read);
+        }
+    }
+    @Test public void disconnectReleasesBlockedReceiver() throws Exception {
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try (Sockets sockets = new Sockets()) {
+            byte[] key = Crypto.random(32); SecureChannel client = new SecureChannel(sockets.client, key, key);
+            Future<Boolean> closed = worker.submit(() -> { try { client.read(); return false; } catch (java.io.IOException expected) { return true; } });
+            sockets.host.close(); assertTrue(closed.get(2, TimeUnit.SECONDS));
+        } finally { worker.shutdownNow(); }
