@@ -12,3 +12,7 @@ Pairing is session-scoped. Credentials, captured frames, and typed text are not 
 
 ## Transport
 
+Protocol v1 uses AES-256-GCM and a random invitation secret. Authentication messages use fresh 96-bit nonces. The peers exchange fresh 256-bit nonces inside authenticated handshake messages, then derive separate traffic keys for each direction using HMAC-SHA256 extract/expand operations with labeled context. The host's fresh challenge prevents replayed authentication proofs from approving an old connection.
+
+Each encrypted traffic packet authenticates an eight-byte sequence number. A per-direction counter supplies the GCM nonce and must match exactly on receipt. Reordered, repeated, modified, truncated, and oversized packets are rejected. Packet lengths are bounded before allocation; decoded image dimensions are also checked before full bitmap decode.
+
