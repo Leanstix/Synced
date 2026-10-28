@@ -235,3 +235,11 @@ object AppSession {
                     updateCurrent(id) { it.copy(capturing = data.optBoolean("capturing"), controlAllowed = data.optBoolean("control"),
                         accessibilityEnabled = data.optBoolean("accessibility"), remoteFrame = if (data.optBoolean("capturing")) it.remoteFrame else null,
                         status = data.optString("message").ifBlank { if (data.optBoolean("capturing")) "Live · encrypted local connection" else "Connected. Host screen sharing is paused." }) }
+                }
+                else -> error("Unexpected message")
+            }
+        }
+    }
+    @Synchronized fun setControlAllowed(allowed: Boolean, sessionId: Int = generation.get()) {
+        if (!isCurrent(sessionId)) return
+        controlEpoch.incrementAndGet()
