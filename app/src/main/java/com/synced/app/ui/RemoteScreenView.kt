@@ -34,3 +34,12 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
     }
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
+        val maxHeight = (440 * resources.displayMetrics.density).toInt()
+        setMeasuredDimension(w, min(maxHeight, (w * 1.5f).toInt()))
+    }
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val radius = 16 * resources.displayMetrics.density
+        canvas.save()
+        canvas.clipPath(Path().apply { addRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), radius, radius, Path.Direction.CW) })
+        canvas.drawColor(Color.rgb(5, 8, 6))
