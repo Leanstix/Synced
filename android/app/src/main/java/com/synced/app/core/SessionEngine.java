@@ -168,3 +168,11 @@ public final class SessionEngine {
                 if (message.type != SecureChannel.CONTROL || message.body.length > 8192) throw new IllegalArgumentException("Unexpected command");
                 long now = System.nanoTime(); if (now - window > 1_000_000_000L) { window = now; commands = 0; }
                 if (++commands > 30) throw new IllegalArgumentException("Command rate exceeded");
+                JSONObject command = new JSONObject(new String(message.body, StandardCharsets.UTF_8)); int epoch = controlEpoch.get();
+                if (pendingCommands.incrementAndGet() > 8) { pendingCommands.decrementAndGet(); throw new IllegalArgumentException("Too many pending commands"); }
+                main.post(() -> {
+                    try {
+                        if (current(id) && epoch == controlEpoch.get() && canControl() && RemoteControlService.instance != null) RemoteControlService.instance.execute(command);
+                        else if (current(id)) remoteMessage("The host must share its unlocked screen and allow remote control first.");
+                    } finally { pendingCommands.decrementAndGet(); }
+                });
