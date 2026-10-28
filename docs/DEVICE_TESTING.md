@@ -28,3 +28,14 @@ These are manual acceptance cases, not claims of completed physical-device tests
 19. Text reaches the focused editable field; it does not send a message automatically.
 20. Password and secure windows follow Android/app protection; Synced does not remove those protections.
 
+## Alarm scenario
+
+21. Open clock from the controller and create a test alarm through its remote UI.
+22. Run a test alarm while the approved session remains active and unlocked.
+23. Request dismiss and snooze separately; verify the clock's actual state rather than a success label.
+24. Repeat with multiple alarms, a third-party clock, and no clock handler installed.
+25. Lock the host and document what happens; do not assume unattended alarm dismissal works.
+26. Keep the controller on the host's hotspot and repeat; reverse host/controller roles.
+
+## Lifecycle and network
+
