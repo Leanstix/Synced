@@ -50,3 +50,8 @@ public final class SyncedModule extends ReactContextBaseJavaModule implements Ac
                 MediaProjectionManager manager = activity.getSystemService(MediaProjectionManager.class);
                 Intent capture = Build.VERSION.SDK_INT >= 34 ? manager.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay()) : manager.createScreenCaptureIntent();
                 capturePending = true; activity.startActivityForResult(capture, CAPTURE_REQUEST);
+            } catch (Exception e) { capturePending = false; engine.report(captureGeneration, "Android could not open screen-sharing consent."); }
+        });
+    }
+    @Override public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode != CAPTURE_REQUEST) return;
