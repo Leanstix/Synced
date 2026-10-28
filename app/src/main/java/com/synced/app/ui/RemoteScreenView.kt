@@ -61,3 +61,7 @@ class RemoteScreenView(context: Context, private val gesture: (Float, Float, Flo
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (!controlEnabled || frame == null || bounds.isEmpty) return false
         when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                if (!bounds.contains(event.x, event.y)) return false
+                startX = ((event.x - bounds.left) / bounds.width()).coerceIn(0f, 1f)
+                startY = ((event.y - bounds.top) / bounds.height()).coerceIn(0f, 1f)
