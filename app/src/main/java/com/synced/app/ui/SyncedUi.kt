@@ -64,3 +64,15 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
             root.setOnApplyWindowInsetsListener { view, insets ->
                 val safe = insets.getInsets(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.ime())
                 view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+                insets
+            }
+            root.requestApplyInsets()
+        } else {
+            @Suppress("DEPRECATION")
+            activity.window.decorView.systemUiVisibility = activity.window.decorView.systemUiVisibility and
+                (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR).inv()
+        }
+        render(state)
+    }
+
+    fun render(next: UiState) {
