@@ -37,3 +37,7 @@ public final class Pairing {
     }
     public static Result host(Socket socket, byte[] secret, Approval approve) throws Exception {
         JSONObject hello = receive(socket, secret);
+        if (!"hello".equals(hello.getString("type")) || hello.getInt("version") != 1) throw new IllegalArgumentException("Invalid handshake");
+        byte[] client = nonce(hello, "nonce"), host = Crypto.random(32); String peer = clean(hello.getString("name"));
+        send(socket, secret, new JSONObject().put("type", "challenge").put("client", Invitation.encodeBytes(client)).put("host", Invitation.encodeBytes(host)).put("name", name()));
+        JSONObject proof = receive(socket, secret);
