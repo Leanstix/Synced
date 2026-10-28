@@ -34,3 +34,10 @@ public class ProtocolSecurityTest {
     @Test public void zeroLengthRejected() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(0))); }
     @Test public void enormousLengthRejectedBeforeAllocation() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(Integer.MAX_VALUE))); }
     @Test public void truncatedPayloadRejected() { assertThrows(EOFException.class, () -> Framing.read(length(100))); }
+    @Test public void handshakeHasTighterLimit() { assertThrows(IllegalArgumentException.class, () -> Framing.read(length(4097), 4096)); }
+    @Test public void connectionRequiresExplicitLocalApproval() throws Exception { assertFalse(new ApprovalGate().await(0, TimeUnit.MILLISECONDS)); }
+    @Test public void explicitApprovalPermitsConnection() throws Exception { ApprovalGate gate = new ApprovalGate(); gate.resolve(true); assertTrue(gate.await(0, TimeUnit.MILLISECONDS)); }
+    @Test public void rejectedConnectionCannotBecomeApproved() throws Exception { ApprovalGate gate = new ApprovalGate(); gate.resolve(false); gate.resolve(true); assertFalse(gate.await(0, TimeUnit.MILLISECONDS)); }
+    @Test public void expiredConnectionCannotBecomeApproved() throws Exception { ApprovalGate gate = new ApprovalGate(); assertFalse(gate.await(0, TimeUnit.MILLISECONDS)); gate.resolve(true); assertFalse(gate.await(0, TimeUnit.MILLISECONDS)); }
+    @Test public void oldApprovalDoesNotApproveNewPeer() throws Exception { ApprovalGate old = new ApprovalGate(), fresh = new ApprovalGate(); old.resolve(true); assertFalse(fresh.await(0, TimeUnit.MILLISECONDS)); assertTrue(old.await(0, TimeUnit.MILLISECONDS)); }
+}
