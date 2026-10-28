@@ -1,0 +1,38 @@
+name: Synced React Native checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Use the runner Android SDK
+        run: |
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          printf 'y\n%.0s' {1..100} | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - run: npm run lint -- --quiet
+      - run: npm run typecheck
+      - run: npm test -- --silent
+      - run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0' 'ndk;27.1.12297006' 'cmake;3.22.1'
+      - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assemblePreview -PreactNativeArchitectures=arm64-v8a,x86_64
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synced-preview-arm64-x86_64
+          path: android/app/build/outputs/apk/preview/app-preview.apk
+          if-no-files-found: error
