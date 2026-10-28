@@ -101,3 +101,8 @@ class ScreenCaptureService : Service() {
             }
         } catch (_: Exception) { AppSession.report("Screen sharing permission was unavailable. Try sharing again."); stopSelf() }
         return START_NOT_STICKY
+    }
+    private fun createNotification() {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel("sharing", "Active screen sharing", NotificationManager.IMPORTANCE_LOW))
+        val open = PendingIntent.getActivity(this, 1, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
