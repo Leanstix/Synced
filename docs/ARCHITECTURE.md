@@ -33,3 +33,9 @@ The interface and application adapter are TypeScript. Java implements the Androi
 8. The host separately starts Android screen sharing. Optional remote input requires accessibility and explicit control consent.
 9. Either side can end the connection. Capture termination revokes control.
 
+## Packet format
+
+The TCP stream contains a four-byte big-endian length followed by that many bytes. Handshake records are capped at 4,096 bytes. Established traffic records are capped at 2 MiB plus encryption overhead.
+
+A traffic record contains an eight-byte sequence number followed by AES-GCM ciphertext and its 16-byte authentication tag. The sequence is authenticated associated data. Plaintext contains a one-byte message type followed by the message body. Screen frames are JPEG bytes; status and control messages use bounded JSON. Authenticated heartbeat records run every five seconds, and a fifteen-second read timeout ends an unresponsive established connection.
+
