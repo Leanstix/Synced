@@ -189,3 +189,7 @@ object AppSession {
         var commands = 0
         try {
             while (isCurrent(id)) {
+                val (type, bytes) = secure.read()
+                if (type == SecureChannel.PING) { require(bytes.isEmpty()); continue }
+                require(type == SecureChannel.CONTROL && bytes.size <= 8192) { "Unexpected command" }
+                val now = System.nanoTime()
