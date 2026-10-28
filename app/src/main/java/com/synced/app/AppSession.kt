@@ -50,3 +50,13 @@ object AppSession {
 
     fun initialize(value: Context) { context = value.applicationContext }
     fun observe(value: ((UiState) -> Unit)?) { listener = value; value?.invoke(state) }
+    @Synchronized private fun update(change: (UiState) -> UiState) {
+        state = change(state)
+        // Render the newest state once per main-loop turn; do not retain a backlog of frame bitmaps.
+        if (uiUpdateQueued.compareAndSet(false, true)) main.post {
+            uiUpdateQueued.set(false)
+            listener?.invoke(state)
+        }
+    }
+    fun report(message: String) { update { it.copy(status = message, error = message) } }
+    fun refreshAccessibility() {
