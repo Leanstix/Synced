@@ -50,3 +50,7 @@ cd android
 adb install -r app/build/outputs/apk/preview/app-preview.apk
 ```
 
+The **preview** variant includes its TypeScript/JavaScript bundle and Hermes runtime, so it does not need Metro. It uses a development signing key and is not a store release. GitHub Actions builds ARM64/x86_64 previews and uploads the APK when checks pass. Build all default ABIs locally for a32-bit device. Debug keys differ between machines; Android may require uninstalling a preview before installing one signed elsewhere.
+
+## Connect your phones
+
