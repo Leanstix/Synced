@@ -60,7 +60,7 @@ public final class RemoteControlService extends AccessibilityService {
     private void action(String value) {
         Integer global = value.equals("back") ? GLOBAL_ACTION_BACK : value.equals("home") ? GLOBAL_ACTION_HOME : value.equals("recents") ? GLOBAL_ACTION_RECENTS : null;
         if (global != null) { if (!performGlobalAction(global)) fail("Android could not perform this navigation action."); return; }
-        if (!safeTarget()) return;
+        // Clock intents are predefined actions, not input into the current protected screen.
         Intent intent;
         switch (value) {
             case "alarms": intent = new Intent(AlarmClock.ACTION_SHOW_ALARMS); break;
