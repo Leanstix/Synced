@@ -131,3 +131,13 @@ public final class SessionEngine {
                         close(local); synchronized (this) { if (current(id)) server = null; }
                         if (!activate(id, result.channel)) { close(peer); return; }
                         peer.setSoTimeout(15_000);
+                        update(id, s -> { s.connected = true; s.pendingPeer = null; s.invitation = ""; s.peerName = result.peer; s.status = "Phone approved. Start screen sharing when you are ready."; s.error = null; });
+                        sendStatus(); receiveHost(id, result.channel); return;
+                    } catch (Exception e) {
+                        close(peer);
+                        update(id, s -> { s.pendingPeer = null; s.status = "Connection declined or authentication failed. Share the invitation only with your intended phone."; });
+                    }
+                }
+                disconnect(id, "Invitation expired. Create a new invitation to host.");
+            } catch (Exception e) { disconnect(id, "Could not host: " + friendly(e)); }
+        });
