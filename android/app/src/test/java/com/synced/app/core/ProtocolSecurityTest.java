@@ -21,3 +21,7 @@ public class ProtocolSecurityTest {
     }
     @Test public void replayRejected() throws Exception { PacketCipher receive = new PacketCipher(secret); byte[] packet = new PacketCipher(secret).encrypt(new byte[] {1}); receive.decrypt(packet); assertThrows(IllegalArgumentException.class, () -> receive.decrypt(packet)); }
     @Test public void reorderedPacketRejected() throws Exception { PacketCipher send = new PacketCipher(secret); send.encrypt(new byte[] {1}); byte[] second = send.encrypt(new byte[] {2}); assertThrows(IllegalArgumentException.class, () -> new PacketCipher(secret).decrypt(second)); }
+    @Test public void tamperedPayloadRejected() throws Exception { byte[] packet = new PacketCipher(secret).encrypt(new byte[] {1}); packet[packet.length - 1] ^= 1; assertThrows(AEADBadTagException.class, () -> new PacketCipher(secret).decrypt(packet)); }
+    @Test public void failedAuthenticationDoesNotAdvanceCounter() throws Exception {
+        PacketCipher receive = new PacketCipher(secret); byte[] packet = new PacketCipher(secret).encrypt(new byte[] {8}), broken = packet.clone(); broken[broken.length - 1] ^= 1;
+        assertThrows(AEADBadTagException.class, () -> receive.decrypt(broken)); assertArrayEquals(new byte[] {8}, receive.decrypt(packet));
