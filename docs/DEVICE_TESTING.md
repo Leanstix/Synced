@@ -50,3 +50,9 @@ These are manual acceptance cases, not claims of completed physical-device tests
 35. Spam malformed or oversized frames from a test peer; memory and thread usage remain bounded.
 36. Repeat sessions at least twenty times and check memory, socket, bitmap, display, and thread cleanup.
 
+## Accessibility and UX
+
+37. Test TalkBack labels, keyboard focus, touch targets, 200% font scale, and narrow screens.
+38. Verify the stop action is always discoverable during sharing.
+39. Confirm invitation fields do not appear in ordinary logs, crash reports, or clipboard without explicit copy.
+40. Ensure error text never claims delivery or successful alarm dismissal without device-side evidence.
