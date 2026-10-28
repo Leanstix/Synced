@@ -278,3 +278,10 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
                     if (!restoring) {
                         restoring = true
                         toggle.isChecked = state.controlAllowed
+                        restoring = false
+                        actions.setControlAllowed(checked)
+                    }
+                }
+            })
+            addView(heading, full()); addView(s.space(10))
+            addView(s.text("Let your other phone tap, swipe, type, and use navigation on this phone. Enable only for a phone you trust.", 13f, s.muted))
