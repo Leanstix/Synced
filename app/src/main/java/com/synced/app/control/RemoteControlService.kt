@@ -81,3 +81,12 @@ class RemoteControlService : AccessibilityService() {
             value == "dismiss_alarm" -> Intent(AlarmClock.ACTION_DISMISS_ALARM)
             value == "snooze_alarm" -> Intent(AlarmClock.ACTION_SNOOZE_ALARM)
             value.startsWith("set_alarm:") -> {
+                val parts = value.split(':')
+                require(parts.size == 3)
+                val hour = parts[1].toInt(); val minute = parts[2].toInt()
+                require(hour in 0..23 && minute in 0..59)
+                Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_HOUR, hour)
+                    .putExtra(AlarmClock.EXTRA_MINUTES, minute).putExtra(AlarmClock.EXTRA_MESSAGE, "Synced")
+                    .putExtra(AlarmClock.EXTRA_SKIP_UI, false)
+            }
+            else -> { fail("Unsupported action."); return }
