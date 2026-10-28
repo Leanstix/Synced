@@ -149,3 +149,8 @@ class SyncedUi(private val activity: Activity, private val actions: UiActions) {
         addGap(13)
         content.addView(s.text(if (shareSelected) "A little closer.\nFrom anywhere\non your Wi-Fi." else "Your other phone.\nRight here.", 34f, s.ink, true).apply {
             letterSpacing = -.045f; setLineSpacing(0f, 1.03f)
+        })
+        addGap(14)
+        content.addView(s.text(if (shareSelected) "Share this phone's screen. You choose who connects and what they can do." else "See and control your other Android phone, with permission at every step.", 15f, s.muted))
+        addGap(8)
+        content.addView(SyncedArtwork(activity, shareSelected), LinearLayout.LayoutParams(-1, s.dp(202)))
