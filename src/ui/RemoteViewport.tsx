@@ -55,3 +55,26 @@ export const RemoteViewport = React.memo(function RemoteViewport({
           if (event.nativeEvent.touches.length > 1) start.current = null;
         },
         onPanResponderRelease: (event) => {
+          const first = start.current;
+          start.current = null;
+          const last = point(event, true);
+          if (first && last && latest.current.enabled && latest.current.uri) {
+            latest.current.onGesture(
+              first.x,
+              first.y,
+              last.x,
+              last.y,
+              Math.max(1, Math.min(2000, Date.now() - first.time))
+            );
+          }
+        },
+        onPanResponderTerminate: () => {
+          start.current = null;
+        },
+        onPanResponderTerminationRequest: () => false,
+      }),
+    []
+  );
+  return (
+    <View style={styles.remoteShell}>
+      <View
