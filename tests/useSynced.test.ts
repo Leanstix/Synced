@@ -13,12 +13,12 @@ const h = vi.hoisted(() => ({
   btCallbacks: null as ConnectionCallbacks | null,
   peers: [] as Array<{ id: string; name: string; role: 'HOST' | 'CONTROLLER'; secret: string; savedAt: number; endpoint?: { address: string; port: number } }>,
   trustListener: null as null | ((id?: string) => void),
-  trust: { initialize: vi.fn(async () => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async () => undefined), allowNewPairing: vi.fn() },
+  trust: { initialize: vi.fn(async (): Promise<void> => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async (_id: string): Promise<void> => undefined), allowNewPairing: vi.fn() },
   voiceCallbacks: null as ConstructorParameters<typeof import('../src/core/calls').VoiceSession>[0] | null,
   voice: { requestCall: vi.fn(async () => undefined), acceptCall: vi.fn(async () => undefined), rejectCall: vi.fn(), endCall: vi.fn(), setMuted: vi.fn(), handleSignal: vi.fn(async () => undefined) },
   bluetooth: { listBondedDevices: vi.fn(async () => [{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }]), requestBluetoothEnable: vi.fn(async () => undefined), requestBluetoothDiscoverable: vi.fn(async () => undefined), openBluetoothPairingSettings: vi.fn(async () => undefined) },
-  bt: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), close: vi.fn(), savePairing: vi.fn() },
-  connection: { hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), savePairing: vi.fn(), host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), close: vi.fn() },
+  bt: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn(), savePairing: vi.fn() },
+  connection: { hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), savePairing: vi.fn(), host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn() },
   input: { setBluetoothControlAllowed: vi.fn(), isAvailable: vi.fn(async () => true), requestService: vi.fn(async () => undefined), grant: vi.fn(async (): Promise<void> => undefined), revoke: vi.fn(), setSharing: vi.fn(), dispose: vi.fn(), execute: vi.fn(async () => undefined) },
   media: { startController: vi.fn(), startHost: vi.fn(async () => undefined), stop: vi.fn(), handleSignal: vi.fn(async () => undefined) },
 }));
@@ -102,7 +102,7 @@ describe('session controller consent and teardown', () => {
     expect(h.state!.controlEnabled).toBe(true);
     expect(h.connection.send).toHaveBeenCalledWith({ type: 'permissions', screenSharing: true, controlEnabled: true, controlMode: 'screen' });
     h.cleanup!();
-    expect(h.connection.close).toHaveBeenCalledWith(false); expect(h.input.dispose).toHaveBeenCalled(); expect(h.media.stop).toHaveBeenCalled();
+    expect(h.connection.dispose).toHaveBeenCalled(); expect(h.input.dispose).toHaveBeenCalled(); expect(h.media.stop).toHaveBeenCalled();
   });
 });
 

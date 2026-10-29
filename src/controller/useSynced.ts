@@ -78,7 +78,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
       rt.approved?.reject(new ReconnectError('manual', 'Connection cancelled.')); rt.approved = null;
       const connection = rt.connection; rt.connection = null;
       rt.voice.endCall(); rt.input.revoke(); rt.input.setBluetoothControlAllowed(false);
-      connection?.close(false); rt.media.stop(); rt.controllerMediaReady = false;
+      connection?.dispose(); rt.media.stop(); rt.controllerMediaReady = false;
       update(resetSession(current.current));
     };
     rt.reconnect = new Reconnector();
@@ -262,7 +262,8 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
           if (!peer) throw new Error('Saved peer is unavailable.');
           // Keep a public retry row until the secure deletion is durable.
           patch({ savedPeers: current.current.savedPeers.map(p => p.id === id ? { ...p, revocationPending: true } : p) });
-          await rt.trust.remove(id);
+          if (rt.connection && current.current.peerIdentity?.id === id) await rt.connection.revokePeer(id);
+          else await rt.trust.remove(id);
           if (rt.mounted) patch({ savedPeers: current.current.savedPeers.filter(p => p.id !== id) });
         } catch (error) { fail(error); }
       },
@@ -287,12 +288,12 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
           try {
             await rt.reconnect.start(async signal => {
               if (!rt.trust.get(id)) throw new ReconnectError('revoked', 'Saved peer was revoked.');
-              rt.connection?.close(false); rt.connection = null;
+              rt.connection?.dispose(); rt.connection = null;
               const connection = rt.open(transport);
               await new Promise<void>((resolve, reject) => {
                 const finish = (error?: unknown) => { signal.removeEventListener('abort', abort); if (rt.approved === waiter) rt.approved = null; if (error) reject(error); else resolve(); };
                 const waiter = { resolve: () => finish(), reject: (error: unknown) => finish(error) };
-                const abort = () => { if (rt.connection === connection) { rt.connection = null; connection.close(false); } finish(new ReconnectError('manual', 'Connection cancelled.')); };
+                const abort = () => { if (rt.connection === connection) { rt.connection = null; connection.dispose(); } finish(new ReconnectError('manual', 'Connection cancelled.')); };
                 rt.approved = waiter; signal.addEventListener('abort', abort, { once: true });
                 if (signal.aborted) { abort(); return; }
                 const operation = transport === 'wifi'
