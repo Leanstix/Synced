@@ -714,6 +714,13 @@
       "testFile": "tests/useSynced.test.ts",
       "testPrefix": "stale capture request completion",
       "risk": "Late capture consent must not stop or revoke a new session or operate a disposed runtime"
+    },
+    {
+      "id": "continuation-pr-validation",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/dual-workflow.test.ts",
+      "testPrefix": "Android validation for continuation pull requests",
+      "risk": "Build and exercise pull-request code before merge without production credentials or elevated permissions"
     }
   ]
 }

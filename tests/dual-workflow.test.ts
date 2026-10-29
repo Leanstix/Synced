@@ -27,3 +27,27 @@ describe('compiled manifest audit workflow evidence', () => {
   it('retains compiled XML along with the human-readable summary', () => expect(workflow).toContain('android/app/build/outputs/apk/release/manifest.xml'));
   it('requires the CLI caller to provide the compiled manifest file', () => { const cli = readFileSync('scripts/audit-manifest.mts', 'utf8'); expect(cli).toContain('!manifest'); expect(cli).toContain("manifest: readFileSync(manifest, 'utf8')"); });
 });
+
+describe('Android validation for continuation pull requests', () => {
+  it('checks proposed changes targeting main before they are merged', () => {
+    expect(workflow).toMatch(/\n {2}pull_request:\n {4}branches: \[main\]/);
+  });
+  it('does not run untrusted proposed code with pull_request_target privileges', () => {
+    expect(workflow).not.toContain('pull_request_target');
+    expect(workflow).toContain('permissions:\n  contents: read');
+  });
+  it('builds the checked out proposal rather than forcing the default branch', () => {
+    expect(workflow).toContain('actions/checkout@v5');
+    expect(workflow).not.toMatch(/ref:\s*(?:main|master)/);
+    expect(workflow).toContain('run: npm run check');
+  });
+  it('runs artifact and two-device checks from the same proposal workflow', () => {
+    expect(launch).toContain('needs: verify-and-build');
+    expect(launch).toContain('name: synced-android-preview-debug-signed');
+    expect(launch).not.toContain('run-id:');
+  });
+  it('keeps pull-request validation independent of production credentials and publication', () => {
+    expect(workflow).not.toContain('secrets.');
+    expect(workflow).not.toMatch(/eas (?:build|submit)|credentialsSource|contents: write/);
+  });
+});
