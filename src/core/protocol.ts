@@ -35,13 +35,13 @@ export function parseInvitation(value: string): Invitation {
 function validateInvitation(value: Invitation): void {
   if (!value || value.version !== 1 || typeof value.address !== 'string' || !isPrivateAddress(value.address) ||
       !Number.isInteger(value.port) || value.port < 1024 || value.port > 65535 ||
-      typeof value.secret !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value.secret) || bytes(value.secret).length !== 32) {
+      typeof value.secret !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value.secret) || !validNonce(value.secret)) {
     throw new Error('Invitation must contain a private Wi-Fi address and a strong session key.');
   }
 }
 
 export function deriveSession(secret: string, controllerNonce: string, hostNonce: string) {
-  if (bytes(secret).length !== 32 || !validNonce(controllerNonce) || !validNonce(hostNonce)) throw new Error('Invalid handshake.');
+  if (!validNonce(secret) || !validNonce(controllerNonce) || !validNonce(hostNonce)) throw new Error('Invalid handshake.');
   const salt = sha256(utf8(`${controllerNonce}:${hostNonce}`));
   const hostKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:host-to-controller`), 32);
   const controllerKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:controller-to-host`), 32);
@@ -50,7 +50,7 @@ export function deriveSession(secret: string, controllerNonce: string, hostNonce
   return { hostKey, controllerKey, comparisonCode: `${code.slice(0, 3)} ${code.slice(3)}` };
 }
 export function validNonce(nonce: unknown): nonce is string {
-  return typeof nonce === 'string' && /^[A-Za-z0-9_-]{43}$/.test(nonce) && bytes(nonce).length === 32;
+  return typeof nonce === 'string' && /^[A-Za-z0-9_-]{43}$/.test(nonce) && bytes(nonce).length === 32 && base64(bytes(nonce)) === nonce;
 }
 
 export interface EncryptedMessage { type: 'encrypted'; sequence: number; ciphertext: string }
