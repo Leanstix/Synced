@@ -236,6 +236,59 @@ export class BluetoothConnection {
     }
   }
 
+  private optionsFor(address: string, savedPeer?: SavedPeer): SessionOptions {
+    const generation = this.generation;
+    const identity = this.trust?.identity ?? this.sessionOptions.identity;
+    const pairing = this.trust ? {
+      persist: async (peer: SavedPeer) => {
+        this.assertGeneration(generation);
+        this.trust!.allowNewPairing(peer.id);
+        await this.trust!.save({ ...peer, bluetoothAddress: bluetoothAddress(address) });
+      },
+      rollback: (peerId: string) => this.trust!.remove(peerId),
+    } : this.sessionOptions.pairing;
+    return {
+      identity,
+      ...(savedPeer ? { trustedPeer: { id: savedPeer.id, secret: savedPeer.secret } } : {}),
+      ...(pairing ? { pairing: {
+        ...pairing,
+        persist: peer => pairing.persist({ ...peer, bluetoothAddress: bluetoothAddress(address) }),
+        onPeerIdentity: peer => {
+          if (generation !== this.generation) return;
+          this.activePeerId = peer.id;
+          this.sessionOptions.pairing?.onPeerIdentity?.(peer);
+          this.callbacks.onPeerIdentity?.(peer);
+        },
+        onPairingSaved: peer => {
+          if (generation !== this.generation) return;
+          const record = { ...peer, bluetoothAddress: bluetoothAddress(address) };
+          this.sessionOptions.pairing?.onPairingSaved?.(record);
+          this.callbacks.onPairingSaved?.(record);
+        },
+        onPairingError: message => {
+          this.sessionOptions.pairing?.onPairingError?.(message);
+          this.callbacks.onPairingError?.(message);
+        },
+      } } : {}),
+    };
+  }
+
+  savePairing(): void {
+    if (!this.session) throw new Error('Connect and approve a Bluetooth peer first.');
+    this.session.savePairing();
+  }
+  async revokePeer(peerId: string): Promise<void> {
+    if (!this.trust) throw new Error('Saved pairing is unavailable.');
+    if (this.activePeerId === peerId) {
+      try { this.session?.send({ type: 'revoke', peerId: this.trust.identity.id }); } catch { /* Offline revocation still removes local trust. */ }
+      this.close();
+    }
+    await this.trust.remove(peerId);
+  }
+  dispose(): void { this.close(false); this.unsubscribe?.(); this.unsubscribe = null; }
+  get peerIdentity(): DeviceIdentity | null { return this.session?.peerIdentity ?? null; }
+  get trusted(): boolean { return this.session?.trusted ?? false; }
+
   approve(): void {
     if (!this.session) throw new Error('No Bluetooth peer is waiting for approval.');
     this.session.approve();
@@ -255,6 +308,7 @@ export class BluetoothConnection {
     if (this.writeDeadline) clearTimeout(this.writeDeadline);
     this.heartbeat = null; this.writeDeadline = null;
     this.records = []; this.queuedBytes = 0; this.writing = false;
+    this.activePeerId = null;
     this.session?.close(); this.session = null;
     for (const subscription of this.subscriptions) subscription.remove();
     this.subscriptions = [];
