@@ -42,7 +42,7 @@ function validateInvitation(value: Invitation): void {
 
 export function deriveSession(secret: string, controllerNonce: string, hostNonce: string, context = '') {
   if (!validNonce(secret) || !validNonce(controllerNonce) || !validNonce(hostNonce)) throw new Error('Invalid handshake.');
-  const salt = sha256(utf8(`${controllerNonce}:${hostNonce}:${context}`));
+  const salt = sha256(utf8(`${controllerNonce}:${hostNonce}${context ? `:${context}` : ''}`));
   const hostKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:host-to-controller`), 32);
   const controllerKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:controller-to-host`), 32);
   const comparison = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:compare`), 4);
