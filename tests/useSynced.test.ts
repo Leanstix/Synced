@@ -72,6 +72,13 @@ async function approvedHost() {
 }
 
 describe('session controller consent and teardown', () => {
+  it('refuses Wi-Fi control before the owner starts screen capture', async () => {
+    const { actions } = useSynced(); await actions.startHost();
+    h.connectionCallbacks!.onConnecting('HOST', '192.168.1.3'); h.connectionCallbacks!.onApproved();
+    await actions.setControlEnabled(true);
+    expect(h.input.grant).not.toHaveBeenCalled(); expect(h.state!.controlEnabled).toBe(false);
+    expect(h.state!.error).toContain('share your Wi-Fi screen'); h.cleanup!();
+  });
   it('invalidates an unanswered control dialog when control is disabled', async () => {
     const actions = await approvedHost();
     const pending = actions.setControlEnabled(true);

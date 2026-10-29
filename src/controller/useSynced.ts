@@ -169,7 +169,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
       if (!rt.foreground) rt.voice.endCall(); else void refresh();
     });
     return () => {
-      rt.stop(); rt.mounted = false; unsubscribe(); subscription.remove(); rt.input.dispose();
+      rt.mounted = false; rt.stop(); unsubscribe(); subscription.remove(); rt.input.dispose();
       if (runtime.current === rt) runtime.current = null;
     };
   }, []);
