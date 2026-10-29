@@ -144,3 +144,71 @@ describe('media signaling boundaries', () => {
     media.stop();
   });
 });
+
+const flushMedia = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+describe('media signaling generation recovery', () => {
+  it.each(['setRemoteDescription', 'createAnswer', 'setLocalDescription', 'addIceCandidate'] as const)('starts a fresh session while stale %s never settles', async operation => {
+    const { media, callbacks } = setup(); media.startController();
+    await media.handleSignal({ type: 'offer', sdp: 'initial' });
+    const old = mock.peers[0];
+    old[operation].mockImplementationOnce(() => new Promise(() => {}));
+    void media.handleSignal(operation === 'addIceCandidate' ? { type: 'candidate', candidate: { candidate: 'old' } } : { type: 'offer', sdp: 'old' });
+    await flushMedia(); expect(old[operation]).toHaveBeenCalled();
+    media.stop(); media.startController();
+    void media.handleSignal({ type: 'dimensions', width: 800, height: 1600 });
+    void media.handleSignal({ type: 'offer', sdp: 'fresh' });
+    await flushMedia();
+    expect(mock.peers).toHaveLength(2);
+    const remote = stream(); mock.peers[1].listeners.track({ track: remote.track, streams: [remote] });
+    expect(callbacks.onRemoteStream).toHaveBeenCalledWith('real-stream', 800, 1600);
+    expect(callbacks.send).toHaveBeenLastCalledWith({ type: 'answer', sdp: 'answer-sdp' });
+    media.stop();
+  });
+  it('ignores a stale native rejection instead of failing a replacement stream', async () => {
+    const { media } = setup(); media.startController();
+    await media.handleSignal({ type: 'offer', sdp: 'initial' });
+    let rejectOld!: (error: Error) => void;
+    mock.peers[0].setRemoteDescription.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectOld = reject; }));
+    const pending = media.handleSignal({ type: 'offer', sdp: 'old' }); await flushMedia();
+    media.stop(); media.startController(); rejectOld(new Error('closed old peer'));
+    await expect(pending).resolves.toBeUndefined();
+    await media.handleSignal({ type: 'offer', sdp: 'fresh' }); expect(mock.peers).toHaveLength(2); media.stop();
+  });
+});
+
+describe('bounded pending media signaling', () => {
+  async function stalled() {
+    const result = setup(); result.media.startController();
+    await result.media.handleSignal({ type: 'offer', sdp: 'initial' });
+    mock.peers[0].setRemoteDescription.mockImplementationOnce(() => new Promise(() => {}));
+    void result.media.handleSignal({ type: 'offer', sdp: 'stalled' }); await flushMedia();
+    return result;
+  }
+  it('limits queued signal count while a native promise is stalled', async () => {
+    const { media, callbacks } = await stalled();
+    for (let i = 0; i < 127; i++) void media.handleSignal({ type: 'dimensions', width: 800, height: 1600 });
+    await expect(media.handleSignal({ type: 'dimensions', width: 800, height: 1600 })).rejects.toThrow('Too many queued media signals');
+    expect(callbacks.onError).toHaveBeenCalledWith('Too many queued media signals.');
+    expect(mock.peers[0].close).toHaveBeenCalledOnce(); media.stop();
+  });
+  it('bounds the queued SDP bytes independently of message count', async () => {
+    const { media } = await stalled();
+    for (let i = 0; i < 2; i++) void media.handleSignal({ type: 'offer', sdp: 'x'.repeat(128000) });
+    await expect(media.handleSignal({ type: 'offer', sdp: 'x'.repeat(128000) })).rejects.toThrow('Too many queued media signals'); media.stop();
+  });
+  it('includes queued candidate and mid strings in its memory budget', async () => {
+    const { media } = await stalled();
+    await expect(media.handleSignal({ type: 'candidate', candidate: { candidate: 'x'.repeat(300000), sdpMid: 'video' } })).rejects.toThrow('Too many queued media signals'); media.stop();
+  });
+  it('resets an overflowed queue so a new session can negotiate', async () => {
+    const { media, callbacks } = await stalled();
+    await expect(media.handleSignal({ type: 'offer', sdp: 'x'.repeat(300000) })).rejects.toThrow('Too many');
+    media.startController(); await media.handleSignal({ type: 'offer', sdp: 'fresh' });
+    expect(callbacks.send).toHaveBeenLastCalledWith({ type: 'answer', sdp: 'answer-sdp' }); media.stop();
+  });
+  it('frees a completed signal budget instead of counting all lifetime messages', async () => {
+    const { media, callbacks } = setup(); media.startController();
+    for (let i = 0; i < 150; i++) await media.handleSignal({ type: 'dimensions', width: 800, height: 1600 });
+    expect(callbacks.onError).not.toHaveBeenCalled(); media.stop();
+  });
+});

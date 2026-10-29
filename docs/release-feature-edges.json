@@ -693,6 +693,20 @@
       "testFile": "tests/dual-emulator-start.test.ts",
       "testPrefix": "shared Wi-Fi readiness after Android boot",
       "risk": "Wait for both test phones to associate and obtain distinct private wlan0 addresses before exercising the app"
+    },
+    {
+      "id": "media-generation-recovery",
+      "source": "src/core/media.ts",
+      "testFile": "tests/media.test.ts",
+      "testPrefix": "media signaling generation recovery",
+      "risk": "Unresolved or rejected native operations must not block or tear down a replacement screen session"
+    },
+    {
+      "id": "media-pending-budget",
+      "source": "src/core/media.ts",
+      "testFile": "tests/media.test.ts",
+      "testPrefix": "bounded pending media signaling",
+      "risk": "Bound authenticated peer signaling memory while native WebRTC work is stalled"
     }
   ]
 }
