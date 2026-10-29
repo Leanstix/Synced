@@ -60,7 +60,7 @@ jobs:
           "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$preview_apk" > "$evidence/badging.txt"
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$preview_apk" > "$evidence/certificate.txt"
           node scripts/audit-manifest.mts "$evidence/permissions.txt" "$evidence/badging.txt" "$evidence/certificate.txt"
-          sha256sum "$preview_apk" > "$evidence/SHA256SUMS"
+          (cd "$evidence" && sha256sum app-release.apk > SHA256SUMS)
           echo 'CI preview only: optimized APK signed using the generated Android debug keystore. Production uses the EAS production profile and remote credentials.' > "$evidence/SIGNING-NOTICE.txt"
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
@@ -75,6 +75,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
