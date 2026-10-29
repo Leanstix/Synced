@@ -113,6 +113,21 @@ describe('intercom asynchronous capture lifetime', () => {
     expect(local.release).toHaveBeenCalledOnce(); expect(remote.release).toHaveBeenCalledOnce(); expect(peer.close).toHaveBeenCalledOnce();
     expect(callbacks.onState).toHaveBeenLastCalledWith({ phase: 'idle', muted: false }); expect(vi.getTimerCount()).toBe(0);
   });
+  it('allows a fresh invitation while an old permission promise is unresolved', async () => {
+    const { voice, callbacks } = setup(); const permission = deferred<boolean>(); callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+    await voice.requestCall(); const id = callbacks.send.mock.calls[0]![0].callId;
+    const old = voice.handleSignal({ type: 'accept', callId: id }); await flush(); voice.endCall();
+    await voice.handleSignal({ type: 'invite', callId });
+    expect(callbacks.onState).toHaveBeenLastCalledWith({ phase: 'incoming', muted: false });
+    permission.resolve(true); await old; voice.endCall(); expect(mock.getUserMedia).not.toHaveBeenCalled();
+  });
+  it('stops unexpected video tracks and tracks delivered after hangup', async () => {
+    const { voice } = setup(); await voice.handleSignal({ type: 'invite', callId }); await voice.acceptCall();
+    const peer = mock.peers[0]!; const video = { kind: 'video', stop: vi.fn() };
+    peer.listeners.track!({ track: video, streams: [] }); expect(video.stop).toHaveBeenCalledOnce();
+    voice.endCall(); const late = stream(); peer.listeners.track!({ track: late.track, streams: [late] });
+    expect(late.track.stop).toHaveBeenCalledOnce();
+  });
 });
 
 describe('intercom lifecycle and negotiation', () => {
