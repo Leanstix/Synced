@@ -511,6 +511,20 @@
       "testFile": "tests/bluetooth.test.ts",
       "testPrefix": "Bluetooth observer cancellation boundaries",
       "risk": "Native listener callbacks cannot outlive cancellation"
+    },
+    {
+      "id": "trusted-listener-guidance",
+      "source": "src/ui/pairingPresentation.ts",
+      "testFile": "src/ui/pairingPresentation.test.ts",
+      "testPrefix": "connection waiting guidance",
+      "risk": "A trusted listener must show saved-peer reconnection instructions rather than a nonexistent invitation"
+    },
+    {
+      "id": "trusted-listener-endpoint",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "trusted listener endpoint display",
+      "risk": "Expose the actual selected LAN port without stale listeners or fictitious Bluetooth TCP ports"
     }
   ]
 }
