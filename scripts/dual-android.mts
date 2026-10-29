@@ -28,7 +28,7 @@ export async function pairSaveReconnect(host: PairingPhone, controller: PairingP
   await host.tap('Save pairing'); await host.tap('Save phone'); await controller.tap('Save pairing'); await controller.tap('Save phone');
   await host.visible('Pairing saved'); await controller.visible('Pairing saved'); stage('mutual-save-completed');
   await host.tap('Disconnect phones'); await controller.visible('Disconnected'); stage('first-disconnect');
-  await host.tap('Receive connection'); await host.fill('Connection port for ', '47631', true); await host.tap('Receive this phone’s connection');
+  await host.tap('Receive connection'); await host.fill('This phone’s private Wi-Fi address for saved pairing', hostIp); await host.fill('Connection port for ', '47631', true); await host.tap('Receive this phone’s connection');
   await controller.tap('Reconnect'); await controller.fill('Current Wi-Fi address for ', hostIp, true); await controller.fill('Connection port for ', '47631', true); await controller.tap('Reconnect to this phone');
   await host.visible('Connected'); await controller.visible('Connected'); await host.noAutoGrants(); stage('trusted-reconnect-no-grants');
 }
