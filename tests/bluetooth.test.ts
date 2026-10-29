@@ -197,7 +197,7 @@ describe('saved Bluetooth trust', () => {
         send: frame => bluetoothRecords(encodeFrame(frame)).forEach(record => device.receive(record)),
         onVerified: vi.fn(), onApproved: vi.fn(), onPayload: vi.fn(),
       }, { identity: remoteIdentity, pairing: { persist: remoteSaved, rollback: vi.fn(async () => undefined) } });
-    device.write.mockImplementation(async data => { for (const frame of decoder.push(data)) remote.receive(frame); return true; });
+    device.write.mockImplementation(async data => { await Promise.resolve(); for (const frame of decoder.push(data)) remote.receive(frame); return true; });
     remote.start(); await flush(); connection.approve(); await flush();
     expect(cb.onPeerIdentity).toHaveBeenCalledWith(remoteIdentity); expect(manager.identity).toEqual(identity);
     connection.savePairing(); remote.savePairing(); await flush(); await flush();
