@@ -8,6 +8,7 @@ export interface SavedPeer extends DeviceIdentity {
   secret: string;
   role: 'HOST' | 'CONTROLLER';
   endpoint?: PeerEndpoint;
+  bluetoothAddress?: string;
   savedAt: number;
 }
 export interface TrustDocument { version: 1; identity: DeviceIdentity; peers: SavedPeer[] }
@@ -20,15 +21,16 @@ export function validEndpoint(value: unknown): value is PeerEndpoint {
   const e = value as Partial<PeerEndpoint> | null;
   return !!e && typeof e.address === 'string' && isPrivateAddress(e.address) && Number.isInteger(e.port) && e.port! >= 1024 && e.port! <= 65535;
 }
+export function validBluetoothAddress(value: unknown): value is string { return typeof value === 'string' && /^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(value); }
 export function parseTrustDocument(raw: string): TrustDocument {
   if (raw.length > 65536) throw new Error('Saved pairing data exceeds size limit.');
   const d = JSON.parse(raw) as Partial<TrustDocument> | null;
   if (!d || d.version !== TRUST_VERSION || !d.identity || !validNonce(d.identity.id) || typeof d.identity.name !== 'string' || !Array.isArray(d.peers) || d.peers.length > MAX_SAVED_PEERS) throw new Error('Invalid saved pairing data.');
   const seen = new Set<string>([d.identity.id]);
   const peers = d.peers.map((peer: SavedPeer): SavedPeer => {
-    if (!peer || !validNonce(peer.id) || seen.has(peer.id) || !validNonce(peer.secret) || typeof peer.name !== 'string' || !['HOST', 'CONTROLLER'].includes(peer.role) || !Number.isSafeInteger(peer.savedAt) || peer.savedAt < 0 || (peer.endpoint !== undefined && !validEndpoint(peer.endpoint))) throw new Error('Invalid saved peer.');
+    if (!peer || !validNonce(peer.id) || seen.has(peer.id) || !validNonce(peer.secret) || typeof peer.name !== 'string' || !['HOST', 'CONTROLLER'].includes(peer.role) || !Number.isSafeInteger(peer.savedAt) || peer.savedAt < 0 || (peer.endpoint !== undefined && !validEndpoint(peer.endpoint)) || (peer.bluetoothAddress !== undefined && !validBluetoothAddress(peer.bluetoothAddress))) throw new Error('Invalid saved peer.');
     seen.add(peer.id);
-    return { id: peer.id, name: sanitizeDeviceName(peer.name), secret: peer.secret, role: peer.role, savedAt: peer.savedAt, ...(peer.endpoint ? { endpoint: { ...peer.endpoint } } : {}) };
+    return { id: peer.id, name: sanitizeDeviceName(peer.name), secret: peer.secret, role: peer.role, savedAt: peer.savedAt, ...(peer.bluetoothAddress ? { bluetoothAddress: peer.bluetoothAddress.toUpperCase() } : {}), ...(peer.endpoint ? { endpoint: { ...peer.endpoint } } : {}) };
   });
   return { version: 1, identity: { id: d.identity.id, name: sanitizeDeviceName(d.identity.name) }, peers };
 }
