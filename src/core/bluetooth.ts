@@ -1,7 +1,8 @@
 import * as Crypto from 'expo-crypto';
 import BluetoothClassic, { type BluetoothDevice } from 'react-native-bluetooth-classic';
 import { base64, encodeFrame, validNonce } from './protocol';
-import { SecureSession, type SessionPayload, type SessionRole } from './session';
+import { SecureSession, type SessionOptions, type SessionPayload, type SessionRole } from './session';
+import { TrustManager, type DeviceIdentity, type SavedPeer } from './trust';
 import { BLUETOOTH_OPTIONS, bluetoothAddress, listBondedDevices, requestBluetoothEnable } from './bluetoothAdapter';
 import { BluetoothFrameDecoder, bluetoothRecords } from './bluetoothFraming';
 
@@ -12,6 +13,10 @@ export interface BluetoothConnectionCallbacks {
   onApproved(): void;
   onPayload(payload: SessionPayload): void;
   onClosed(error?: string): void;
+  onTrustedListening?(address: string, peer: SavedPeer): void;
+  onPeerIdentity?(peer: DeviceIdentity): void;
+  onPairingSaved?(peer: SavedPeer): void;
+  onPairingError?(message: string): void;
 }
 const nonce = () => base64(Crypto.getRandomBytes(32));
 const MAX_QUEUED_BYTES = 524288;
@@ -40,20 +45,40 @@ export class BluetoothConnection {
   private records: string[] = [];
   private queuedBytes = 0;
   private writing = false;
+  private activePeerId: string | null = null;
+  private sessionOptions: SessionOptions = {};
+  private unsubscribe: (() => void) | null = null;
 
-  constructor(private readonly callbacks: BluetoothConnectionCallbacks) {}
+  constructor(private readonly callbacks: BluetoothConnectionCallbacks, private readonly trust?: TrustManager) {
+    this.unsubscribe = trust?.subscribe(peerId => {
+      if (peerId && peerId === this.activePeerId) this.fail('Saved Bluetooth peer revoked. All permissions ended.');
+    }) ?? null;
+  }
 
-  async host(): Promise<void> {
+  setSessionOptions(options: SessionOptions): void {
+    if (this.session || this.nativeBusy) throw new Error('Configure pairing before starting Bluetooth.');
+    this.sessionOptions = options;
+  }
+
+  async host(): Promise<void> { return this.listen(); }
+  async hostTrusted(peerId: string): Promise<void> { return this.listen(peerId); }
+  private async listen(peerId?: string): Promise<void> {
     this.assertAvailable();
     this.close(false);
     const generation = this.generation;
+    if (this.trust) await this.trust.initialize();
+    this.assertGeneration(generation);
+    const peer = peerId ? this.trust?.get(peerId) : undefined;
+    if (peerId && (!peer || peer.role !== 'CONTROLLER')) throw new Error('Saved Bluetooth controller is unavailable or revoked.');
     await requestBluetoothEnable();
     this.assertGeneration(generation);
-    const secret = nonce();
+    const secret = peer?.secret ?? nonce();
+    this.activePeerId = peer?.id ?? null;
     this.accepting = true;
     this.nativeBusy = true;
     const accepted = BluetoothClassic.accept(BLUETOOTH_OPTIONS);
-    this.callbacks.onListening(`${INVITATION_PREFIX}${secret}`, 'Bluetooth • paired phones');
+    if (peer) this.callbacks.onTrustedListening?.('Bluetooth • paired phones', peer);
+    else this.callbacks.onListening(`${INVITATION_PREFIX}${secret}`, 'Bluetooth • paired phones');
     this.deadline = setTimeout(() => {
       if (generation === this.generation) this.fail('Bluetooth invitation expired. Create a new session.');
     }, 10 * 60 * 1000);
@@ -61,7 +86,7 @@ export class BluetoothConnection {
       this.nativeBusy = false;
       if (generation !== this.generation) { void device.disconnect().catch(() => undefined); return; }
       this.accepting = false;
-      this.attach(device, 'HOST', secret);
+      this.attach(device, 'HOST', secret, peer);
     }).catch(() => {
       this.nativeBusy = false;
       if (generation === this.generation) this.fail('Could not accept a Bluetooth connection.');
@@ -70,13 +95,28 @@ export class BluetoothConnection {
 
   async connect(invitation: string, selectedAddress: string): Promise<void> {
     const secret = parseBluetoothInvitation(invitation.trim());
+    return this.dial(secret, selectedAddress);
+  }
+  async connectTrusted(peerId: string, addressOverride?: string): Promise<void> {
+    const generation = this.generation;
+    if (this.trust) await this.trust.initialize();
+    this.assertGeneration(generation);
+    const peer = this.trust?.get(peerId);
+    if (!peer || peer.role !== 'HOST') throw new Error('Saved Bluetooth host is unavailable or revoked.');
+    if (!addressOverride && !peer.bluetoothAddress) throw new Error('Select this saved host from the paired Bluetooth phones.');
+    return this.dial(peer.secret, addressOverride ?? peer.bluetoothAddress!, peer);
+  }
+  private async dial(secret: string, selectedAddress: string, peer?: SavedPeer): Promise<void> {
     const address = bluetoothAddress(selectedAddress);
     this.assertAvailable();
     this.close(false);
     const generation = this.generation;
+    if (this.trust) await this.trust.initialize();
+    this.assertGeneration(generation);
     const devices = await listBondedDevices();
     this.assertGeneration(generation);
     if (!devices.some(device => device.address === address)) throw new Error('Pair this phone in Android Bluetooth settings first.');
+    this.activePeerId = peer?.id ?? null;
     this.callbacks.onConnecting('CONTROLLER', address);
     this.nativeBusy = true;
     await new Promise<void>((resolve, reject) => {
@@ -88,7 +128,7 @@ export class BluetoothConnection {
         this.nativeBusy = false;
         if (generation !== this.generation) { void device.disconnect().catch(() => undefined); return; }
         this.pendingReject = null;
-        this.attach(device, 'CONTROLLER', secret);
+        this.attach(device, 'CONTROLLER', secret, peer);
         resolve();
       }).catch(error => {
         this.nativeBusy = false;
@@ -107,7 +147,7 @@ export class BluetoothConnection {
     if (generation !== this.generation) throw new Error('Bluetooth connection cancelled.');
   }
 
-  private attach(device: BluetoothDevice, role: SessionRole, secret: string): void {
+  private attach(device: BluetoothDevice, role: SessionRole, secret: string, savedPeer?: SavedPeer): void {
     this.clearDeadline();
     this.device = device;
     const generation = this.generation;
@@ -122,8 +162,15 @@ export class BluetoothConnection {
         this.callbacks.onVerified(code, address);
       },
       onApproved: () => { this.clearDeadline(); this.callbacks.onApproved(); },
-      onPayload: this.callbacks.onPayload,
-    });
+      onPayload: payload => {
+        if (payload.type === 'revoke' && payload.peerId === this.activePeerId && this.trust) {
+          void this.trust.remove(payload.peerId).catch(() => this.callbacks.onPairingError?.('Could not persist peer removal. Forget this peer before reconnecting.'));
+          this.close(false);
+          return;
+        }
+        this.callbacks.onPayload(payload);
+      },
+    }, this.optionsFor(address, savedPeer));
     this.session = session;
     this.callbacks.onConnecting(role, address);
     this.subscriptions.push(device.onDataReceived(event => {
