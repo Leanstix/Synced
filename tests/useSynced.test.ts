@@ -13,7 +13,7 @@ const h = vi.hoisted(() => ({
   btCallbacks: null as ConnectionCallbacks | null,
   peers: [] as Array<{ id: string; name: string; role: 'HOST' | 'CONTROLLER'; secret: string; savedAt: number; endpoint?: { address: string; port: number } }>,
   trustListener: null as null | ((id?: string) => void),
-  trust: { initialize: vi.fn(async (): Promise<void> => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async (_id: string): Promise<void> => undefined), allowNewPairing: vi.fn() },
+  trust: { initialize: vi.fn(async (): Promise<void> => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async (id: string): Promise<void> => { void id; }), allowNewPairing: vi.fn() },
   voiceCallbacks: null as ConstructorParameters<typeof import('../src/core/calls').VoiceSession>[0] | null,
   voice: { requestCall: vi.fn(async () => undefined), acceptCall: vi.fn(async () => undefined), rejectCall: vi.fn(), endCall: vi.fn(), setMuted: vi.fn(), handleSignal: vi.fn(async () => undefined) },
   bluetooth: { listBondedDevices: vi.fn(async () => [{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }]), requestBluetoothEnable: vi.fn(async () => undefined), requestBluetoothDiscoverable: vi.fn(async () => undefined), openBluetoothPairingSettings: vi.fn(async () => undefined) },

@@ -94,7 +94,6 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
       // Allocate fresh callback closures for every attempt. Old native callbacks
       // cannot mutate a new session even when the transport is unchanged.
       const generation = rt.generation;
-      let connection: Connection;
       const live = () => rt.mounted && generation === rt.generation && rt.connection === connection;
       const guarded = (change: Partial<SyncedState>) => { if (live()) update(change); };
       const callbacks: ConnectionCallbacks = {
@@ -139,11 +138,11 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
             // Only transport failures retry. Protocol/authentication failures fail closed.
             const network = !!error && /(?:connect to|network|socket|timed out|connection (?:lost|closed)|disconnected)/i.test(error) && !/(?:auth|proof|identity|revok|handshake|approval|pairing)/i.test(error);
             waiter.reject(new ReconnectError(network ? 'network' : 'authentication', error ?? 'Connection closed.'));
-            rt.connection = null; rt.input.revoke(); rt.voice.endCall(); rt.media.stop();
+            rt.connection = null; connection.dispose(); rt.input.revoke(); rt.input.setBluetoothControlAllowed(false); rt.voice.endCall(); rt.media.stop(); rt.controllerMediaReady = false;
           } else { rt.stop(); update({ status: error ? 'error' : 'disconnected', error: error ?? null }); }
         },
       };
-      connection = transport === 'wifi' ? new LocalConnection(callbacks, rt.trust) : new BluetoothConnection({ ...callbacks,
+      const connection: Connection = transport === 'wifi' ? new LocalConnection(callbacks, rt.trust) : new BluetoothConnection({ ...callbacks,
         onTrustedListening: (address, peer) => callbacks.onTrustedListening?.(address, 0, peer),
       }, rt.trust);
       rt.connection = connection;
