@@ -2,7 +2,7 @@
 export function redactReleaseLog(input: string): string {
   return input
     .replace(/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----[\s\S]*?(?:-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|$)/g, '[REDACTED PRIVATE KEY]')
-    .replace(/synced:\/\/[^\s<>"']+/gi, '[REDACTED INVITATION]')
+    .replace(/synced(?:-bt)?:\/\/[^\s<>"']+/gi, '[REDACTED INVITATION]')
     .replace(/("(?:secret|password|token|accessToken|refreshToken|controllerNonce|hostNonce|comparison|typedText)"\s*:\s*)"(?:\\.|[^"\\])*"/gi, '$1"[REDACTED]"')
     .replace(/\b(authorization\s*:\s*(?:bearer|basic)\s+)[^\s]+/gi, '$1[REDACTED]')
     .replace(/\b((?:secret|password|token|comparison|typedText)\s*[=:]\s*)[^\s,;]+/gi, '$1[REDACTED]')

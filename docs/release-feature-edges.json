@@ -749,6 +749,13 @@
       "testFile": "tests/dual-android-policy.test.ts",
       "testPrefix": "Bluetooth invitation evidence privacy",
       "risk": "Refuse emulator screenshots containing Bluetooth invitation secrets as well as Wi-Fi invitation secrets"
+    },
+    {
+      "id": "bluetooth-diagnostic-redaction",
+      "source": "scripts/log-policy.mts",
+      "testFile": "tests/release-log.test.ts",
+      "testPrefix": "Bluetooth invitation diagnostic redaction",
+      "risk": "Redact Bluetooth invitation credentials in diagnostic output without depending on Wi-Fi-only URI matching"
     }
   ]
 }
