@@ -71,6 +71,8 @@ export class VoiceSession {
   private remote: MediaStream | null = null;
   private pendingCandidates: Extract<CallSignal, { type: 'candidate' }>[] = [];
   private queue: Promise<void> = Promise.resolve();
+  private queuedSignals = 0;
+  private queuedSignalBytes = 0;
   private deadline: ReturnType<typeof setTimeout> | null = null;
   private disconnectedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -79,9 +81,11 @@ export class VoiceSession {
   async requestCall(): Promise<void> {
     if (!this.callbacks.canCall()) throw new Error('Intercom requires an approved foreground Wi-Fi session.');
     if (this.state.phase !== 'idle') throw new Error('An intercom call is already in progress.');
+    const generation = this.generation;
     this.callId = base64(Crypto.getRandomBytes(32));
     this.caller = true;
     this.publish('outgoing');
+    if (generation !== this.generation) return;
     this.setDeadline(30000, 'Intercom invitation was not answered.');
     try { this.callbacks.send({ type: 'invite', callId: this.callId }); }
     catch (error) { this.stop(); throw error; }
@@ -90,9 +94,10 @@ export class VoiceSession {
   async acceptCall(): Promise<void> {
     if (this.state.phase !== 'incoming' || !this.callId) throw new Error('No incoming intercom call to accept.');
     if (!this.callbacks.canCall()) { this.stop(); throw new Error('Intercom requires an approved foreground Wi-Fi session.'); }
-    this.publish('connecting');
-    this.setDeadline(30000, 'Intercom connection timed out.');
     const generation = this.generation;
+    this.publish('connecting');
+    if (generation !== this.generation) return;
+    this.setDeadline(30000, 'Intercom connection timed out.');
     try {
       if (!await this.capture(generation)) return;
       this.callbacks.send({ type: 'accept', callId: this.callId! });
@@ -125,10 +130,19 @@ export class VoiceSession {
       return Promise.resolve();
     }
     const generation = this.generation;
+    const bytes = signal.type === 'offer' || signal.type === 'answer' ? signal.sdp.length * 2 : signal.type === 'candidate' ? (signal.candidate.candidate.length + (signal.candidate.sdpMid?.length ?? 0)) * 2 : 0;
+    if (this.queuedSignals >= 128 || this.queuedSignalBytes + bytes > 524288) {
+      const error = new Error('Too many queued intercom signals.');
+      this.fail(error.message);
+      return Promise.reject(error);
+    }
+    this.queuedSignals++; this.queuedSignalBytes += bytes;
     const work = this.queue.then(async () => {
       if (generation !== this.generation) return;
       if (!this.callbacks.canCall()) { this.stop(); return; }
       await this.receive(signal, generation);
+    }).finally(() => {
+      if (generation === this.generation) { this.queuedSignals--; this.queuedSignalBytes -= bytes; }
     });
     this.queue = work.catch(() => undefined);
     return work.catch(error => {
@@ -138,6 +152,8 @@ export class VoiceSession {
   }
 
   private async capture(generation: number): Promise<boolean> {
+    if (generation !== this.generation) return false;
+    if (!this.callbacks.canCall()) throw new Error('Intercom session is no longer available.');
     if (!await this.callbacks.requestMicrophonePermission()) throw new Error('Microphone permission was declined.');
     if (generation !== this.generation) return false;
     if (!this.callbacks.canCall()) throw new Error('Intercom session is no longer available.');
@@ -200,7 +216,9 @@ export class VoiceSession {
     if (signal.type === 'reject' || signal.type === 'end') { this.stop(); return; }
     if (signal.type === 'accept') {
       if (!this.caller || this.state.phase !== 'outgoing') return;
-      this.publish('connecting'); this.setDeadline(30000, 'Intercom connection timed out.');
+      this.publish('connecting');
+      if (generation !== this.generation) return;
+      this.setDeadline(30000, 'Intercom connection timed out.');
       if (!await this.capture(generation)) return;
       const peer = this.peer!;
       const offer = await peer.createOffer({});
@@ -257,6 +275,7 @@ export class VoiceSession {
     this.pendingCandidates = []; this.callId = null; this.caller = false;
     // A stale OS permission promise must not block invitations for a later call.
     this.queue = Promise.resolve();
+    this.queuedSignals = 0; this.queuedSignalBytes = 0;
     this.state = { phase: 'idle', muted: false }; this.callbacks.onState({ ...this.state });
   }
 }

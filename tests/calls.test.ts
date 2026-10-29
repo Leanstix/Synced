@@ -174,3 +174,61 @@ describe('intercom lifecycle and negotiation', () => {
     expect(callbacks.onError).toHaveBeenCalledWith(expect.stringContaining('lost')); expect(peer.close).toHaveBeenCalledOnce();
   });
 });
+
+describe('intercom observer cancellation and signaling limits', () => {
+  it('does not send an invitation after an outgoing observer ends the call', async () => {
+    const { voice, callbacks } = setup();
+    callbacks.onState.mockImplementation(state => { if (state.phase === 'outgoing') voice.endCall(); });
+    await voice.requestCall();
+    expect(callbacks.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'invite' }));
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('does not open the OS permission prompt after incoming acceptance is cancelled by an observer', async () => {
+    const { voice, callbacks } = setup(); await voice.handleSignal({ type: 'invite', callId });
+    callbacks.onState.mockImplementation(state => { if (state.phase === 'connecting') voice.endCall(); });
+    await voice.acceptCall();
+    expect(callbacks.requestMicrophonePermission).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('does not open the OS permission prompt after caller acceptance is cancelled by an observer', async () => {
+    const { voice, callbacks } = setup(); await voice.requestCall(); const id = callbacks.send.mock.calls[0]![0].callId;
+    callbacks.onState.mockImplementation(state => { if (state.phase === 'connecting') voice.endCall(); });
+    await voice.handleSignal({ type: 'accept', callId: id });
+    expect(callbacks.requestMicrophonePermission).not.toHaveBeenCalled(); expect(mock.getUserMedia).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('rechecks foreground permission before opening the OS dialog', async () => {
+    const { voice, callbacks } = setup(); await voice.handleSignal({ type: 'invite', callId });
+    callbacks.onState.mockImplementation(state => { if (state.phase === 'connecting') callbacks.canCall.mockReturnValue(false); });
+    await expect(voice.acceptCall()).rejects.toThrow('no longer');
+    expect(callbacks.requestMicrophonePermission).not.toHaveBeenCalled(); expect(mock.getUserMedia).not.toHaveBeenCalled();
+  });
+  it('bounds signals waiting behind a pending OS permission promise', async () => {
+    const { voice, callbacks } = setup(); const permission = deferred<boolean>(); callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+    await voice.requestCall(); const id = callbacks.send.mock.calls[0]![0].callId;
+    const pending = voice.handleSignal({ type: 'accept', callId: id }); await flush();
+    const queued = Array.from({ length: 127 }, () => voice.handleSignal({ type: 'invite', callId: otherId }));
+    await expect(voice.handleSignal({ type: 'invite', callId: otherId })).rejects.toThrow('Too many queued');
+    expect(callbacks.onState).toHaveBeenLastCalledWith({ phase: 'idle', muted: false });
+    permission.resolve(true); await Promise.all([pending, ...queued]); expect(mock.getUserMedia).not.toHaveBeenCalled();
+    await voice.handleSignal({ type: 'invite', callId }); voice.endCall(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('bounds retained SDP bytes while signaling waits for microphone permission', async () => {
+    const { voice, callbacks } = setup(); const permission = deferred<boolean>(); callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+    await voice.requestCall(); const id = callbacks.send.mock.calls[0]![0].callId;
+    const pending = voice.handleSignal({ type: 'accept', callId: id }); await flush();
+    const first = voice.handleSignal({ type: 'answer', callId: id, sdp: 'a'.repeat(128000) });
+    const second = voice.handleSignal({ type: 'answer', callId: id, sdp: 'b'.repeat(128000) });
+    await expect(voice.handleSignal({ type: 'answer', callId: id, sdp: 'c'.repeat(128000) })).rejects.toThrow('Too many queued');
+    permission.resolve(true); await Promise.all([pending, first, second]); expect(mock.getUserMedia).not.toHaveBeenCalled();
+  });
+  it('lets remote hangup preempt a full signaling queue and resets its budget', async () => {
+    const { voice, callbacks } = setup(); const permission = deferred<boolean>(); callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+    await voice.requestCall(); const id = callbacks.send.mock.calls[0]![0].callId;
+    const pending = voice.handleSignal({ type: 'accept', callId: id }); await flush();
+    const queued = Array.from({ length: 127 }, () => voice.handleSignal({ type: 'invite', callId: otherId }));
+    await voice.handleSignal({ type: 'end', callId: id });
+    await voice.handleSignal({ type: 'invite', callId });
+    permission.resolve(true); await Promise.all([pending, ...queued]);
+    expect(callbacks.onState).toHaveBeenLastCalledWith({ phase: 'incoming', muted: false }); voice.endCall();
+  });
+});
