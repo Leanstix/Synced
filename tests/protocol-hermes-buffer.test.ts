@@ -25,7 +25,7 @@ describe('Hermes Buffer frame decoding',()=>{
   expect(decoder.push(frame.subarray(4))).toEqual([{type:'hello'}]);
  });
  it('preserves Unicode text across split UTF-8 body bytes',()=>{
-  const value={text:'Ẹ káàbọ̀ 👋'},frame=encodeFrame(value),decoder=new FrameDecoder();let result:unknown[]=[];
+  const value={text:'Ẹ káàbọ̀ 👋'},frame=encodeFrame(value),decoder=new FrameDecoder(),result:unknown[]=[];
   for(const byte of frame)result.push(...decoder.push(new Uint8Array([byte])));
   expect(result).toEqual([value]);
  });
