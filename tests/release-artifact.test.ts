@@ -68,3 +68,15 @@ describe('legacy Bluetooth compiled manifest evidence', () => {
   it('rejects a mismatching actual declaration', () => expect(() => auditAndroidArtifact(withLegacy('android.permission.BLUETOOTH_ADMIN', xml('android.permission.BLUETOOTH')))).toThrow('Legacy Bluetooth'));
   it('rejects an unbounded actual declaration despite a bounded summary', () => expect(() => auditAndroidArtifact({...withLegacy('android.permission.BLUETOOTH', xml('android.permission.BLUETOOTH').replace(' android:maxSdkVersion="30"', '')), permissions: `${valid().permissions}\nuses-permission: name='android.permission.BLUETOOTH' maxSdkVersion='30'`})).toThrow('Legacy Bluetooth'));
 });
+
+describe('Android SDK signer output formats', () => {
+  const modern = (label = 'V2 Signer', hash = fingerprint) => `${label}: certificate DN: CN=Synced\n${label}: certificate SHA-256 digest: ${hash}`;
+  it('accepts the verified SDK 37 V2 signer format', () => expect(() => auditAndroidArtifact({...valid(), certificate: modern()})).not.toThrow());
+  it('accepts V3 and V3.1 scheme labels with the independently expected fingerprint', () => { for (const label of ['V3 Signer', 'V3.1 Signer']) expect(() => auditAndroidArtifact({...valid(), certificate: modern(label)})).not.toThrow(); });
+  it('deduplicates the same certificate across verified signing schemes', () => expect(() => auditAndroidArtifact({...valid(), certificate: modern() + '\n' + modern('V3 Signer')})).not.toThrow());
+  it('rejects different identities across signing schemes', () => expect(() => auditAndroidArtifact({...valid(), certificate: modern() + '\n' + modern('V3 Signer', 'cd'.repeat(32))})).toThrow('Multiple signer'));
+  it('rejects malformed fingerprints and unrecognized signer labels', () => { for (const certificate of [modern('V2 Signer', 'ab'), modern('Unverified signer')]) expect(() => auditAndroidArtifact({...valid(), certificate})).toThrow('Verified signer'); });
+  it('keeps production debug-key rejection for the new output format', () => expect(() => auditAndroidArtifact({...valid(), certificate: modern().replace('CN=Synced', 'CN=Android Debug')})).toThrow('Debug'));
+  it('accepts only explicitly labeled CI debug previews', () => { const certificate = modern().replace('CN=Synced', 'CN=Android Debug'); expect(() => auditAndroidArtifact({...valid(), certificate, profile: 'preview', allowDebugSigner: true})).not.toThrow(); expect(() => auditAndroidArtifact({...valid(), certificate, profile: 'preview', allowDebugSigner: false})).toThrow('Debug'); });
+  it('rejects duplicate ambiguous scheme entries and mismatched expected identity', () => { expect(() => auditAndroidArtifact({...valid(), certificate: modern() + '\n' + modern()})).toThrow('Verified signer'); expect(() => auditAndroidArtifact({...valid(), certificate: modern(), expectedSignerSha256: 'cd'.repeat(32)})).toThrow('match'); });
+});

@@ -38,8 +38,12 @@ export function auditAndroidArtifact(evidence: ArtifactEvidence): void {
   if (/^application-debuggable(?:\s|$)/m.test(evidence.badging)) throw new Error('APK must use optimized non-debuggable release mode');
   const abis = evidence.badging.match(/^native-code: (.+)$/m)?.[1].match(/'([^']+)'/g)?.map(value => value.slice(1, -1)) ?? [];
   if (!abis.includes('arm64-v8a') || abis.some(abi => !['arm64-v8a', 'x86_64'].includes(abi))) throw new Error('Unexpected or missing 64-bit phone ABI');
-  const fingerprints = [...evidence.certificate.matchAll(/^Signer #\d+ certificate SHA-256 digest: ([a-f\d]+)$/gim)].map(match => match[1].toLowerCase());
-  if (!fingerprints.length || fingerprints.some(hash => hash.length !== 64)) throw new Error('Verified signer evidence is required');
+  const signerMatches = [...evidence.certificate.matchAll(/^((?:Signer #\d+)|(?:V[1-4](?:\.\d+)? Signer)):? certificate SHA-256 digest: ([a-f\d]{64})\r?$/gim)];
+  const digestLines = evidence.certificate.split('\n').filter(line => /certificate SHA-256 digest:/i.test(line));
+  const labels = signerMatches.map(match => match[1].toLowerCase());
+  const fingerprints = [...new Set(signerMatches.map(match => match[2].toLowerCase()))];
+  if (!signerMatches.length || signerMatches.length !== digestLines.length || new Set(labels).size !== labels.length) throw new Error('Verified signer evidence is required');
+  if (labels.some(label => /^signer #/.test(label) && label !== 'signer #1') || fingerprints.length !== 1) throw new Error('Multiple signer identities are not accepted');
   const debug = /(?:CN|O)=Android Debug\b/i.test(evidence.certificate);
   if (debug && (evidence.profile === 'production' || !evidence.allowDebugSigner)) throw new Error('Debug signer forbidden for this artifact');
   if (evidence.profile === 'production' && !evidence.expectedSignerSha256) throw new Error('Production audit requires an independently verified signer fingerprint');
