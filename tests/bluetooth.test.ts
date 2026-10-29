@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { base64, encodeFrame } from '../src/core/protocol';
 import { BluetoothFrameDecoder, bluetoothRecords } from '../src/core/bluetoothFraming';
 import { SecureSession } from '../src/core/session';
+import { TrustManager, type SavedPeer } from '../src/core/trust';
 
 const native = vi.hoisted(() => {
   const state = {
@@ -36,7 +37,7 @@ const peer = () => {
 };
 const callbacks = () => ({ onListening: vi.fn(), onConnecting: vi.fn(), onVerified: vi.fn(), onApproved: vi.fn(), onPayload: vi.fn(), onClosed: vi.fn() });
 const invitation = `synced-bt://${base64(new Uint8Array(32).fill(7))}`;
-const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
+const flush = async () => { for (let i = 0; i < 40; i++) await Promise.resolve(); };
 beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers(); native.enabled.mockResolvedValue(undefined);
   native.bonded.mockResolvedValue([{ address: 'AA:BB:CC:DD:EE:FF', name: 'Phone' }]); });
 afterEach(() => { vi.useRealTimers(); });
@@ -143,5 +144,64 @@ describe('authenticated Bluetooth frames', () => {
     const { connection, remote, device, cb } = await hostPeer(); remote.start(); await flush(); connection.approve(); await flush();
     vi.advanceTimersByTime(20000); device.receive('A'); vi.advanceTimersByTime(10000);
     expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('stopped responding')); expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('saved Bluetooth trust', () => {
+  async function trust(role: 'HOST' | 'CONTROLLER' = 'CONTROLLER') {
+    const saved: SavedPeer = { id: base64(new Uint8Array(32).fill(2)), name: 'Saved phone', role,
+      secret: parseBluetoothInvitation(invitation), savedAt: 1, bluetoothAddress: 'AA:BB:CC:DD:EE:FF' };
+    const identity = { id: base64(new Uint8Array(32).fill(1)), name: 'This phone' };
+    const manager = new TrustManager({ read: async () => JSON.stringify({ version: 1, identity, peers: [saved] }), write: vi.fn(async () => undefined) }, length => new Uint8Array(length).fill(9));
+    await manager.initialize(); return { manager, saved, identity };
+  }
+  it('rejects unknown or wrong-role trusted peers before starting the adapter', async () => {
+    const { manager, saved } = await trust(); const connection = new BluetoothConnection(callbacks(), manager);
+    await expect(connection.hostTrusted('unknown')).rejects.toThrow('unavailable');
+    await expect(connection.connectTrusted(saved.id)).rejects.toThrow('host');
+    expect(native.accept).not.toHaveBeenCalled(); expect(native.connect).not.toHaveBeenCalled(); connection.dispose();
+  });
+  it('automatically authenticates only matching saved identities with no new grants', async () => {
+    const { manager, saved, identity } = await trust(); const device = peer(); native.accept.mockResolvedValue(device);
+    const cb = { ...callbacks(), onTrustedListening: vi.fn() }; const connection = new BluetoothConnection(cb, manager);
+    await connection.hostTrusted(saved.id); await flush();
+    const decoder = new BluetoothFrameDecoder(); const remote = new SecureSession('CONTROLLER', saved.secret,
+      () => base64(new Uint8Array(32).fill(8)), {
+        send: frame => bluetoothRecords(encodeFrame(frame)).forEach(record => device.receive(record)),
+        onVerified: vi.fn(), onApproved: vi.fn(), onPayload: vi.fn(),
+      }, { identity: saved, trustedPeer: { id: identity.id, secret: saved.secret } });
+    device.write.mockImplementation(async data => { for (const frame of decoder.push(data)) remote.receive(frame); return true; });
+    remote.start(); await flush();
+    expect(cb.onTrustedListening).toHaveBeenCalledWith(expect.any(String), saved);
+    expect(cb.onListening).not.toHaveBeenCalled(); expect(cb.onVerified).not.toHaveBeenCalled(); expect(cb.onApproved).toHaveBeenCalledOnce();
+    expect(cb.onPayload).not.toHaveBeenCalled(); expect(connection.trusted).toBe(true); connection.dispose();
+  });
+  it('closes immediately when a saved peer is revoked during a pending permission prompt', async () => {
+    const { manager, saved } = await trust(); const enable = deferred<void>(); native.enabled.mockReturnValue(enable.promise);
+    const cb = callbacks(); const connection = new BluetoothConnection(cb, manager); const listening = connection.hostTrusted(saved.id); await flush();
+    await manager.remove(saved.id); enable.resolve(); await expect(listening).rejects.toThrow('cancelled');
+    expect(native.accept).not.toHaveBeenCalled(); expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('revoked')); connection.dispose();
+  });
+  it('requires OS bonding even when cryptographic trust was saved', async () => {
+    const { manager, saved } = await trust('HOST'); native.bonded.mockResolvedValue([]);
+    const connection = new BluetoothConnection(callbacks(), manager);
+    await expect(connection.connectTrusted(saved.id)).rejects.toThrow('Pair'); expect(native.connect).not.toHaveBeenCalled(); connection.dispose();
+  });
+  it('decorates bilaterally saved identities with the actual connected Bluetooth address', async () => {
+    const { manager, identity } = await trust(); const device = peer(); native.accept.mockResolvedValue(device);
+    const cb = { ...callbacks(), onPairingSaved: vi.fn(), onPeerIdentity: vi.fn() }; const connection = new BluetoothConnection(cb, manager);
+    await connection.host(); await flush(); const decoder = new BluetoothFrameDecoder(); const remoteSaved = vi.fn(async () => undefined);
+    const remoteIdentity = { id: base64(new Uint8Array(32).fill(5)), name: 'New phone' };
+    const remote = new SecureSession('CONTROLLER', parseBluetoothInvitation(cb.onListening.mock.calls[0]![0] as string),
+      () => base64(new Uint8Array(32).fill(8)), {
+        send: frame => bluetoothRecords(encodeFrame(frame)).forEach(record => device.receive(record)),
+        onVerified: vi.fn(), onApproved: vi.fn(), onPayload: vi.fn(),
+      }, { identity: remoteIdentity, pairing: { persist: remoteSaved, rollback: vi.fn(async () => undefined) } });
+    device.write.mockImplementation(async data => { for (const frame of decoder.push(data)) remote.receive(frame); return true; });
+    remote.start(); await flush(); connection.approve(); await flush();
+    expect(cb.onPeerIdentity).toHaveBeenCalledWith(remoteIdentity); expect(manager.identity).toEqual(identity);
+    connection.savePairing(); remote.savePairing(); await flush(); await flush();
+    expect(cb.onPairingSaved).toHaveBeenCalledWith(expect.objectContaining({ id: remoteIdentity.id, bluetoothAddress: device.address }));
+    expect(manager.get(remoteIdentity.id)?.bluetoothAddress).toBe(device.address); expect(remoteSaved).toHaveBeenCalledOnce(); connection.dispose();
   });
 });
