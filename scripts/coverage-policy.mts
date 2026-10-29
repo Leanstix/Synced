@@ -23,7 +23,7 @@ export function auditFeatureCoverage(ledger: FeatureLedger, report: TestReport, 
     if (!unit.id || seen.has(unit.id)) throw new Error('Feature IDs must be unique');
     seen.add(unit.id);
     const prefixes = Array.isArray(unit.testPrefix) ? unit.testPrefix : [unit.testPrefix];
-    if (!/^(src\/.*\.tsx?|scripts\/.*\.mts)$/.test(unit.source) || !/^tests\/.*\.test\.ts$/.test(unit.testFile) || unit.source.includes('..') || unit.testFile.includes('..') || !prefixes.length || prefixes.some(prefix => !prefix?.trim()) || !unit.risk?.trim()) throw new Error(`Incomplete feature evidence: ${unit.id}`);
+    if (!/^(src\/.*\.tsx?|scripts\/.*\.mts|config\/.*\.ts|app\.config\.ts)$/.test(unit.source) || !/^(tests|src\/ui)\/.*\.test\.tsx?$/.test(unit.testFile) || unit.source.includes('..') || unit.testFile.includes('..') || !prefixes.length || prefixes.some(prefix => !prefix?.trim()) || !unit.risk?.trim()) throw new Error(`Incomplete feature evidence: ${unit.id}`);
     const selector = `${unit.testFile}:${[...prefixes].sort().join('|')}`;
     if (selectors.has(selector)) throw new Error('Features must not duplicate an evidence selector');
     selectors.add(selector);

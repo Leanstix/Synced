@@ -56,3 +56,15 @@ describe('release feature edge ledger', () => {
     expect(() => auditFeatureCoverage(value, report())).toThrow('Incomplete');
   });
 });
+
+describe('release feature edge ledger colocated UI evidence', () => {
+  const uiEvidence = () => {
+    const l = ledger(); l.units[0].source = 'src/ui/deviceState.ts'; l.units[0].testFile = 'src/ui/deviceState.test.ts';
+    const r = report(); r.testResults[0].name = '/repo/src/ui/deviceState.test.ts'; return { l, r };
+  };
+  it('counts colocated UI tests for a UI feature', () => { const { l, r } = uiEvidence(); expect(auditFeatureCoverage(l, r)[0].passedEdges).toBe(5); });
+  it('accepts resolved Expo configuration evidence', () => { const l = ledger(); l.units[0].source = 'app.config.ts'; expect(auditFeatureCoverage(l, report())).toHaveLength(1); });
+  it('accepts configuration metadata helper evidence', () => { const l = ledger(); l.units[0].source = 'config/androidPermissions.ts'; expect(auditFeatureCoverage(l, report())).toHaveLength(1); });
+  it('rejects UI test traversal', () => { const { l, r } = uiEvidence(); l.units[0].testFile = 'src/ui/../private.test.ts'; expect(() => auditFeatureCoverage(l, r)).toThrow('Incomplete'); });
+  it('does not substitute a same-named tests-folder result for UI evidence', () => { const { l, r } = uiEvidence(); r.testResults[0].name = '/repo/tests/deviceState.test.ts'; expect(() => auditFeatureCoverage(l, r)).toThrow('0/5'); });
+});
