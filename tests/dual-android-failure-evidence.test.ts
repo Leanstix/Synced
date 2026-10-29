@@ -1,7 +1,8 @@
-import {expect, it, vi} from 'vitest';
+import {describe, expect, it, vi} from 'vitest';
 import {captureSafeFailureEvidence} from '../scripts/dual-android.mts';
 import {assertEvidenceSafe, type UiNode} from '../scripts/dual-android-policy.mts';
 const node = (text: string): UiNode => ({text, description: '', className: '', enabled: true, bounds: [0, 0, 10, 10]});
+describe('secret-safe emulator failure evidence', () => {
 it('captures both phones with fixed nonsecret filenames', () => {
   const host = {screenshot: vi.fn()}, controller = {screenshot: vi.fn()};
   captureSafeFailureEvidence(host, controller, '/evidence');
@@ -39,4 +40,6 @@ it('returns without exceptions when both captures fail', () => {
 it('retains a successful host capture even if the controller fails', () => {
   const host = {screenshot: vi.fn()}, controller = {screenshot: () => {throw new Error('offline');}};
   captureSafeFailureEvidence(host, controller, '/evidence'); expect(host.screenshot).toHaveBeenCalledOnce();
+});
+
 });

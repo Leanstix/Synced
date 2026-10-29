@@ -651,6 +651,20 @@
       "testFile": "tests/dual-workflow.test.ts",
       "testPrefix": "compiled manifest audit workflow evidence",
       "risk": "Extract, provide and retain compiled XML from the exact APK under audit"
+    },
+    {
+      "id": "legacy-bluetooth-merge-precedence",
+      "source": "config/androidPermissions.ts",
+      "testFile": "tests/androidPermissions.test.ts",
+      "testPrefix": "legacy Bluetooth manifest merger precedence",
+      "risk": "Prevent an unbounded dependency permission from removing the app\u2019s legacy SDK caps"
+    },
+    {
+      "id": "emulator-failure-privacy",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android-failure-evidence.test.ts",
+      "testPrefix": "secret-safe emulator failure evidence",
+      "risk": "Preserve the original failure and refuse screenshots while pairing secrets are visible"
     }
   ]
 }
