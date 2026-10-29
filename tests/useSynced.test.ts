@@ -141,3 +141,52 @@ describe('phase2 hook trust initialization and public state', () => {
     expect(h.state!.savedPeers).toHaveLength(1); expect(h.state!.savedPeers[0]).not.toHaveProperty('secret'); h.cleanup!();
   });
 });
+
+describe('phase2 hook save consent', () => {
+  async function available() {
+    const pair = await connectedController(); pair.cb.onPeerIdentity!({ id: 'new-peer', name: 'Remote' }); return pair;
+  }
+  it('requires explicit local consent before requesting mutual save', async () => {
+    const { actions } = await available(); const request = actions.savePairing();
+    expect(h.connection.savePairing).not.toHaveBeenCalled(); h.allow!(); await request;
+    expect(h.connection.savePairing).toHaveBeenCalledOnce(); expect(h.state!.pairingState).toBe('requested'); h.cleanup!();
+  });
+  it('does not save after disconnect while the consent dialog is open', async () => {
+    const { actions } = await available(); const request = actions.savePairing(); actions.disconnect(); h.allow!(); await request;
+    expect(h.connection.savePairing).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('does not save a replacement peer using consent for an older peer', async () => {
+    const { actions, cb } = await available(); const request = actions.savePairing(); cb.onPeerIdentity!({ id: 'replacement', name: 'Other' }); h.allow!(); await request;
+    expect(h.connection.savePairing).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('waits for mutual save completion before displaying saved', async () => {
+    const { actions, cb } = await available(); const request = actions.savePairing(); h.allow!(); await request;
+    expect(h.state!.pairingState).toBe('requested'); cb.onPairingSaved!({ ...saved(), id: 'new-peer' }); expect(h.state!.pairingState).toBe('saved'); h.cleanup!();
+  });
+  it('rejects save without an authenticated identity', async () => {
+    const { actions } = await connectedController(); await actions.savePairing();
+    expect(h.connection.savePairing).not.toHaveBeenCalled(); expect(h.state!.error).toContain('verified peer'); h.cleanup!();
+  });
+});
+
+describe('phase2 hook forgetting and durable retry', () => {
+  it('removes a saved public row after durable deletion', async () => {
+    const actions = await savedHook(); await actions.forgetPeer('saved-id'); expect(h.state!.savedPeers).toEqual([]); h.cleanup!();
+  });
+  it('retains only public retry metadata when secure deletion fails', async () => {
+    const actions = await savedHook(); h.trust.remove.mockImplementationOnce(async id => { h.peers = []; h.trustListener!(id); throw new Error('retry Forget'); });
+    await actions.forgetPeer('saved-id'); expect(h.state!.savedPeers[0]?.revocationPending).toBe(true); expect(JSON.stringify(h.state)).not.toContain('NEVER-EXPOSE'); expect(h.state!.error).toBe('retry Forget'); h.cleanup!();
+  });
+  it('allows retrying a blocked row until deletion succeeds', async () => {
+    const actions = await savedHook(); h.trust.remove.mockImplementationOnce(async id => { h.peers = []; h.trustListener!(id); throw new Error('retry'); });
+    await actions.forgetPeer('saved-id'); await actions.forgetPeer('saved-id'); expect(h.trust.remove).toHaveBeenCalledTimes(2); expect(h.state!.savedPeers).toEqual([]); h.cleanup!();
+  });
+  it('ends an active session immediately on peer revocation', async () => {
+    const actions = await savedHook(); await actions.connect('invitation'); h.connectionCallbacks!.onPeerIdentity!({ id: 'saved-id', name: 'Saved phone' }); h.connectionCallbacks!.onApproved();
+    await actions.forgetPeer('saved-id'); expect(h.state!.status).toBe('idle'); expect(h.input.revoke).toHaveBeenCalled(); expect(h.voice.endCall).toHaveBeenCalled(); h.cleanup!();
+  });
+  it('does not reconnect a revoked pending-delete row', async () => {
+    const actions = await savedHook(); h.trust.remove.mockImplementationOnce(async () => { h.peers = []; throw new Error('retry'); });
+    await actions.forgetPeer('saved-id'); await actions.reconnectPeer('saved-id'); expect(h.connection.connectTrusted).not.toHaveBeenCalled(); h.cleanup!();
+  });
+});
