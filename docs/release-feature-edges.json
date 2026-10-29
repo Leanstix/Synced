@@ -679,6 +679,13 @@
       "testFile": "tests/dual-emulator-start.test.ts",
       "testPrefix": "headless emulator version preflight",
       "risk": "Use the runner\u2019s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
+    },
+    {
+      "id": "node-native-harness-runtime",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-node-runtime.test.ts",
+      "testPrefix": "direct Node emulator harness runtime",
+      "risk": "Execute actual Node strip-only entry points without transpiler-only syntax or implicit ADB side effects"
     }
   ]
 }
