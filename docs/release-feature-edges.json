@@ -2,21 +2,424 @@
   "version": 1,
   "minimumEdges": 5,
   "units": [
-    { "id": "lan-connection-lifetime", "source": "src/core/connection.ts", "testFile": "tests/connection.test.ts", "testPrefix": "local transport lifetime", "risk": "Listener leaks, stale invitations, cancellation races and public interfaces" },
-    { "id": "authenticated-protocol", "source": "src/core/protocol.ts", "testFile": "tests/protocol.test.ts", "testPrefix": ["LAN invitation and framing", "authenticated direction keys"], "risk": "Malformed framing, replay, tampering, nonce and direction separation" },
-    { "id": "session-approval", "source": "src/core/session.ts", "testFile": "tests/session.test.ts", "testPrefix": "deliberate session approval", "risk": "Unapproved peer actions, failed authentication and stale proofs" },
-    { "id": "protected-input", "source": "src/core/input.ts", "testFile": "tests/input.test.ts", "testPrefix": "input validation and protected surfaces", "risk": "Unsafe input, revoked grant races and protected foreground surfaces" },
-    { "id": "screen-media-lifetime", "source": "src/core/media.ts", "testFile": "tests/media.test.ts", "testPrefix": ["screen capture lifetime", "media signaling boundaries"], "risk": "Late capture grants, stream teardown and malicious signaling" },
-    { "id": "controller-consent", "source": "src/controller/useSynced.ts", "testFile": "tests/useSynced.test.ts", "testPrefix": "session controller consent and teardown", "risk": "Late approval, state revocation, backgrounding and unmount resource leaks" },
-    { "id": "release-environment", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release environment policy", "risk": "Cross-environment release and channel confusion" },
-    { "id": "release-version-abi", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release version and ABI policy", "risk": "Invalid Play version codes and missing 64-bit phone architectures" },
-    { "id": "release-signing-intent", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release signing policy", "risk": "Local or debug signing fallback and Gradle task overrides" },
-    { "id": "source-boundary", "source": "scripts/source-policy.mts", "testFile": "tests/release-source.test.ts", "testPrefix": "release source boundary", "risk": "Native source, custom bridges, injected build code and committed credentials" },
-    { "id": "eas-release-config", "source": "scripts/release-config.mts", "testFile": "tests/release-config.test.ts", "testPrefix": "release EAS configuration", "risk": "Unsigned builds, inherited credentials, wrong runtime and duplicate versions" },
-    { "id": "artifact-permissions", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact permission boundary", "risk": "Transitive native dependencies expanding Android permissions" },
-    { "id": "artifact-signing", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact signing evidence", "risk": "Debug keys, mismatched signer and missing signature evidence" },
-    { "id": "artifact-identity-abi", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact package and architecture", "risk": "Wrong package, debuggable artifact and unsupported architectures" },
-    { "id": "feature-edge-evidence", "source": "scripts/coverage-policy.mts", "testFile": "tests/release-coverage.test.ts", "testPrefix": "release feature edge ledger", "risk": "Counting skipped, duplicated, missing or unrelated tests as release evidence" },
-    { "id": "diagnostic-redaction", "source": "scripts/log-policy.mts", "testFile": "tests/release-log.test.ts", "testPrefix": "release diagnostic redaction", "risk": "Accidental pairing credentials, typed text, keys or peer addresses in diagnostic artifacts" }
+    {
+      "id": "lan-connection-lifetime",
+      "source": "src/core/connection.ts",
+      "testFile": "tests/connection.test.ts",
+      "testPrefix": "local transport lifetime",
+      "risk": "Listener leaks, stale invitations, cancellation races and public interfaces"
+    },
+    {
+      "id": "authenticated-protocol",
+      "source": "src/core/protocol.ts",
+      "testFile": "tests/protocol.test.ts",
+      "testPrefix": [
+        "LAN invitation and framing",
+        "authenticated direction keys"
+      ],
+      "risk": "Malformed framing, replay, tampering, nonce and direction separation"
+    },
+    {
+      "id": "session-approval",
+      "source": "src/core/session.ts",
+      "testFile": "tests/session.test.ts",
+      "testPrefix": "deliberate session approval",
+      "risk": "Unapproved peer actions, failed authentication and stale proofs"
+    },
+    {
+      "id": "protected-input",
+      "source": "src/core/input.ts",
+      "testFile": "tests/input.test.ts",
+      "testPrefix": "input validation and protected surfaces",
+      "risk": "Unsafe input, revoked grant races and protected foreground surfaces"
+    },
+    {
+      "id": "screen-media-lifetime",
+      "source": "src/core/media.ts",
+      "testFile": "tests/media.test.ts",
+      "testPrefix": [
+        "screen capture lifetime",
+        "media signaling boundaries"
+      ],
+      "risk": "Late capture grants, stream teardown and malicious signaling"
+    },
+    {
+      "id": "controller-consent",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "session controller consent and teardown",
+      "risk": "Late approval, state revocation, backgrounding and unmount resource leaks"
+    },
+    {
+      "id": "release-environment",
+      "source": "src/core/releasePolicy.ts",
+      "testFile": "tests/release-policy.test.ts",
+      "testPrefix": "release environment policy",
+      "risk": "Cross-environment release and channel confusion"
+    },
+    {
+      "id": "release-version-abi",
+      "source": "src/core/releasePolicy.ts",
+      "testFile": "tests/release-policy.test.ts",
+      "testPrefix": "release version and ABI policy",
+      "risk": "Invalid Play version codes and missing 64-bit phone architectures"
+    },
+    {
+      "id": "release-signing-intent",
+      "source": "src/core/releasePolicy.ts",
+      "testFile": "tests/release-policy.test.ts",
+      "testPrefix": "release signing policy",
+      "risk": "Local or debug signing fallback and Gradle task overrides"
+    },
+    {
+      "id": "source-boundary",
+      "source": "scripts/source-policy.mts",
+      "testFile": "tests/release-source.test.ts",
+      "testPrefix": "release source boundary",
+      "risk": "Native source, custom bridges, injected build code and committed credentials"
+    },
+    {
+      "id": "eas-release-config",
+      "source": "scripts/release-config.mts",
+      "testFile": "tests/release-config.test.ts",
+      "testPrefix": "release EAS configuration",
+      "risk": "Unsigned builds, inherited credentials, wrong runtime and duplicate versions"
+    },
+    {
+      "id": "artifact-permissions",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/release-artifact.test.ts",
+      "testPrefix": "release artifact permission boundary",
+      "risk": "Transitive native dependencies expanding Android permissions"
+    },
+    {
+      "id": "artifact-signing",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/release-artifact.test.ts",
+      "testPrefix": "release artifact signing evidence",
+      "risk": "Debug keys, mismatched signer and missing signature evidence"
+    },
+    {
+      "id": "artifact-identity-abi",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/release-artifact.test.ts",
+      "testPrefix": "release artifact package and architecture",
+      "risk": "Wrong package, debuggable artifact and unsupported architectures"
+    },
+    {
+      "id": "feature-edge-evidence",
+      "source": "scripts/coverage-policy.mts",
+      "testFile": "tests/release-coverage.test.ts",
+      "testPrefix": "release feature edge ledger",
+      "risk": "Counting skipped, duplicated, missing or unrelated tests as release evidence"
+    },
+    {
+      "id": "diagnostic-redaction",
+      "source": "scripts/log-policy.mts",
+      "testFile": "tests/release-log.test.ts",
+      "testPrefix": "release diagnostic redaction",
+      "risk": "Accidental pairing credentials, typed text, keys or peer addresses in diagnostic artifacts"
+    },
+    {
+      "id": "saved-peer-schema",
+      "source": "src/core/trust.ts",
+      "testFile": "tests/trust.test.ts",
+      "testPrefix": "saved peer schema",
+      "risk": "Reject corrupt or noncanonical encrypted trust records"
+    },
+    {
+      "id": "saved-peer-storage",
+      "source": "src/core/trust.ts",
+      "testFile": "tests/trust.test.ts",
+      "testPrefix": "secure trust manager",
+      "risk": "Serialized writes, initialization and locked secure storage"
+    },
+    {
+      "id": "peer-revocation",
+      "source": "src/core/trust.ts",
+      "testFile": "tests/trust.test.ts",
+      "testPrefix": "local revocation",
+      "risk": "Durable deletion failure, tombstones and stale writes"
+    },
+    {
+      "id": "saved-peer-names",
+      "source": "src/core/trust.ts",
+      "testFile": "tests/trust.test.ts",
+      "testPrefix": "saved device naming",
+      "risk": "Untrusted device labels and bounded display names"
+    },
+    {
+      "id": "mixed-transport-trust",
+      "source": "src/core/trust.ts",
+      "testFile": "tests/trust.test.ts",
+      "testPrefix": "mixed transport pairing records",
+      "risk": "Preserve transport metadata only for unchanged peer roles"
+    },
+    {
+      "id": "bilateral-save",
+      "source": "src/core/trustExchange.ts",
+      "testFile": "tests/trustExchange.test.ts",
+      "testPrefix": "bilateral pairing transaction",
+      "risk": "Asymmetric consent or persistence must roll back"
+    },
+    {
+      "id": "secure-vault",
+      "source": "src/core/secureStorage.ts",
+      "testFile": "tests/secureStorage.test.ts",
+      "testPrefix": "device-only secure storage",
+      "risk": "Unavailable encrypted storage and device-only key options"
+    },
+    {
+      "id": "trusted-auth",
+      "source": "src/core/session.ts",
+      "testFile": "tests/resume.test.ts",
+      "testPrefix": "authenticated saved peer resumption",
+      "risk": "Identity binding, wrong peer, replay and fresh grants"
+    },
+    {
+      "id": "pairing-integration",
+      "source": "src/core/session.ts",
+      "testFile": "tests/pairingSession.test.ts",
+      "testPrefix": "encrypted pairing session integration",
+      "risk": "Encrypted bilateral save and interrupted session rollback"
+    },
+    {
+      "id": "bounded-reconnect",
+      "source": "src/core/reconnect.ts",
+      "testFile": "tests/reconnect.test.ts",
+      "testPrefix": "bounded opt-in retry",
+      "risk": "Cancellation, late callbacks, retry limits and terminal errors"
+    },
+    {
+      "id": "bluetooth-framing",
+      "source": "src/core/bluetoothFraming.ts",
+      "testFile": "tests/bluetoothFraming.test.ts",
+      "testPrefix": "Bluetooth records",
+      "risk": "Fragmentation, malformed base64 and bounded pending records"
+    },
+    {
+      "id": "bluetooth-permissions",
+      "source": "src/core/bluetoothAdapter.ts",
+      "testFile": "tests/bluetoothAdapter.test.ts",
+      "testPrefix": "Bluetooth permission policy",
+      "risk": "OS permission denial, API level and unsupported hardware"
+    },
+    {
+      "id": "bluetooth-bonded-devices",
+      "source": "src/core/bluetoothAdapter.ts",
+      "testFile": "tests/bluetoothAdapter.test.ts",
+      "testPrefix": "bonded adapter operations",
+      "risk": "Only actual OS-bonded peers and explicit system settings"
+    },
+    {
+      "id": "bluetooth-lifetime",
+      "source": "src/core/bluetooth.ts",
+      "testFile": "tests/bluetooth.test.ts",
+      "testPrefix": "Bluetooth invitation and connection lifetime",
+      "risk": "Native connection cancellation and stale listener callbacks"
+    },
+    {
+      "id": "bluetooth-authenticated-liveness",
+      "source": "src/core/bluetooth.ts",
+      "testFile": "tests/bluetooth.test.ts",
+      "testPrefix": "authenticated Bluetooth frames",
+      "risk": "Partial records must not renew unauthenticated liveness"
+    },
+    {
+      "id": "bluetooth-saved-trust",
+      "source": "src/core/bluetooth.ts",
+      "testFile": "tests/bluetooth.test.ts",
+      "testPrefix": "saved Bluetooth trust",
+      "risk": "Identity-bound resume and revocation while permissions pending"
+    },
+    {
+      "id": "safe-dialer",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/callPolicy.test.ts",
+      "testPrefix": "safe dialer policy",
+      "risk": "Reject URI injection and unsupported dial strings"
+    },
+    {
+      "id": "voice-microphone",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/callPolicy.test.ts",
+      "testPrefix": "microphone runtime permission",
+      "risk": "Separate explicit OS permission and unsupported runtime"
+    },
+    {
+      "id": "voice-signals",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/callPolicy.test.ts",
+      "testPrefix": "intercom signal validation",
+      "risk": "Bounded untrusted voice signaling"
+    },
+    {
+      "id": "voice-consent",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/calls.test.ts",
+      "testPrefix": "intercom consent",
+      "risk": "No recording before bilateral invitation and acceptance"
+    },
+    {
+      "id": "voice-async-capture",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/calls.test.ts",
+      "testPrefix": "intercom asynchronous capture lifetime",
+      "risk": "Dispose late streams after reject or hangup"
+    },
+    {
+      "id": "voice-negotiation",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/calls.test.ts",
+      "testPrefix": "intercom lifecycle and negotiation",
+      "risk": "ICE, SDP, timeouts and busy collision cleanup"
+    },
+    {
+      "id": "public-device-privacy",
+      "source": "src/controller/sessionPolicy.ts",
+      "testFile": "tests/sessionPolicy.test.ts",
+      "testPrefix": "public saved-device boundary edges",
+      "risk": "Keep transport permissions and public state bounded across lifecycle changes"
+    },
+    {
+      "id": "transport-input-policy",
+      "source": "src/controller/sessionPolicy.ts",
+      "testFile": "tests/sessionPolicy.test.ts",
+      "testPrefix": "transport control permission edges",
+      "risk": "Keep transport permissions and public state bounded across lifecycle changes"
+    },
+    {
+      "id": "host-grant-policy",
+      "source": "src/controller/sessionPolicy.ts",
+      "testFile": "tests/sessionPolicy.test.ts",
+      "testPrefix": "local host control grant edges",
+      "risk": "Keep transport permissions and public state bounded across lifecycle changes"
+    },
+    {
+      "id": "voice-foreground-policy",
+      "source": "src/controller/sessionPolicy.ts",
+      "testFile": "tests/sessionPolicy.test.ts",
+      "testPrefix": "voice foreground permission edges",
+      "risk": "Keep transport permissions and public state bounded across lifecycle changes"
+    },
+    {
+      "id": "session-state-reset",
+      "source": "src/controller/sessionPolicy.ts",
+      "testFile": "tests/sessionPolicy.test.ts",
+      "testPrefix": "session reset privacy edges",
+      "risk": "Keep transport permissions and public state bounded across lifecycle changes"
+    },
+    {
+      "id": "private-address-form",
+      "source": "src/ui/addressForm.ts",
+      "testFile": "src/ui/addressForm.test.ts",
+      "testPrefix": "private address field",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "saved-port-form",
+      "source": "src/ui/addressForm.ts",
+      "testFile": "src/ui/addressForm.test.ts",
+      "testPrefix": "saved connection port field",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "saved-peer-labels",
+      "source": "src/ui/savedPeerPresentation.ts",
+      "testFile": "src/ui/savedPeerPresentation.test.ts",
+      "testPrefix": "saved device names",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "saved-peer-actions",
+      "source": "src/ui/savedPeerPresentation.ts",
+      "testFile": "src/ui/savedPeerPresentation.test.ts",
+      "testPrefix": "saved device rows",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "revocation-retry-ui",
+      "source": "src/ui/savedPeerPresentation.ts",
+      "testFile": "src/ui/savedPeerPresentation.test.ts",
+      "testPrefix": "pending revocation visibility",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "bluetooth-peer-picker",
+      "source": "src/ui/bluetoothPicker.ts",
+      "testFile": "src/ui/bluetoothPicker.test.ts",
+      "testPrefix": "bonded Bluetooth device picker",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "remote-viewport-controls",
+      "source": "src/ui/remotePanelState.ts",
+      "testFile": "src/ui/remotePanelState.test.ts",
+      "testPrefix": "remote controls and viewport states",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "remote-alarm-form",
+      "source": "src/ui/remotePanelState.ts",
+      "testFile": "src/ui/remotePanelState.test.ts",
+      "testPrefix": "alarm form",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "save-consent-ui",
+      "source": "src/ui/pairingPresentation.ts",
+      "testFile": "src/ui/pairingPresentation.test.ts",
+      "testPrefix": "pairing save consent",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "reconnect-progress-ui",
+      "source": "src/ui/pairingPresentation.ts",
+      "testFile": "src/ui/pairingPresentation.test.ts",
+      "testPrefix": "trusted reconnect progress",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "transport-selection-ui",
+      "source": "src/ui/pairingPresentation.ts",
+      "testFile": "src/ui/pairingPresentation.test.ts",
+      "testPrefix": "transport capability selection",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "voice-consent-ui",
+      "source": "src/ui/voicePresentation.ts",
+      "testFile": "src/ui/voicePresentation.test.ts",
+      "testPrefix": "separate voice consent and status",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "viewport-coordinate-mapping",
+      "source": "src/ui/viewportGeometry.ts",
+      "testFile": "src/ui/viewportGeometry.test.ts",
+      "testPrefix": "contained remote-screen coordinates",
+      "risk": "Avoid misleading grants, stale devices and invalid user input"
+    },
+    {
+      "id": "app-permission-config",
+      "source": "app.config.ts",
+      "testFile": "tests/appConfig.test.ts",
+      "testPrefix": "app permission declarations",
+      "risk": "Bound transitive permissions and secure backup metadata"
+    },
+    {
+      "id": "resolved-release-config",
+      "source": "app.config.ts",
+      "testFile": "tests/appConfig.test.ts",
+      "testPrefix": "app resolved release configuration",
+      "risk": "Fail ambiguous release configuration before native generation"
+    },
+    {
+      "id": "legacy-bluetooth-metadata",
+      "source": "config/androidPermissions.ts",
+      "testFile": "tests/androidPermissions.test.ts",
+      "testPrefix": "legacy Bluetooth manifest limits",
+      "risk": "Limit dependency legacy grants without changing modern Bluetooth permissions"
+    }
   ]
 }
