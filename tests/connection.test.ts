@@ -92,3 +92,21 @@ describe('local transport lifetime', () => {
     connection.close(false);
   });
 });
+
+import { TrustManager, type SavedPeer } from '../src/core/trust';
+const deviceId = (n: number) => base64(new Uint8Array(32).fill(n));
+async function trusted(role: 'HOST' | 'CONTROLLER' = 'CONTROLLER') {
+  let raw: string | null = null;
+  const manager = new TrustManager({ read: async () => raw, write: async value => { raw = value; } }, () => new Uint8Array(32).fill(1));
+  await manager.initialize();
+  const peer: SavedPeer = { id: deviceId(2), name: 'Desk', role, secret: deviceId(9), savedAt: 1, endpoint: { address: '192.168.1.2', port: 5000 } };
+  await manager.save(peer); return { manager, peer };
+}
+describe('intentional trusted transport lifetime', () => {
+  it('creates a trusted listener only explicitly and never exposes a reusable invitation', async () => { const { manager, peer } = await trusted(); const cb = { ...callbacks(), onTrustedListening: vi.fn() }; const connection = new LocalConnection(cb, manager); expect(cb.onTrustedListening).not.toHaveBeenCalled(); await connection.hostTrusted(peer.id); expect(cb.onListening).not.toHaveBeenCalled(); expect(cb.onTrustedListening).toHaveBeenCalledWith('192.168.1.2', 5000, peer); expect(transport.state.server!.listen).toHaveBeenCalledWith({ port: 5000, host: '0.0.0.0' }, expect.any(Function)); connection.dispose(); });
+  it('requires the correct remote role and a still saved identity', async () => { const { manager, peer } = await trusted('HOST'); const connection = new LocalConnection(callbacks(), manager); await expect(connection.hostTrusted(peer.id)).rejects.toThrow('controller'); await manager.remove(peer.id); await expect(connection.connectTrusted(peer.id)).rejects.toThrow('revoked'); connection.dispose(); });
+  it('validates manual address overrides before native connection creation', async () => { const { manager, peer } = await trusted('HOST'); const connection = new LocalConnection(callbacks(), manager); await expect(connection.connectTrusted(peer.id, { address: '8.8.8.8', port: 5000 })).rejects.toThrow('private'); await expect(connection.connectTrusted(peer.id, { address: '10.0.0.2', port: 1 })).rejects.toThrow('private'); connection.dispose(); });
+  it('closes an active trusted listener immediately when its peer is revoked', async () => { const { manager, peer } = await trusted(); const cb = callbacks(); const connection = new LocalConnection(cb, manager); await connection.hostTrusted(peer.id); const server = transport.state.server!; await manager.remove(peer.id); expect(server.close).toHaveBeenCalled(); expect(connection.currentPeerId).toBeNull(); expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('revoked')); expect(vi.getTimerCount()).toBe(0); await expect(connection.hostTrusted(peer.id)).rejects.toThrow(); connection.dispose(); });
+  it('expires trusted listeners without creating an automatic replacement', async () => { const { manager, peer } = await trusted(); const cb = { ...callbacks(), onTrustedListening: vi.fn() }; const connection = new LocalConnection(cb, manager); await connection.hostTrusted(peer.id); vi.advanceTimersByTime(10 * 60 * 1000); expect(cb.onTrustedListening).toHaveBeenCalledTimes(1); expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('expired')); expect(vi.getTimerCount()).toBe(0); connection.dispose(); });
+  it('cancels a pending trusted dial and ignores a late native connect callback', async () => { const { manager, peer } = await trusted('HOST'); const cb = callbacks(); const connection = new LocalConnection(cb, manager); const pending = connection.connectTrusted(peer.id); await vi.advanceTimersByTimeAsync(0); connection.close(false); await expect(pending).rejects.toThrow('cancelled'); transport.state.onConnect!(); expect(cb.onApproved).not.toHaveBeenCalled(); expect(transport.state.socket!.destroy).toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0); connection.dispose(); });
+});
