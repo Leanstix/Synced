@@ -25,6 +25,14 @@ describe('release artifact permission boundary', () => {
   it('rejects an application permission from another package', () => {
     expect(() => auditAndroidArtifact({ ...valid(), permissions: `${valid().permissions}\nuses-permission: name='com.other.app.CUSTOM'` })).toThrow('Unreviewed');
   });
+  it('allows legacy Bluetooth only below the Android 12 runtime permission boundary', () => {
+    for (const suffix of ['', '_ADMIN']) {
+      const permissions = `${valid().permissions}\nuses-permission: name='android.permission.BLUETOOTH${suffix}' maxSdkVersion='30'`;
+      expect(() => auditAndroidArtifact({ ...valid(), permissions })).not.toThrow();
+      expect(() => auditAndroidArtifact({ ...valid(), permissions: permissions.replace(" maxSdkVersion='30'", '') })).toThrow('Legacy');
+      expect(() => auditAndroidArtifact({ ...valid(), permissions: permissions.replace("maxSdkVersion='30'", "maxSdkVersion='31'") })).toThrow('Legacy');
+    }
+  });
 });
 describe('release artifact signing evidence', () => {
   it('requires independent expected production identity', () => expect(() => auditAndroidArtifact({ ...valid(), expectedSignerSha256: undefined })).toThrow('fingerprint'));
