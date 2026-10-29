@@ -98,7 +98,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
       const guarded = (change: Partial<SyncedState>) => { if (live()) update(change); };
       const callbacks: ConnectionCallbacks = {
         onListening: (invitation, address) => guarded({ role: 'HOST', status: 'listening', invitation, localAddress: address, error: null }),
-        onTrustedListening: (address, _port, peer) => guarded({ role: 'HOST', status: 'listening', localAddress: address, invitation: null, peerIdentity: { id: peer.id, name: peer.name }, pairingState: 'saved' }),
+        onTrustedListening: (address, port, peer) => guarded({ role: 'HOST', status: 'listening', localAddress: transport === 'wifi' ? `${address}:${port}` : address, invitation: null, peerIdentity: { id: peer.id, name: peer.name }, pairingState: 'saved' }),
         onConnecting: (role, address) => guarded({ role, status: 'verifying', remoteAddress: address, invitation: null, error: null }),
         onVerified: (code, address) => guarded({ status: 'awaiting-approval', comparisonCode: code, pendingPeer: { address, comparisonCode: code } }),
         onPeerIdentity: peer => guarded({ peerIdentity: { id: peer.id, name: peer.name }, pairingState: 'available' }),

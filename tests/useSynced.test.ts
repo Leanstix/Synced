@@ -384,3 +384,34 @@ describe('phase2 hook native reconnect failures', () => {
     expect(h.connection.connectTrusted).toHaveBeenCalledOnce(); expect(h.state!.status).toBe('idle'); h.cleanup!(); vi.useRealTimers();
   });
 });
+
+describe('trusted listener endpoint display', () => {
+  it('shows the actual allocated LAN port rather than the requested saved port', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id', { port: 4010 });
+    h.connectionCallbacks!.onTrustedListening!('192.168.1.9', 50123, saved('CONTROLLER'));
+    expect(h.state!.localAddress).toBe('192.168.1.9:50123'); h.cleanup!();
+  });
+  it('preserves a valid minimum nonprivileged listener port', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id');
+    h.connectionCallbacks!.onTrustedListening!('10.0.0.8', 1024, saved('CONTROLLER'));
+    expect(h.state!.localAddress).toBe('10.0.0.8:1024'); h.cleanup!();
+  });
+  it('does not append a fictitious TCP port to a Bluetooth listener', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id', { transport: 'bluetooth' });
+    const listening = h.btCallbacks!.onTrustedListening as unknown as (address: string, peer: ReturnType<typeof saved>) => void;
+    listening('AA:BB:CC:DD:EE:FF', saved('CONTROLLER'));
+    expect(h.state!.localAddress).toBe('AA:BB:CC:DD:EE:FF'); h.cleanup!();
+  });
+  it('does not restore listener details after cancellation', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id');
+    const listening = h.connectionCallbacks!.onTrustedListening!; actions.disconnect();
+    listening('192.168.1.9', 65535, saved('CONTROLLER'));
+    expect(h.state!.localAddress).toBeNull(); expect(h.state!.status).not.toBe('listening'); h.cleanup!();
+  });
+  it('ignores an old LAN listener after the owner switches to Bluetooth', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id');
+    const listening = h.connectionCallbacks!.onTrustedListening!; await actions.startBluetoothHost();
+    listening('192.168.1.9', 47631, saved('CONTROLLER'));
+    expect(h.state!.transport).toBe('bluetooth'); expect(h.state!.localAddress).toBeNull(); h.cleanup!();
+  });
+});
