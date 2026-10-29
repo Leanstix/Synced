@@ -33,6 +33,30 @@ export async function pairSaveReconnect(host: PairingPhone, controller: PairingP
   await host.visible('Connected'); await controller.visible('Connected'); await host.noAutoGrants(); stage('trusted-reconnect-no-grants');
 }
 
+export interface VoicePhone {
+  visible(label: string): Promise<void>; tap(label: string): Promise<void>;
+  dump(): ReturnType<AndroidUi['dump']>; allowMicrophone(): Promise<void>;
+}
+export async function voiceLink(host: VoicePhone, controller: VoicePhone, stage: (name: string) => void = () => {}) {
+  await host.visible('Talk while you help.'); await controller.visible('Talk while you help.');
+  await host.tap('Request voice link');
+  await host.visible('Waiting for them to accept'); await controller.visible('A voice request is waiting');
+  for (const phone of [host, controller]) {
+    if (phone.dump().some(node => [node.text, node.description].includes('Voice link is active'))) throw new Error('Voice became active before explicit acceptance.');
+  }
+  stage('voice-waits-for-explicit-acceptance');
+  await controller.tap('Accept · Use microphone'); await controller.allowMicrophone();
+  await host.allowMicrophone();
+  await host.visible('Voice link is active'); await controller.visible('Voice link is active'); stage('voice-link-active-both');
+  for (const phone of [host, controller]) {
+    await phone.tap('Mute my microphone'); await phone.visible('Your microphone is muted');
+    await phone.tap('Unmute my microphone'); await phone.visible('Voice link is active');
+  }
+  stage('voice-mute-unmute-both');
+  await controller.tap('End voice link');
+  await host.visible('Talk while you help.'); await controller.visible('Talk while you help.'); stage('voice-ended-both-idle');
+}
+
 export async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (name: string) => void, pause = delay) {
   await host.enableTestAccessibility();
   // Refresh the service state through the public button rather than an app hook.
@@ -57,7 +81,7 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
 
 async function main() {
   const apk = process.argv[2];
-  if (!apk || !existsSync(apk)) throw new Error('Usage: node scripts/dual-android.mts <apk> [--screen-control] [--evidence=directory]');
+  if (!apk || !existsSync(apk)) throw new Error('Usage: node scripts/dual-android.mts <apk> [--voice] [--screen-control] [--evidence=directory]');
   const hostSerial = process.env.HOST_SERIAL ?? 'emulator-5554', controllerSerial = process.env.CONTROLLER_SERIAL ?? 'emulator-5556';
   validateSerials(hostSerial, controllerSerial);
   const packageName = process.env.APP_PACKAGE ?? 'com.leanstix.synced';
@@ -71,6 +95,7 @@ async function main() {
     await pairSaveReconnect(host, controller, resolve(apk), stage);
     // Pairing secrets and comparison codes are hidden before any screenshots.
     host.screenshot(evidence, 'host-trusted-private.png'); controller.screenshot(evidence, 'controller-trusted-private.png');
+    if (process.argv.includes('--voice')) await voiceLink(host, controller, stage);
     if (process.argv.includes('--screen-control')) await screenAndControl(host, controller, stage);
     await controller.tap('Disconnect phones'); await host.visible('Disconnected'); stage('final-disconnect');
   } catch (error) {
@@ -79,7 +104,7 @@ async function main() {
     console.error(failure); process.exitCode = 1;
   } finally {
     mkdirSync(evidence, { recursive: true });
-    writeFileSync(resolve(evidence, 'result.json'), JSON.stringify({ completed, success: !failure, ...(failure ? { failure } : {}), screenControlRequested: process.argv.includes('--screen-control') }, null, 2));
+    writeFileSync(resolve(evidence, 'result.json'), JSON.stringify({ completed, success: !failure, ...(failure ? { failure } : {}), screenControlRequested: process.argv.includes('--screen-control'), voiceRequested: process.argv.includes('--voice'), audioSamplesVerified: false }, null, 2));
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) void main().catch(error => { console.error(redactReleaseLog(error instanceof Error ? error.message : 'Harness failed.')); process.exitCode = 1; });

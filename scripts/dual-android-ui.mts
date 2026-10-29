@@ -56,6 +56,21 @@ export class AndroidUi {
   }
   async visible(label: string, prefix = false): Promise<void> { await this.locate(label, prefix); }
   async noAutoGrants(): Promise<void> { await this.visible('Your screen is private.'); await this.visible('Only you can control this phone.'); }
+  async allowMicrophone(): Promise<void> {
+    // Permission controller buttons are read and tapped directly, never app-op grants.
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const nodes = this.dump();
+      const button = nodes.find(node => node.enabled && [node.text, node.description].some(value => /^(While using the app|Only this time)$/i.test(value)));
+      const microphone = nodes.some(node => /(?:record audio|microphone)/i.test(`${node.text} ${node.description}`));
+      if (button && microphone) {
+        const [l, t, r, b] = button.bounds;
+        this.adb(['shell', 'input', 'tap', String(Math.round((l + r) / 2)), String(Math.round((t + b) / 2))]);
+        await this.pause(250); return;
+      }
+      await this.pause(400);
+    }
+    throw new Error('Explicit Android microphone permission prompt was not found.');
+  }
   privateIp(): string {
     const output = this.adb(['shell', 'ip', '-o', '-4', 'addr', 'show', 'wlan0']);
     const address = /\binet\s+(\d+\.\d+\.\d+\.\d+)\//.exec(output)?.[1];
