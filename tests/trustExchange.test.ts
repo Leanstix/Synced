@@ -23,3 +23,15 @@ describe('bilateral pairing transaction', () => {
   it('rolls back an in-flight write after disconnect without reviving the channel', async () => { const p = pair(); await p.flush(); let finish!: () => void; p.hostSave.mockImplementation(() => new Promise<void>(resolve => { finish = resolve; })); p.host.savePairing(); p.controller.savePairing(); await p.flush(); p.host.close(); finish(); await p.flush(); expect(p.hostRollback).toHaveBeenCalledWith(id(2)); expect(p.controllerSave).not.toHaveBeenCalled(); expect(p.savedH).not.toHaveBeenCalled(); });
   it('bounds and sanitizes encrypted peer display names', () => { const p = pair(); p.host.receive({ type: 'identity', id: id(2), name: '\u202ePeer\n' }); expect(p.host.peerIdentity?.name).toBe('Peer'); expect(() => p.controller.receive({ type: 'identity', id: id(1), name: 'x'.repeat(257) })).toThrow(); });
 });
+
+it('finishes rollback even when asynchronous abort notification cannot be delivered', async () => {
+  const rollback = vi.fn(async () => {}); let failSend = false;
+  const exchange = new TrustExchange('HOST', { id: id(1), name: 'Host' }, () => id(9), { send: () => { if (failSend) throw new Error('closed transport'); }, persist: async () => { throw new Error('locked'); }, rollback, onPairingError: () => { throw new Error('bad UI'); } });
+  exchange.receive({ type: 'identity', id: id(2), name: 'Peer' }); exchange.savePairing(); exchange.receive({ type: 'save-intent' }); failSend = true;
+  exchange.receive({ type: 'save-accept' }); await expect(exchange.settled()).resolves.toBeUndefined(); expect(rollback).toHaveBeenCalledWith(id(2));
+});
+it('reports rollback failure without leaking an unhandled rejected transaction', async () => {
+  const onError = vi.fn(); const exchange = new TrustExchange('HOST', { id: id(1), name: 'Host' }, () => id(9), { send: vi.fn(), persist: async () => { throw new Error('locked'); }, rollback: async () => { throw new Error('locked'); }, onPairingError: onError });
+  exchange.receive({ type: 'identity', id: id(2), name: 'Peer' }); exchange.savePairing(); exchange.receive({ type: 'save-intent' }); exchange.receive({ type: 'save-accept' });
+  await expect(exchange.settled()).resolves.toBeUndefined(); expect(onError).toHaveBeenCalledWith(expect.stringContaining('Forget this peer'));
+});

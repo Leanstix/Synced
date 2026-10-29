@@ -76,13 +76,18 @@ export class TrustExchange {
   private abort(message: string, notify = true) {
     if (this.phase === 'closed' || this.phase === 'aborted') return;
     this.phase = 'aborted';
-    if (this.record) this.pending = this.pending.then(() => this.callbacks.rollback(this.record!.id)).catch(() => { this.callbacks.onPairingError?.('Could not remove incomplete saved pairing. Forget this peer before reconnecting.'); });
-    if (notify) this.callbacks.send({ type: 'save-abort' });
-    this.callbacks.onPairingError?.(message);
+    if (this.record) this.pending = this.pending.then(() => this.callbacks.rollback(this.record!.id)).catch(() => { this.report('Could not remove incomplete saved pairing. Forget this peer before reconnecting.'); });
+    if (notify) { try { this.callbacks.send({ type: 'save-abort' }); } catch { /* The authenticated channel may already be gone. */ } }
+    this.report(message);
   }
+  private report(message: string): void { try { this.callbacks.onPairingError?.(message); } catch { /* UI observers cannot interrupt rollback. */ } }
   close(): void {
-    if (this.phase !== 'saved' && this.record) this.pending = this.pending.then(() => this.callbacks.rollback(this.record!.id)).catch(() => { this.callbacks.onPairingError?.('Could not remove incomplete saved pairing.'); });
+    if (this.phase === 'closed') return;
+    if (this.phase !== 'saved' && this.record) this.pending = this.pending.then(() => this.callbacks.rollback(this.record!.id)).catch(() => { this.report('Could not remove incomplete saved pairing.'); });
     this.phase = 'closed';
   }
-  settled(): Promise<void> { return this.pending; }
+  async settled(): Promise<void> {
+    let pending: Promise<void>;
+    do { pending = this.pending; await pending; } while (pending !== this.pending);
+  }
 }
