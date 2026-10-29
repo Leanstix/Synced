@@ -9,8 +9,17 @@ const h = vi.hoisted(() => ({
   connectionCallbacks: null as ConnectionCallbacks | null,
   mediaCallbacks: null as MediaCallbacks | null,
   allow: null as null | (() => void),
-  connection: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), close: vi.fn() },
-  input: { isAvailable: vi.fn(async () => true), requestService: vi.fn(async () => undefined), grant: vi.fn(async (): Promise<void> => undefined), revoke: vi.fn(), setSharing: vi.fn(), dispose: vi.fn(), execute: vi.fn(async () => undefined) },
+  appChange: null as null | ((next: string) => void),
+  btCallbacks: null as ConnectionCallbacks | null,
+  peers: [] as Array<{ id: string; name: string; role: 'HOST' | 'CONTROLLER'; secret: string; savedAt: number; endpoint?: { address: string; port: number } }>,
+  trustListener: null as null | ((id?: string) => void),
+  trust: { initialize: vi.fn(async () => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async () => undefined), allowNewPairing: vi.fn() },
+  voiceCallbacks: null as ConstructorParameters<typeof import('../src/core/calls').VoiceSession>[0] | null,
+  voice: { requestCall: vi.fn(async () => undefined), acceptCall: vi.fn(async () => undefined), rejectCall: vi.fn(), endCall: vi.fn(), setMuted: vi.fn(), handleSignal: vi.fn(async () => undefined) },
+  bluetooth: { listBondedDevices: vi.fn(async () => [{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }]), requestBluetoothEnable: vi.fn(async () => undefined), requestBluetoothDiscoverable: vi.fn(async () => undefined), openBluetoothPairingSettings: vi.fn(async () => undefined) },
+  bt: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), close: vi.fn(), savePairing: vi.fn() },
+  connection: { hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), savePairing: vi.fn(), host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), close: vi.fn() },
+  input: { setBluetoothControlAllowed: vi.fn(), isAvailable: vi.fn(async () => true), requestService: vi.fn(async () => undefined), grant: vi.fn(async (): Promise<void> => undefined), revoke: vi.fn(), setSharing: vi.fn(), dispose: vi.fn(), execute: vi.fn(async () => undefined) },
   media: { startController: vi.fn(), startHost: vi.fn(async () => undefined), stop: vi.fn(), handleSignal: vi.fn(async () => undefined) },
 }));
 vi.mock('react', () => ({
@@ -20,7 +29,7 @@ vi.mock('react', () => ({
   useEffect: (effect: () => () => void) => { h.cleanup = effect(); },
 }));
 vi.mock('react-native', () => ({
-  Platform: { OS: 'android' }, AppState: { addEventListener: () => ({ remove: vi.fn() }) },
+  Platform: { OS: 'android' }, AppState: { currentState: 'active', addEventListener: (_event: string, cb: (next: string) => void) => { h.appChange = cb; return { remove: vi.fn() }; } },
   Alert: { alert: (_title: string, _message: string, buttons: Array<{ onPress: () => void }>) => { h.allow = buttons[1]!.onPress; } },
 }));
 vi.mock('../src/core/connection', () => ({ LocalConnection: class {
@@ -30,10 +39,22 @@ vi.mock('../src/core/input', () => ({ InputController: class { constructor() { r
 vi.mock('../src/core/media', () => ({ MediaSession: class {
   constructor(callbacks: MediaCallbacks) { h.mediaCallbacks = callbacks; return h.media; }
 } }));
+vi.mock('expo-device', () => ({ deviceName: 'Local phone' }));
+vi.mock('../src/core/secureStorage', () => ({ createSecureTrustManager: () => h.trust }));
+vi.mock('../src/core/bluetooth', () => ({ BluetoothConnection: class { constructor(callbacks: ConnectionCallbacks) { h.btCallbacks = callbacks; return h.bt; } } }));
+vi.mock('../src/core/bluetoothAdapter', () => h.bluetooth);
+vi.mock('../src/core/calls', () => ({ requestMicrophonePermission: vi.fn(async () => true), VoiceSession: class { constructor(callbacks: typeof h.voiceCallbacks) { h.voiceCallbacks = callbacks; return h.voice; } } }));
 import { useSynced } from '../src/controller/useSynced';
 
 beforeEach(() => {
-  vi.clearAllMocks(); h.allow = null;
+  vi.clearAllMocks(); h.allow = null; h.peers = [];
+  h.trust.initialize.mockResolvedValue(undefined);
+  h.trust.list.mockImplementation(() => h.peers);
+  h.trust.get.mockImplementation((id: string) => h.peers.find(p => p.id === id));
+  h.trust.subscribe.mockImplementation((cb: typeof h.trustListener) => { h.trustListener = cb; return vi.fn(); });
+  h.trust.remove.mockImplementation(async id => { h.peers = h.peers.filter(p => p.id !== id); h.trustListener?.(id); });
+  h.connection.connectTrusted.mockResolvedValue(undefined);
+  h.bluetooth.listBondedDevices.mockResolvedValue([{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }]);
   h.input.grant.mockResolvedValue(undefined);
   h.connection.approve.mockImplementation(() => h.connectionCallbacks!.onApproved());
   h.media.startHost.mockImplementation(async () => { h.mediaCallbacks!.onSharingChanged(true); });
@@ -72,14 +93,14 @@ describe('session controller consent and teardown', () => {
     const pending = actions.setControlEnabled(true); h.allow!(); await Promise.resolve();
     actions.stopScreenSharing(); resolveGrant(); await pending;
     expect(h.state!.controlEnabled).toBe(false);
-    expect(h.connection.send).toHaveBeenCalledWith({ type: 'permissions', screenSharing: false, controlEnabled: false });
+    expect(h.connection.send).toHaveBeenCalledWith({ type: 'permissions', screenSharing: false, controlEnabled: false, controlMode: 'screen' });
     expect(h.input.revoke).toHaveBeenCalled(); h.cleanup!();
   });
   it('shares host permission only after local approval and tears down all resources on unmount', async () => {
     const actions = await approvedHost();
     const pending = actions.setControlEnabled(true); h.allow!(); await pending;
     expect(h.state!.controlEnabled).toBe(true);
-    expect(h.connection.send).toHaveBeenCalledWith({ type: 'permissions', screenSharing: true, controlEnabled: true });
+    expect(h.connection.send).toHaveBeenCalledWith({ type: 'permissions', screenSharing: true, controlEnabled: true, controlMode: 'screen' });
     h.cleanup!();
     expect(h.connection.close).toHaveBeenCalledWith(false); expect(h.input.dispose).toHaveBeenCalled(); expect(h.media.stop).toHaveBeenCalled();
   });
