@@ -186,7 +186,7 @@ describe('guarded dialer input', () => {
     const input = bluetoothInput(); await input.grant(); const pending = deferred<boolean>();
     native.isServiceEnabled.mockReturnValueOnce(pending.promise);
     const action = input.execute(dial); input.revoke(); pending.resolve(true); await action;
-    expect(native.alarm).not.toHaveBeenCalled(); input.dispose();
+    expect(native.alarm).not.toHaveBeenCalled(); expect(native.getAccessibilityTree).not.toHaveBeenCalled(); input.dispose();
   });
   it('refuses the dialer when the native accessibility tree is empty', async () => {
     const input = bluetoothInput(); await input.grant(); native.getAccessibilityTree.mockResolvedValueOnce([]);

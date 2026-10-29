@@ -106,6 +106,7 @@ export class InputController {
     const version = this.windowVersion;
     try {
       if (!await this.isAvailable()) { this.revoke('Android Accessibility access was disabled.'); return; }
+      if (generation !== this.generation || version !== this.windowVersion || !this.enabled || !this.hasControlContext()) return;
       // Native tree is consulted immediately before each action. The package API does
       // not expose isPassword, so this guard must not be described as password detection.
       const tree = flatten(await Accessibility.getAccessibilityTree());
