@@ -9,7 +9,13 @@ export const delay = (milliseconds: number) => new Promise<void>(resolve => setT
 export class AndroidUi {
   private width = 1080;
   private height = 1920;
-  constructor(readonly serial: string, readonly packageName: string, private readonly execute: AdbCommand = realAdb, private readonly pause = delay) {}
+  readonly serial: string;
+  readonly packageName: string;
+  private readonly execute: AdbCommand;
+  private readonly pause: typeof delay;
+  constructor(serial: string, packageName: string, execute: AdbCommand = realAdb, pause = delay) {
+    this.serial = serial; this.packageName = packageName; this.execute = execute; this.pause = pause;
+  }
   adb(args: string[], timeout?: number): string {
     try { return this.execute(['-s', this.serial, ...args], timeout); }
     catch { throw new Error(`Android command failed on selected device: ${args[0] ?? 'unknown'}. Raw command output withheld.`); }
