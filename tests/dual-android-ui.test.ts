@@ -1,0 +1,12 @@
+import { describe, expect, it, vi } from 'vitest';
+import { AndroidUi, type AdbCommand } from '../scripts/dual-android-ui.mts';
+const dump = '<hierarchy><node text="Save phone" enabled="true" bounds="[20,30][100,70]"/></hierarchy>';
+const instant = async () => {};
+describe('dual Android public UI command boundary', () => {
+  it('targets every Android command to its explicit serial', async () => { const run = vi.fn<AdbCommand>(() => dump); const phone = new AndroidUi('emulator-5554', 'com.leanstix.synced', run, instant); await phone.tap('Save phone'); expect(run.mock.calls.every(([args]) => args[0] === '-s' && args[1] === 'emulator-5554')).toBe(true); });
+  it('taps the center of enabled public node bounds', async () => { const run = vi.fn<AdbCommand>(() => dump); await new AndroidUi('host', 'com.leanstix.synced', run, instant).tap('Save phone'); expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '60', '50'], undefined); });
+  it('refuses disabled actions rather than bypassing UI consent', async () => { const run = vi.fn<AdbCommand>(() => dump.replace('enabled="true"', 'enabled="false"')); await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).tap('Save phone')).rejects.toThrow('disabled'); expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false); });
+  it('bounds polling when an expected UI action never appears', async () => { const run = vi.fn<AdbCommand>(() => dump); await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).locate('Missing')).rejects.toThrow('not found'); expect(run.mock.calls.filter(([args]) => args.includes('uiautomator'))).toHaveLength(18); });
+  it('never propagates raw adb output that might contain invitation XML', () => { const run = vi.fn<AdbCommand>(() => { throw new Error('synced://private SHOULD_NOT_ESCAPE'); }); expect(() => new AndroidUi('host', 'com.leanstix.synced', run, instant).dump()).toThrow('Raw command output withheld'); try { new AndroidUi('host', 'com.leanstix.synced', run, instant).dump(); } catch (error) { expect(String(error)).not.toContain('SHOULD_NOT_ESCAPE'); } });
+  it('uses a private wlan0 address and refuses public or missing addresses', () => { const phone = (output: string) => new AndroidUi('host', 'com.leanstix.synced', () => output, instant); expect(phone('2: wlan0 inet 192.168.1.2/24').privateIp()).toBe('192.168.1.2'); expect(() => phone('2: wlan0 inet 8.8.8.8/24').privateIp()).toThrow(); expect(() => phone('').privateIp()).toThrow(); });
+});
