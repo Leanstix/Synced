@@ -36,3 +36,5 @@ export function StatusRow({label, detail, active}: {label: string; detail: strin
   </View>;
 }
 
+
+export type ActionRunner = (label: string, operation: () => Promise<void>) => Promise<void>;
