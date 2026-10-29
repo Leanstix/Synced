@@ -35,3 +35,12 @@ describe('local revocation', () => {
   it('isolates observers and supports unsubscribing', async () => { const { manager } = await ready(); const observer = vi.fn(); const unsubscribe = manager.subscribe(observer); manager.subscribe(() => { throw new Error('bad UI'); }); unsubscribe(); await manager.remove(id(2)); expect(observer).not.toHaveBeenCalled(); expect(manager.get(id(2))).toBeUndefined(); });
   it('can remove an unknown peer without affecting another saved peer', async () => { const { manager } = await ready(); await manager.remove(id(3)); expect(manager.get(id(2))).toBeDefined(); });
 });
+
+describe('saved device naming', () => {
+  async function ready() { const s = storage(); const a = new TrustManager(s, () => new Uint8Array(32).fill(1)); await a.initialize(); await a.save(peer()); return { a, s }; }
+  it('persists renamed devices and preserves key identity and role', async () => { const { a, s } = await ready(); await a.rename(id(2), 'Desk phone'); expect(a.get(id(2))).toEqual({ ...peer(), name: 'Desk phone' }); const restored = new TrustManager(s, () => new Uint8Array(32)); await restored.initialize(); expect(restored.get(id(2))!.name).toBe('Desk phone'); });
+  it('sanitizes bidi and line control characters', async () => { const { a } = await ready(); await a.rename(id(2), '\u202eDesk\n'); expect(a.get(id(2))!.name).toBe('Desk'); });
+  it('normalizes empty names and bounds display length', async () => { const { a } = await ready(); await a.rename(id(2), ' '); expect(a.get(id(2))!.name).toBe('Synced device'); await a.rename(id(2), 'x'.repeat(100)); expect(a.get(id(2))!.name).toHaveLength(80); await expect(a.rename(id(2), 'x'.repeat(257))).rejects.toThrow(); });
+  it('rejects missing and revoked peers', async () => { const { a } = await ready(); await expect(a.rename(id(3), 'Ghost')).rejects.toThrow(); await a.remove(id(2)); await expect(a.rename(id(2), 'Ghost')).rejects.toThrow(); });
+  it('does not publish a failed rename or lose concurrent endpoint updates', async () => { const { a, s } = await ready(); vi.mocked(s.write).mockRejectedValueOnce(new Error('locked')); await expect(a.rename(id(2), 'Failed')).rejects.toThrow(); expect(a.get(id(2))!.name).toBe('Peer'); await Promise.all([a.rename(id(2), 'Desk'), a.updateEndpoint(id(2), { address: '10.0.0.2', port: 5000 })]); expect(a.get(id(2))).toMatchObject({ name: 'Desk', endpoint: { address: '10.0.0.2', port: 5000 } }); });
+});

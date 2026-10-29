@@ -80,6 +80,13 @@ export class TrustManager {
       return { ...current, peers: [...peers, peer] };
     });
   }
+  rename(peerId: string, name: string): Promise<void> {
+    if (typeof name !== 'string' || name.length > 256) return Promise.reject(new Error('Device name is too long.'));
+    return this.enqueue(current => {
+      if (!this.get(peerId)) throw new Error('Saved peer is unavailable.');
+      return { ...current, peers: current.peers.map(p => p.id === peerId ? { ...p, name: sanitizeDeviceName(name) } : p) };
+    });
+  }
   updateEndpoint(peerId: string, endpoint: PeerEndpoint): Promise<void> {
     if (!validEndpoint(endpoint)) return Promise.reject(new Error('Enter a private IPv4 address and port.'));
     return this.enqueue(current => {
