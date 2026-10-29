@@ -139,4 +139,9 @@ describe('authenticated Bluetooth frames', () => {
     send(); send(); expect(send).toThrow('queue');
     expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('too slow')); expect(vi.getTimerCount()).toBe(0);
   });
+  it('does not let partial unauthenticated bytes reset peer liveness', async () => {
+    const { connection, remote, device, cb } = await hostPeer(); remote.start(); await flush(); connection.approve(); await flush();
+    vi.advanceTimersByTime(20000); device.receive('A'); vi.advanceTimersByTime(10000);
+    expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('stopped responding')); expect(vi.getTimerCount()).toBe(0);
+  });
 });
