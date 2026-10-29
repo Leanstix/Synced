@@ -27,20 +27,35 @@ export async function startSecondEmulator(sdk: string, io: LauncherCommands = co
     io.run(manager, ['create', 'avd', '--name', name, '--package', 'system-images;android-35;google_apis;x86_64'], 'no\n'); owned = true;
     io.launch(emulator, ['-avd', name, '-port', '5556', '-accel', 'on', '-no-window', '-no-audio', '-no-snapshot', '-no-boot-anim', '-gpu', 'swiftshader', '-memory', '2048', '-cores', '2']);
     const deadline = io.now() + timeoutMs;
+    let wifiEnabled = false;
     while (io.now() < deadline) {
       try {
-        const booted = ['emulator-5554', 'emulator-5556'].every(serial => io.run(adb, ['-s', serial, 'shell', 'getprop', 'sys.boot_completed']).trim() === '1');
-        if (booted) return;
+        const serials = ['emulator-5554', 'emulator-5556'];
+        const booted = serials.every(serial => io.run(adb, ['-s', serial, 'shell', 'getprop', 'sys.boot_completed']).trim() === '1');
+        if (booted) {
+          // sys.boot_completed precedes Wi-Fi association and DHCP. Enable the
+          // test radios explicitly, then wait for the shared wlan0 network.
+          if (!wifiEnabled) {
+            for (const serial of serials) io.run(adb, ['-s', serial, 'shell', 'svc', 'wifi', 'enable']);
+            wifiEnabled = true;
+          }
+          const addresses = serials.map(serial => {
+            const output = io.run(adb, ['-s', serial, 'shell', 'ip', '-o', '-4', 'addr', 'show', 'wlan0']);
+            const address = /\binet\s+(\d+\.\d+\.\d+\.\d+)\//.exec(output)?.[1];
+            return address && /^(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(address) && address.split('.').every(octet => +octet <= 255) ? address : null;
+          });
+          if (addresses.every(Boolean) && addresses[0] !== addresses[1]) return;
+        }
       } catch { /* ADB may briefly report offline during boot. */ }
       await io.pause(2000);
     }
-    throw new Error('Two-emulator boot deadline exceeded.');
+    throw new Error('Two-emulator boot and shared Wi-Fi deadline exceeded.');
   } catch {
     if (owned) {
       try { io.run(adb, ['-s', 'emulator-5556', 'emu', 'kill']); } catch { /* Already stopped. */ }
       try { io.run(manager, ['delete', 'avd', '--name', name]); } catch { /* Preserve original failure. */ }
     }
-    throw new Error('Second emulator startup failed; owned AVD cleanup attempted.');
+    throw new Error('Second emulator startup failed before both phones were ready on distinct private wlan0 addresses; owned AVD cleanup attempted.');
   }
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

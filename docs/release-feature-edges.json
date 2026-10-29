@@ -657,7 +657,7 @@
       "source": "config/androidPermissions.ts",
       "testFile": "tests/androidPermissions.test.ts",
       "testPrefix": "legacy Bluetooth manifest merger precedence",
-      "risk": "Prevent an unbounded dependency permission from removing the app\u2019s legacy SDK caps"
+      "risk": "Prevent an unbounded dependency permission from removing the app’s legacy SDK caps"
     },
     {
       "id": "emulator-failure-privacy",
@@ -678,7 +678,7 @@
       "source": "scripts/dual-emulator-start.mts",
       "testFile": "tests/dual-emulator-start.test.ts",
       "testPrefix": "headless emulator version preflight",
-      "risk": "Use the runner\u2019s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
+      "risk": "Use the runner’s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
     },
     {
       "id": "node-native-harness-runtime",
@@ -686,6 +686,13 @@
       "testFile": "tests/dual-node-runtime.test.ts",
       "testPrefix": "direct Node emulator harness runtime",
       "risk": "Execute actual Node strip-only entry points without transpiler-only syntax or implicit ADB side effects"
+    },
+    {
+      "id": "shared-wifi-readiness",
+      "source": "scripts/dual-emulator-start.mts",
+      "testFile": "tests/dual-emulator-start.test.ts",
+      "testPrefix": "shared Wi-Fi readiness after Android boot",
+      "risk": "Wait for both test phones to associate and obtain distinct private wlan0 addresses before exercising the app"
     }
   ]
 }
