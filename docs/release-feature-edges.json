@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "minimumEdges": 5,
+  "units": [
+    { "id": "lan-connection-lifetime", "source": "src/core/connection.ts", "testFile": "tests/connection.test.ts", "testPrefix": "local transport lifetime", "risk": "Listener leaks, stale invitations, cancellation races and public interfaces" },
+    { "id": "authenticated-protocol", "source": "src/core/protocol.ts", "testFile": "tests/protocol.test.ts", "testPrefix": ["LAN invitation and framing", "authenticated direction keys"], "risk": "Malformed framing, replay, tampering, nonce and direction separation" },
+    { "id": "session-approval", "source": "src/core/session.ts", "testFile": "tests/session.test.ts", "testPrefix": "deliberate session approval", "risk": "Unapproved peer actions, failed authentication and stale proofs" },
+    { "id": "protected-input", "source": "src/core/input.ts", "testFile": "tests/input.test.ts", "testPrefix": "input validation and protected surfaces", "risk": "Unsafe input, revoked grant races and protected foreground surfaces" },
+    { "id": "screen-media-lifetime", "source": "src/core/media.ts", "testFile": "tests/media.test.ts", "testPrefix": ["screen capture lifetime", "media signaling boundaries"], "risk": "Late capture grants, stream teardown and malicious signaling" },
+    { "id": "controller-consent", "source": "src/controller/useSynced.ts", "testFile": "tests/useSynced.test.ts", "testPrefix": "session controller consent and teardown", "risk": "Late approval, state revocation, backgrounding and unmount resource leaks" },
+    { "id": "release-environment", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release environment policy", "risk": "Cross-environment release and channel confusion" },
+    { "id": "release-version-abi", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release version and ABI policy", "risk": "Invalid Play version codes and missing 64-bit phone architectures" },
+    { "id": "release-signing-intent", "source": "src/core/releasePolicy.ts", "testFile": "tests/release-policy.test.ts", "testPrefix": "release signing policy", "risk": "Local or debug signing fallback and Gradle task overrides" },
+    { "id": "source-boundary", "source": "scripts/source-policy.mts", "testFile": "tests/release-source.test.ts", "testPrefix": "release source boundary", "risk": "Native source, custom bridges, injected build code and committed credentials" },
+    { "id": "eas-release-config", "source": "scripts/release-config.mts", "testFile": "tests/release-config.test.ts", "testPrefix": "release EAS configuration", "risk": "Unsigned builds, inherited credentials, wrong runtime and duplicate versions" },
+    { "id": "artifact-permissions", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact permission boundary", "risk": "Transitive native dependencies expanding Android permissions" },
+    { "id": "artifact-signing", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact signing evidence", "risk": "Debug keys, mismatched signer and missing signature evidence" },
+    { "id": "artifact-identity-abi", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact package and architecture", "risk": "Wrong package, debuggable artifact and unsupported architectures" },
+    { "id": "feature-edge-evidence", "source": "scripts/coverage-policy.mts", "testFile": "tests/release-coverage.test.ts", "testPrefix": "release feature edge ledger", "risk": "Counting skipped, duplicated, missing or unrelated tests as release evidence" }
+  ]
+}
