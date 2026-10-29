@@ -25,7 +25,7 @@ import {SavePairingPanel, ReconnectPanel} from './PairingPanels';
 import {BluetoothSetup} from './BluetoothSetup';
 import {VoicePanel} from './VoicePanel';
 import {remotePanelState, alarmFieldsValid} from './remotePanelState';
-import {transportAvailable} from './pairingPresentation';
+import {connectionWaitingPresentation, transportAvailable} from './pairingPresentation';
 
 type Props = {state: SyncedState; actions: SyncedActions};
 
@@ -65,6 +65,7 @@ export function SyncedScreen({state, actions}: Props) {
     finally { setBusy(null); }
   };
 
+  const waiting = connectionWaitingPresentation(state);
   const available = transportAvailable(transport, state.capabilities);
   const paired = state.status === 'connected';
   const pairing = ['listening', 'connecting', 'verifying', 'awaiting-approval'].includes(state.status);
@@ -130,8 +131,8 @@ export function SyncedScreen({state, actions}: Props) {
 
           {state.reconnect.active && <ReconnectPanel state={state} actions={actions} />}
           {pairing && !showComparison && !state.reconnect.active && <View style={s.card}>
-            <View style={s.cardHeading}><ActivityIndicator color={c.cyan} /><Text accessibilityRole="header" style={s.cardTitle}>{state.role === 'HOST' ? 'Your invitation is ready' : 'Finding the other phone'}</Text></View>
-            <Text style={s.body}>{state.role === 'HOST' ? 'Send this invitation to the other phone. Keep Synced open while it connects.' : state.transport === 'bluetooth' ? 'Keep both phones nearby with Bluetooth on and Synced open.' : 'Keep both phones on the same trusted Wi-Fi, with Synced open.'}</Text>
+            <View style={s.cardHeading}><ActivityIndicator color={c.cyan} /><Text accessibilityRole="header" style={s.cardTitle}>{waiting.title}</Text></View>
+            <Text style={s.body}>{waiting.detail}</Text>
             {state.invitation && <>
               <Text style={s.fieldLabel}>PRIVATE INVITATION</Text>
               <View style={s.invitationBox}><Text selectable style={s.invitationCode}>{state.invitation}</Text></View>

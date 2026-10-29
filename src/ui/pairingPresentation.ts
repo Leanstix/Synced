@@ -1,4 +1,5 @@
 import type {SyncedState, Transport} from '../model/types';
+import {deviceDisplayName} from './savedPeerPresentation';
 
 type SaveState = Pick<SyncedState, 'status' | 'trustReady' | 'pairingState' | 'capabilities'>;
 
@@ -17,4 +18,23 @@ export function reconnectPresentation(active: boolean, attempt: number, maxAttem
 
 export function transportAvailable(transport: Transport, capabilities: Pick<SyncedState['capabilities'], 'localNetwork' | 'bluetooth'>): boolean {
   return transport === 'wifi' ? capabilities.localNetwork : capabilities.bluetooth;
+}
+
+/** A saved listener has no invitation: guide the peer through its saved-phone row. */
+export function connectionWaitingPresentation(state: Pick<SyncedState, 'role' | 'transport' | 'invitation' | 'peerIdentity' | 'pairingState'>) {
+  const nearby = state.transport === 'bluetooth';
+  if (state.role === 'HOST' && state.invitation) return {
+    title: 'Your invitation is ready',
+    detail: 'Send this invitation to the other phone. Keep Synced open while it connects.',
+  };
+  if (state.role === 'HOST' && state.pairingState === 'saved' && state.peerIdentity) return {
+    title: `Waiting for ${deviceDisplayName(state.peerIdentity.name)}`,
+    detail: nearby
+      ? 'On your saved phone, open Synced, choose Bluetooth controls, then choose “Reconnect” for this phone. Keep both phones nearby with Bluetooth on. No new invitation is needed.'
+      : 'On your saved phone, open Synced, choose Local Wi-Fi, then choose “Reconnect” for this phone. Enter this phone’s current address and matching port shown below. Keep both phones on the same trusted Wi-Fi. No new invitation is needed.',
+  };
+  return {
+    title: state.role === 'HOST' ? 'Waiting for a connection' : 'Finding the other phone',
+    detail: nearby ? 'Keep both phones nearby with Bluetooth on and Synced open.' : 'Keep both phones on the same trusted Wi-Fi, with Synced open.',
+  };
 }

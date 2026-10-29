@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 import {INITIAL_STATE} from '../model/types';
-import {pairingSavePresentation, reconnectPresentation, transportAvailable} from './pairingPresentation';
+import {connectionWaitingPresentation, pairingSavePresentation, reconnectPresentation, transportAvailable} from './pairingPresentation';
 
 const connected = {...INITIAL_STATE, status: 'connected' as const, trustReady: true, pairingState: 'available' as const, capabilities: {...INITIAL_STATE.capabilities, persistentPairing: true}};
 
@@ -39,5 +39,40 @@ describe('transport capability selection', () => {
     ['bluetooth', true, false, false], ['bluetooth', false, true, true], ['bluetooth', false, false, false],
   ] as const)('checks the selected transport %s with wifi=%s and Bluetooth=%s', (transport, localNetwork, bluetooth, expected) => {
     expect(transportAvailable(transport, {localNetwork, bluetooth})).toBe(expected);
+  });
+});
+
+
+describe('connection waiting guidance', () => {
+  const listener = {...INITIAL_STATE, role: 'HOST' as const, pairingState: 'saved' as const, peerIdentity: {id: 'peer', name: 'Kitchen phone'}};
+  it('offers a real new host invitation when present', () => {
+    expect(connectionWaitingPresentation({...listener, invitation: 'real-invitation'})).toMatchObject({title: 'Your invitation is ready'});
+  });
+  it('directs a saved Wi-Fi peer to reconnect with the listening address and port', () => {
+    const copy = connectionWaitingPresentation(listener);
+    expect(copy.title).toBe('Waiting for Kitchen phone');
+    expect(copy.detail).toContain('current address and matching port');
+    expect(copy.detail).toContain('“Reconnect”');
+    expect(copy.detail).toContain('No new invitation is needed');
+  });
+  it('directs a saved Bluetooth peer without Wi-Fi address instructions', () => {
+    const copy = connectionWaitingPresentation({...listener, transport: 'bluetooth'});
+    expect(copy.detail).toContain('Bluetooth controls');
+    expect(copy.detail).not.toContain('address');
+    expect(copy.detail).toContain('No new invitation is needed');
+  });
+  it('gives controller Wi-Fi waiting guidance instead of asking it to share an invitation', () => {
+    expect(connectionWaitingPresentation({...listener, role: 'CONTROLLER'})).toMatchObject({title: 'Finding the other phone', detail: 'Keep both phones on the same trusted Wi-Fi, with Synced open.'});
+  });
+  it('gives controller Bluetooth proximity guidance', () => {
+    expect(connectionWaitingPresentation({...listener, role: 'CONTROLLER', transport: 'bluetooth'}).detail).toContain('nearby with Bluetooth on');
+  });
+  it('does not invent an invitation or trusted peer while host metadata is unavailable', () => {
+    const copy = connectionWaitingPresentation({...listener, peerIdentity: null});
+    expect(copy.title).toBe('Waiting for a connection');
+    expect(copy.detail).not.toContain('invitation');
+  });
+  it('sanitizes peer-controlled names in the waiting title', () => {
+    expect(connectionWaitingPresentation({...listener, peerIdentity: {id: 'peer', name: 'Kitchen\nphone'}}).title).toBe('Waiting for Kitchen phone');
   });
 });
