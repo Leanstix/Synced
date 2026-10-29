@@ -5,6 +5,7 @@ import { CipherDirection, deriveSession, validNonce } from './protocol';
 export type SessionPayload =
   | { type: 'media'; signal: unknown }
   | { type: 'call'; signal: unknown }
+  | { type: 'revoke'; peerId: string }
   | { type: 'input'; command: unknown }
   | { type: 'permissions'; screenSharing: boolean; controlEnabled: boolean }
   | { type: 'ping' }
@@ -87,7 +88,7 @@ export class SecureSession {
       throw new Error('Host approval is required.');
     }
     if (payload.type === 'trust') { if (!this.exchange) throw new Error('Pairing is unavailable.'); this.exchange.receive((payload as { message?: unknown }).message); return; }
-    if (!['media', 'call', 'input', 'permissions', 'ping', 'pong'].includes(payload.type)) throw new Error('Unsupported message.');
+    if (!['media', 'call', 'revoke', 'input', 'permissions', 'ping', 'pong'].includes(payload.type)) throw new Error('Unsupported message.');
     if (payload.type === 'ping') { this.send({ type: 'pong' }); return; }
     this.callbacks.onPayload(payload as SessionPayload);
   }
