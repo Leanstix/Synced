@@ -728,6 +728,13 @@
       "testFile": "tests/dual-android-failure-evidence.test.ts",
       "testPrefix": "visible error banners in guarded failure evidence",
       "risk": "Expose public error banners in emulator failure evidence while retaining secret guards and the original failure"
+    },
+    {
+      "id": "audited-apk-source-identity",
+      "source": "scripts/assert-preview-source.mts",
+      "testFile": "tests/assert-preview-source.test.ts",
+      "testPrefix": "audited APK source reuse boundary",
+      "risk": "Reuse an APK only when all binary source, native configuration and locked dependency inputs are identical"
     }
   ]
 }

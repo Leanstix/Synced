@@ -1,0 +1,75 @@
+name: Verified two-phone qualification
+
+on:
+  push:
+    branches: [test/sandbox-iteration]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  qualify-audited-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APK_SOURCE_SHA: 11be998306cd0ccc85e021ff0978e522a7ecb50c
+      CI: '1'
+      EXPO_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify reused APK source identity
+        run: node scripts/assert-preview-source.mts "$APK_SOURCE_SHA"
+      - run: npm ci
+      - run: npm run check
+      - uses: actions/download-artifact@v4
+        with:
+          name: synced-android-preview-debug-signed
+          run-id: 40954639132
+          github-token: ${{ github.token }}
+          path: preview
+      - name: Verify reused artifact checksum and permission evidence
+        env:
+          APP_ENV: preview
+          ALLOW_DEBUG_PREVIEW_SIGNER: '1'
+        run: |
+          (cd preview && sha256sum --check SHA256SUMS)
+          node scripts/audit-manifest.mts preview/permissions.txt preview/badging.txt preview/certificate.txt preview/manifest.xml
+      - name: Record exact source qualification
+        run: |
+          mkdir -p smoke-evidence
+          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40954639132\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" > smoke-evidence/qualified-source.txt
+      - name: Enable KVM access
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test two Android 15 phones against qualified source
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            bash scripts/smoke-android.sh
+            node scripts/dual-emulator-start.mts
+            node scripts/dual-android.mts preview/app-release.apk --voice --screen-control --evidence=smoke-evidence/dual
+      - name: Upload two-phone evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-two-phone-evidence
+          path: smoke-evidence/
+          if-no-files-found: warn
+          retention-days: 14
