@@ -31,3 +31,7 @@ node scripts/check-feature-coverage.mts .test-results/vitest.json
 ```
 
 The gate rejects failed/skipped/pending cases selected as evidence, duplicated test names, missing source units, reused identical selectors, weakened minima, and reports older than the implementation/tests/ledger. A reviewer still checks whether cases exercise meaningful boundaries and independent failure outcomes; five mechanically duplicated assertions are insufficient. Add new ledger rows and substantive tests together when introducing a feature.
+
+## Bluetooth build metadata exception
+
+The published `react-native-bluetooth-classic@1.73.0-rc.17` references its standard `BuildConfig` class without enabling its generation. AGP 9 leaves generation off. The TypeScript postinstall step enables only `buildFeatures.buildConfig` in that external package's build metadata. It checks the exact version and SHA-256 of the original metadata and refuses upstream drift or a duplicate preparation marker. Java/Kotlin adapter source is unchanged; no application native adapter is added. Twelve edge cases cover pinning, source drift, idempotence, truncation, byte preservation and relocated preparation markers. Reassess this exception when upgrading the package; a successful compiler run still does not establish radio interoperability.
