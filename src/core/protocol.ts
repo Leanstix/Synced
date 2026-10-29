@@ -35,14 +35,14 @@ export function parseInvitation(value: string): Invitation {
 function validateInvitation(value: Invitation): void {
   if (!value || value.version !== 1 || typeof value.address !== 'string' || !isPrivateAddress(value.address) ||
       !Number.isInteger(value.port) || value.port < 1024 || value.port > 65535 ||
-      typeof value.secret !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value.secret) || bytes(value.secret).length !== 32) {
+      typeof value.secret !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(value.secret) || !validNonce(value.secret)) {
     throw new Error('Invitation must contain a private Wi-Fi address and a strong session key.');
   }
 }
 
-export function deriveSession(secret: string, controllerNonce: string, hostNonce: string) {
-  if (bytes(secret).length !== 32 || !validNonce(controllerNonce) || !validNonce(hostNonce)) throw new Error('Invalid handshake.');
-  const salt = sha256(utf8(`${controllerNonce}:${hostNonce}`));
+export function deriveSession(secret: string, controllerNonce: string, hostNonce: string, context = '') {
+  if (!validNonce(secret) || !validNonce(controllerNonce) || !validNonce(hostNonce)) throw new Error('Invalid handshake.');
+  const salt = sha256(utf8(`${controllerNonce}:${hostNonce}${context ? `:${context}` : ''}`));
   const hostKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:host-to-controller`), 32);
   const controllerKey = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:controller-to-host`), 32);
   const comparison = hkdf(sha256, bytes(secret), salt, utf8(`${VERSION}:compare`), 4);
@@ -50,20 +50,26 @@ export function deriveSession(secret: string, controllerNonce: string, hostNonce
   return { hostKey, controllerKey, comparisonCode: `${code.slice(0, 3)} ${code.slice(3)}` };
 }
 export function validNonce(nonce: unknown): nonce is string {
-  return typeof nonce === 'string' && /^[A-Za-z0-9_-]{43}$/.test(nonce) && bytes(nonce).length === 32;
+  return typeof nonce === 'string' && /^[A-Za-z0-9_-]{43}$/.test(nonce) && bytes(nonce).length === 32 && base64(bytes(nonce)) === nonce;
 }
 
 export interface EncryptedMessage { type: 'encrypted'; sequence: number; ciphertext: string }
 /** One direction per key. In-order TCP transport permits strict replay rejection. */
 export class CipherDirection {
   private sequence = 0;
-  constructor(private readonly key: Uint8Array) { if (key.length !== 32) throw new Error('Invalid key.'); }
+  private destroyed = false;
+  constructor(private readonly key: Uint8Array) {
+    if (key.length !== 32) throw new Error('Invalid key.');
+    this.key = new Uint8Array(key);
+  }
   private nonce(sequence: number) {
     const nonce = new Uint8Array(12);
     new DataView(nonce.buffer).setUint32(8, sequence, false);
     return nonce;
   }
+  destroy(): void { this.destroyed = true; this.key.fill(0); }
   seal(payload: unknown): EncryptedMessage {
+    if (this.destroyed) throw new Error('Cipher is closed.');
     if (this.sequence >= 0xffffffff) throw new Error('Session limit reached. Reconnect.');
     const plaintext = utf8(JSON.stringify(payload));
     if (plaintext.length > MAX_FRAME_BYTES / 2) throw new Error('Message exceeds size limit.');
@@ -73,6 +79,7 @@ export class CipherDirection {
     return { type: 'encrypted', sequence, ciphertext: base64(ciphertext) };
   }
   open(message: unknown): unknown {
+    if (this.destroyed) throw new Error('Cipher is closed.');
     const envelope = message as Partial<EncryptedMessage> | null;
     if (!envelope || envelope.type !== 'encrypted' || envelope.sequence !== this.sequence ||
         typeof envelope.ciphertext !== 'string' || envelope.ciphertext.length > MAX_FRAME_BYTES ||

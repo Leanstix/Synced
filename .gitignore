@@ -2,6 +2,7 @@ node_modules/
 .expo/
 dist/
 coverage/
+.test-results/
 android/
 ios/
 *.keystore

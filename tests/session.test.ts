@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('buffer', async () => { const { createRequire } = await import('node:module'); return createRequire(import.meta.url)('buffer/') as typeof import('buffer'); });
 import { base64, CipherDirection, deriveSession } from '../src/core/protocol';
 import { SecureSession } from '../src/core/session';
 
@@ -78,5 +79,21 @@ describe('deliberate session approval', () => {
     p.host.receive(oldProof); p.host.close();
     expect(() => p.host.approve()).toThrow();
     expect(p.host.ready).toBe(false);
+  });
+});
+
+describe('authenticated permission mode validation', () => {
+  it.each(['screen', 'bluetooth', undefined])('accepts the declared permission mode %s', controlMode => {
+    const p = pair(); p.handshake(); p.host.approve(); p.controller.receive(p.toController.shift());
+    const payload = { type: 'permissions' as const, screenSharing: false, controlEnabled: true, ...(controlMode ? { controlMode: controlMode as 'screen' | 'bluetooth' } : {}) };
+    p.host.send(payload); p.controller.receive(p.toController.shift());
+    expect(p.controllerPayload).toHaveBeenCalledWith(payload);
+  });
+  it.each(['invalid', null, true, 1, {}])('closes on an authenticated invalid permission mode %s', controlMode => {
+    const p = pair(); p.handshake(); p.host.approve(); p.controller.receive(p.toController.shift());
+    // Model hostile authenticated data that does not obey the TypeScript API.
+    p.host.send({ type: 'permissions', screenSharing: false, controlEnabled: true, controlMode } as never);
+    expect(() => p.controller.receive(p.toController.shift())).toThrow('Invalid permissions');
+    expect(p.controllerPayload).not.toHaveBeenCalled(); expect(p.controller.ready).toBe(false);
   });
 });

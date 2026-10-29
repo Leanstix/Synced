@@ -14,31 +14,20 @@ import {
 } from 'react-native';
 import {RTCView} from '@livekit/react-native-webrtc';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import type {SyncedActions, SyncedState} from '../model/types';
+import type {SyncedActions, SyncedState, Transport} from '../model/types';
 import {palette as c} from './theme';
-import {resolveScreenGesture, screenAspectMatches, type Point, type Size} from './viewportGeometry';
+import {Button, SectionLabel, StatusRow} from './primitives';
+import {s} from './styles';
+import {resolveScreenGesture, type Point, type Size} from './viewportGeometry';
+
+import {SavedDevicesPanel} from './SavedDevicesPanel';
+import {SavePairingPanel, ReconnectPanel} from './PairingPanels';
+import {BluetoothSetup} from './BluetoothSetup';
+import {VoicePanel} from './VoicePanel';
+import {remotePanelState, alarmFieldsValid} from './remotePanelState';
+import {connectionWaitingPresentation, transportAvailable} from './pairingPresentation';
 
 type Props = {state: SyncedState; actions: SyncedActions};
-type ButtonProps = {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'danger';
-  compact?: boolean;
-};
-
-function Button({label, onPress, disabled, variant = 'primary', compact}: ButtonProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{disabled: !!disabled}}
-      disabled={disabled}
-      onPress={onPress}
-      style={({pressed}) => [s.button, compact && s.compactButton, s[`${variant}Button`], disabled && s.disabled, pressed && s.pressed]}>
-      <Text style={[s.buttonText, variant === 'primary' ? s.primaryButtonText : variant === 'danger' ? s.dangerText : s.secondaryButtonText]}>{label}</Text>
-    </Pressable>
-  );
-}
 
 function LinkMark({large = false}: {large?: boolean}) {
   return (
@@ -50,17 +39,6 @@ function LinkMark({large = false}: {large?: boolean}) {
   );
 }
 
-function SectionLabel({children}: {children: string}) {
-  return <Text style={s.eyebrow}>{children}</Text>;
-}
-
-function StatusRow({label, detail, active}: {label: string; detail: string; active: boolean}) {
-  return <View style={s.statusRow}>
-    <View style={[s.statusDot, active && s.activeDot]} />
-    <View style={s.flex}><Text style={s.rowTitle}>{label}</Text><Text style={s.smallText}>{detail}</Text></View>
-    <Text style={[s.statusValue, active && s.activeText]}>{active ? 'ON' : 'OFF'}</Text>
-  </View>;
-}
 
 const statusLabels: Record<SyncedState['status'], string> = {
   idle: 'Ready to pair', listening: 'Waiting for a phone', connecting: 'Connecting',
@@ -70,6 +48,8 @@ const statusLabels: Record<SyncedState['status'], string> = {
 
 export function SyncedScreen({state, actions}: Props) {
   const [mode, setMode] = useState<'share' | 'connect'>('share');
+  const [transport, setTransport] = useState<Transport>('wifi');
+  const [bluetoothAddress, setBluetoothAddress] = useState('');
   const [invitation, setInvitation] = useState('');
   const [privateAddress, setPrivateAddress] = useState('');
   const [showAddress, setShowAddress] = useState(false);
@@ -85,6 +65,8 @@ export function SyncedScreen({state, actions}: Props) {
     finally { setBusy(null); }
   };
 
+  const waiting = connectionWaitingPresentation(state);
+  const available = transportAvailable(transport, state.capabilities);
   const paired = state.status === 'connected';
   const pairing = ['listening', 'connecting', 'verifying', 'awaiting-approval'].includes(state.status);
   const comparisonCode = state.pendingPeer?.comparisonCode ?? state.comparisonCode;
@@ -104,7 +86,7 @@ export function SyncedScreen({state, actions}: Props) {
           {!paired && <View style={s.hero}>
             <SectionLabel>YOUR PHONES. TOGETHER.</SectionLabel>
             <Text accessibilityRole="header" style={s.heroTitle}>A little closer.<Text style={s.cyanText}>{'\n'}Even from here.</Text></Text>
-            <Text style={s.heroBody}>Share a screen. Lend a hand. Connect two Android phones on the same trusted Wi-Fi.</Text>
+            <Text style={s.heroBody}>Share a screen. Lend a hand. Connect two Android phones over trusted Wi-Fi or nearby Bluetooth.</Text>
           </View>}
 
           {error && <View accessibilityRole="alert" style={s.errorCard}>
@@ -113,7 +95,10 @@ export function SyncedScreen({state, actions}: Props) {
             <Pressable accessibilityRole="button" onPress={() => {setLocalError(null); actions.clearError();}} style={s.textButton}><Text style={s.errorDismiss}>Dismiss</Text></Pressable>
           </View>}
 
-          {!paired && !pairing && <>
+          {!paired && !pairing && !state.reconnect.active && <>
+            <View accessibilityRole="tablist" style={s.tabs}>
+              {(['wifi', 'bluetooth'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{selected: transport === value}} disabled={!!busy} onPress={() => {setTransport(value); setInvitation('');}} style={[s.tab, transport === value && s.selectedTab]}><Text style={[s.tabText, transport === value && s.selectedTabText]}>{value === 'wifi' ? 'Local Wi-Fi' : 'Bluetooth controls'}</Text></Pressable>)}
+            </View>
             <View accessibilityRole="tablist" style={s.tabs}>
               {(['share', 'connect'] as const).map(tab => <Pressable
                 key={tab}
@@ -127,24 +112,27 @@ export function SyncedScreen({state, actions}: Props) {
             <View style={s.card}>
               <View style={s.cardHeading}><View style={s.stepBadge}><Text style={s.stepText}>01</Text></View><Text accessibilityRole="header" style={s.cardTitle}>{mode === 'share' ? 'Start with an invitation' : 'Bring your invitation'}</Text></View>
               <Text style={s.body}>{mode === 'share' ? 'Create a private invitation, then send it to the phone you want to connect. You approve the connection before anything is shared.' : 'On the other phone, choose “Share this phone”. Paste its invitation here to request a connection.'}</Text>
+              {transport === 'bluetooth' && <BluetoothSetup state={state} actions={actions} chooseDevice={mode === 'connect'} selectedAddress={bluetoothAddress} onSelect={setBluetoothAddress} busy={busy} run={run} />}
               {mode === 'share' ? <>
-                <Button label={busy === 'host' ? 'Creating invitation…' : 'Create invitation  ↗'} disabled={!!busy || !state.capabilities.localNetwork} onPress={() => {void run('host', () => actions.startHost(privateAddress.trim() ? {privateAddress: privateAddress.trim()} : undefined));}} />
-                <Pressable accessibilityRole="button" accessibilityState={{expanded: showAddress}} onPress={() => setShowAddress(!showAddress)} style={s.textButton}><Text style={s.linkText}>{showAddress ? 'Hide network address' : 'Need to enter a network address?'}</Text></Pressable>
-                {showAddress && <View style={s.fieldGroup}><Text style={s.fieldLabel}>This phone’s private Wi-Fi address</Text><TextInput accessibilityLabel="This phone's private Wi-Fi address" autoCapitalize="none" autoCorrect={false} keyboardType="numbers-and-punctuation" placeholder="192.168.1.10" placeholderTextColor={c.muted} style={s.input} value={privateAddress} onChangeText={setPrivateAddress} /><Text style={s.smallText}>Only needed if automatic address detection fails. Find it in this phone’s Wi-Fi settings.</Text></View>}
+                <Button label={busy === 'host' ? 'Creating invitation…' : 'Create invitation  ↗'} disabled={!!busy || !available} onPress={() => {void run('host', () => transport === 'bluetooth' ? actions.startBluetoothHost() : actions.startHost(privateAddress.trim() ? {privateAddress: privateAddress.trim()} : undefined));}} />
+                {transport === 'wifi' && <Pressable accessibilityRole="button" accessibilityState={{expanded: showAddress}} onPress={() => setShowAddress(!showAddress)} style={s.textButton}><Text style={s.linkText}>{showAddress ? 'Hide network address' : 'Need to enter a network address?'}</Text></Pressable>}
+                {transport === 'wifi' && showAddress && <View style={s.fieldGroup}><Text style={s.fieldLabel}>This phone’s private Wi-Fi address</Text><TextInput accessibilityLabel="This phone's private Wi-Fi address" autoCapitalize="none" autoCorrect={false} keyboardType="numbers-and-punctuation" placeholder="192.168.1.10" placeholderTextColor={c.muted} style={s.input} value={privateAddress} onChangeText={setPrivateAddress} /><Text style={s.smallText}>Only needed if automatic address detection fails. Find it in this phone’s Wi-Fi settings.</Text></View>}
               </> : <>
                 <Text style={s.fieldLabel}>Invitation</Text>
                 <TextInput accessibilityLabel="Connection invitation" multiline autoCapitalize="none" autoCorrect={false} placeholder="Paste the complete invitation" placeholderTextColor={c.muted} style={[s.input, s.invitationInput]} value={invitation} onChangeText={setInvitation} />
-                <Button label={busy === 'connect' ? 'Requesting connection…' : 'Request connection  ↗'} disabled={!!busy || !invitation.trim() || !state.capabilities.localNetwork} onPress={() => {void run('connect', () => actions.connect(invitation.trim()));}} />
+                <Button label={busy === 'connect' ? 'Requesting connection…' : 'Request connection  ↗'} disabled={!!busy || !invitation.trim() || !available || (transport === 'bluetooth' && !state.bluetooth.devices.some(device => device.address === bluetoothAddress))} onPress={() => {void run('connect', () => transport === 'bluetooth' ? actions.connectBluetooth(invitation.trim(), bluetoothAddress) : actions.connect(invitation.trim()));}} />
               </>}
-              {!state.capabilities.localNetwork && <Text style={s.noticeText}>Local connections are unavailable here. Synced requires its Android development build on a physical phone.</Text>}
+              {!available && <Text style={s.noticeText}>Local connections are unavailable here. Synced requires its Android development build on a physical phone.</Text>}
             </View>
+            <SavedDevicesPanel state={state} actions={actions} transport={transport} busy={busy} run={run} />
             <View style={s.assurance}><View style={s.assuranceLine} /><Text style={s.assuranceText}>An invitation. A matching code. Your approval.</Text><View style={s.assuranceLine} /></View>
             <View style={s.explainer}><Text style={s.explainerTitle}>You stay in control.</Text><Text style={s.smallText}>Screen sharing and touch control each need your permission. You can stop either at any time.</Text></View>
           </>}
 
-          {pairing && !showComparison && <View style={s.card}>
-            <View style={s.cardHeading}><ActivityIndicator color={c.cyan} /><Text accessibilityRole="header" style={s.cardTitle}>{state.role === 'HOST' ? 'Your invitation is ready' : 'Finding the other phone'}</Text></View>
-            <Text style={s.body}>{state.role === 'HOST' ? 'Send this invitation to the other phone. Keep Synced open while it connects.' : 'Keep both phones on the same trusted Wi-Fi, with Synced open.'}</Text>
+          {state.reconnect.active && <ReconnectPanel state={state} actions={actions} />}
+          {pairing && !showComparison && !state.reconnect.active && <View style={s.card}>
+            <View style={s.cardHeading}><ActivityIndicator color={c.cyan} /><Text accessibilityRole="header" style={s.cardTitle}>{waiting.title}</Text></View>
+            <Text style={s.body}>{waiting.detail}</Text>
             {state.invitation && <>
               <Text style={s.fieldLabel}>PRIVATE INVITATION</Text>
               <View style={s.invitationBox}><Text selectable style={s.invitationCode}>{state.invitation}</Text></View>
@@ -168,24 +156,27 @@ export function SyncedScreen({state, actions}: Props) {
             <View style={s.connectedHeading}><SectionLabel>THIS PHONE IS CONNECTED</SectionLabel><Text accessibilityRole="header" style={s.sectionTitle}>Share on your terms.</Text><Text style={s.body}>{state.remoteAddress ? `Connected to ${state.remoteAddress}` : 'Your paired phone is connected.'}</Text></View>
             <View style={s.card}>
               <StatusRow label="Screen sharing" detail={state.screenSharing ? 'The other phone can see your screen.' : 'Your screen is private.'} active={state.screenSharing} />
-              {!state.screenSharing && <Text style={s.body}>Android will ask what to share. Choose <Text style={s.strong}>Entire screen</Text> so the other phone can follow you between apps.</Text>}
-              <Button label={state.screenSharing ? 'Stop screen sharing' : busy === 'screen' ? 'Opening screen permission…' : 'Share my entire screen'} variant={state.screenSharing ? 'secondary' : 'primary'} disabled={!!busy || !state.capabilities.screenSharing} onPress={() => {if (state.screenSharing) actions.stopScreenSharing(); else void run('screen', actions.startScreenSharing);}} />
+              {state.transport === 'wifi' && !state.screenSharing && <Text style={s.body}>Android will ask what to share. Choose <Text style={s.strong}>Entire screen</Text> so the other phone can follow you between apps.</Text>}
+              <Button label={state.screenSharing ? 'Stop screen sharing' : busy === 'screen' ? 'Opening screen permission…' : 'Share my entire screen'} variant={state.screenSharing ? 'secondary' : 'primary'} disabled={!!busy || state.transport === 'bluetooth' || !state.capabilities.screenSharing} onPress={() => {if (state.screenSharing) actions.stopScreenSharing(); else void run('screen', actions.startScreenSharing);}} />
+              {state.transport === 'bluetooth' && <Text style={s.noticeText}>Bluetooth is controls only. There is no live screen or voice link. Use Wi-Fi to share a screen.</Text>}
               {!state.capabilities.screenSharing && <Text style={s.noticeText}>Screen sharing is unavailable in this build.</Text>}
             </View>
             <View style={s.card}>
               <StatusRow label="Touch control" detail={state.controlEnabled ? 'The other phone can tap, swipe and type.' : 'Only you can control this phone.'} active={state.controlEnabled} />
               <Text style={s.body}>Allow the paired phone to interact with your apps. This requires Android Accessibility permission and your explicit approval here.</Text>
+              {state.transport === 'bluetooth' && <Text style={s.noticeText}>The other phone cannot see your screen over Bluetooth. Only approve controls if you can guide them directly.</Text>}
               {!state.accessibilityEnabled && <Button label="Open Accessibility settings" variant="secondary" disabled={!!busy || !state.capabilities.remoteControl} onPress={() => {void run('accessibility', actions.requestAccessibility);}} />}
               <Button label={state.controlEnabled ? 'Turn off touch control' : 'Allow touch control'} variant={state.controlEnabled ? 'secondary' : 'primary'} disabled={!!busy || !state.capabilities.remoteControl || (!state.accessibilityEnabled && !state.controlEnabled)} onPress={() => {void run('control', () => actions.setControlEnabled(!state.controlEnabled));}} />
               {!state.accessibilityEnabled && state.capabilities.remoteControl && <Pressable accessibilityRole="button" onPress={() => {void run('refresh', actions.refreshPermissions);}} style={s.textButton}><Text style={s.linkText}>I enabled it · Check permission</Text></Pressable>}
-              {!state.capabilities.remoteControl && <Text style={s.noticeText}>Touch control is unavailable in this build. Screen viewing can still work.</Text>}
+              {!state.capabilities.remoteControl && <Text style={s.noticeText}>Touch control is unavailable in this build.</Text>}
             </View>
           </>}
 
           {paired && state.role === 'CONTROLLER' && <ControllerPanel state={state} actions={actions} />}
 
+          {paired && <><SavePairingPanel state={state} actions={actions} busy={busy} run={run} /><VoicePanel state={state} actions={actions} busy={busy} run={run} /></>}
           {paired && <Button label="Disconnect phones" variant="danger" onPress={actions.disconnect} />}
-          <View style={s.footer}><Text style={s.footerBrand}>CONNECTED WITH CONSENT</Text><Text style={s.footerText}>Local Wi-Fi · No camera or microphone</Text><Text style={s.footerText}>Bluetooth, call audio and saved pairing aren’t available.</Text></View>
+          <View style={s.footer}><Text style={s.footerBrand}>CONNECTED WITH CONSENT</Text><Text style={s.footerText}>Local Wi-Fi or Bluetooth · Your permission, every session</Text><Text style={s.footerText}>Optional Wi-Fi voice intercom · No carrier or SIM call audio</Text></View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -199,15 +190,13 @@ function ControllerPanel({state, actions}: Props) {
   const [hour, setHour] = useState('');
   const [minute, setMinute] = useState('');
   const gesture = useRef<{point: Point; time: number} | null>(null);
-  const canControl = state.controlEnabled && !!state.remoteStreamUrl;
-  const aspectMatches = screenAspectMatches(frame, state.remoteStreamSize);
-  const canTouch = canControl && aspectMatches;
-  const validAlarm = /^\d{1,2}$/.test(hour) && /^\d{1,2}$/.test(minute) && Number(hour) <= 23 && Number(minute) <= 59;
+  const {bluetooth, hasVideo, canControl, canTouch, aspectMatches, caption} = remotePanelState({connected: state.status === 'connected', transport: state.transport, controlEnabled: state.controlEnabled, streamUrl: state.remoteStreamUrl, frame, screen: state.remoteStreamSize});
+  const validAlarm = alarmFieldsValid(hour, minute);
 
   useEffect(() => {
     setFrame(null);
     gesture.current = null;
-  }, [state.remoteStreamUrl]);
+  }, [state.remoteStreamUrl, state.transport]);
   useEffect(() => { gesture.current = null; }, [state.controlEnabled, state.remoteStreamSize?.width, state.remoteStreamSize?.height]);
 
   const finishGesture = (event: GestureResponderEvent) => {
@@ -223,22 +212,22 @@ function ControllerPanel({state, actions}: Props) {
   return <>
     <View style={s.connectedHeading}>
       <SectionLabel>THE OTHER PHONE</SectionLabel>
-      <View style={s.sectionHeadingRow}><Text accessibilityRole="header" style={s.sectionTitle}>Within reach.</Text><View style={s.liveBadge}><View style={[s.tinyDot, state.remoteStreamUrl && s.activeDot]} /><Text style={s.smallText}>{state.remoteStreamUrl ? 'Live screen' : 'Waiting'}</Text></View></View>
-      <Text style={s.body}>{state.controlEnabled ? 'Tap, hold or swipe the screen to lend a hand.' : 'View only. The other phone must allow touch control.'}</Text>
+      <View style={s.sectionHeadingRow}><Text accessibilityRole="header" style={s.sectionTitle}>Within reach.</Text><View style={s.liveBadge}><View style={[s.tinyDot, hasVideo && s.activeDot]} /><Text style={s.smallText}>{bluetooth ? 'Controls only' : hasVideo ? 'Live screen' : 'Waiting'}</Text></View></View>
+      <Text style={s.body}>{bluetooth ? 'No screen preview over Bluetooth. Use the buttons below after the host allows control.' : state.controlEnabled ? 'Tap, hold or swipe the screen to lend a hand.' : 'View only. The other phone must allow touch control.'}</Text>
     </View>
     <View style={s.remoteFrame}>
       <View
-        accessibilityLabel={state.remoteStreamUrl ? 'Live remote phone screen' : 'Waiting for remote screen sharing'}
+        accessibilityLabel={bluetooth ? 'Bluetooth controls only, no live screen preview' : hasVideo ? 'Live remote phone screen' : 'Waiting for remote screen sharing'}
         style={s.remoteViewport}
         onLayout={event => {gesture.current = null; setViewport({width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height});}}>
-        {state.remoteStreamUrl ? <RTCView streamURL={state.remoteStreamUrl} objectFit="contain" mirror={false} style={StyleSheet.absoluteFill} onDimensionsChange={event => {
+        {hasVideo ? <RTCView streamURL={state.remoteStreamUrl!} objectFit="contain" mirror={false} style={StyleSheet.absoluteFill} onDimensionsChange={event => {
           const {width, height} = event.nativeEvent;
           if (frame?.width !== width || frame?.height !== height) {
             gesture.current = null;
             setFrame(width > 0 && height > 0 ? {width, height} : null);
           }
-        }} /> : <View style={s.remoteEmpty}><LinkMark large /><Text style={s.emptyTitle}>Ready when they are.</Text><Text style={s.emptyText}>Ask the other phone to choose “Share my entire screen”. Its screen will appear here.</Text></View>}
-        {state.remoteStreamUrl && <View
+        }} /> : <View style={s.remoteEmpty}><LinkMark large /><Text style={s.emptyTitle}>{bluetooth ? 'Bluetooth controls only.' : 'Ready when they are.'}</Text><Text style={s.emptyText}>{bluetooth ? 'There is no live screen over Bluetooth. Navigation, text and alarm controls work after host approval.' : 'Ask the other phone to choose “Share my entire screen”. Its screen will appear here.'}</Text></View>}
+        {hasVideo && <View
           accessible={false}
           style={StyleSheet.absoluteFill}
           onStartShouldSetResponder={() => canTouch}
@@ -249,9 +238,9 @@ function ControllerPanel({state, actions}: Props) {
           onResponderTerminationRequest={() => false}
         />}
       </View>
-      <View style={s.remoteBottom}><View style={[s.tinyDot, canTouch && s.activeDot]} /><Text style={s.remoteCaption}>{canTouch ? 'Touch control allowed' : canControl ? frame && state.remoteStreamSize ? 'Touch gestures paused · Screen size differs' : 'Waiting for screen dimensions' : 'Screen viewing only'}</Text></View>
+      <View style={s.remoteBottom}><View style={[s.tinyDot, canTouch && s.activeDot]} /><Text style={s.remoteCaption}>{caption}</Text></View>
     </View>
-    {canControl && frame && state.remoteStreamSize && !aspectMatches && <Text style={s.noticeText}>The video does not match the other phone’s entire screen. Ask them to stop sharing and share again, choosing “Entire screen”.</Text>}
+    {hasVideo && canControl && frame && state.remoteStreamSize && !aspectMatches && <Text style={s.noticeText}>The video does not match the other phone’s entire screen. Ask them to stop sharing and share again, choosing “Entire screen”.</Text>}
     <View style={s.navigationBar}>{(['back', 'home', 'recents'] as const).map(action => <Pressable
       key={action}
       accessibilityRole="button"
@@ -278,104 +267,3 @@ function ControllerPanel({state, actions}: Props) {
   </>;
 }
 
-const s = StyleSheet.create({
-  safe: {flex: 1, backgroundColor: c.background},
-  flex: {flex: 1},
-  page: {paddingHorizontal: 22, paddingTop: 14, paddingBottom: 38, gap: 18, width: '100%', maxWidth: 620, alignSelf: 'center'},
-  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16},
-  brand: {flexDirection: 'row', alignItems: 'center', gap: 8},
-  brandText: {fontSize: 27, fontWeight: '800', color: c.text, letterSpacing: -1.2},
-  brandPeriod: {color: c.cyan},
-  mark: {width: 32, height: 33, position: 'relative'},
-  largeMark: {width: 65, height: 61, marginBottom: 12},
-  phoneOutline: {position: 'absolute', width: 15, height: 25, borderWidth: 2, borderColor: c.cyan, borderRadius: 4, top: 2},
-  phoneLeft: {left: 0},
-  phoneRight: {right: 0, top: 8, borderColor: c.text},
-  phoneDash: {position: 'absolute', bottom: 2, width: '35%', height: 2, borderRadius: 1, backgroundColor: c.cyan, alignSelf: 'center'},
-  whiteDash: {backgroundColor: c.text},
-  largePhone: {width: 29, height: 46, borderRadius: 8, borderWidth: 3},
-  linkLine: {position: 'absolute', top: '48%', left: '36%', width: '28%', height: 3, backgroundColor: c.cyan, borderRadius: 2},
-  statusPill: {flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: c.border, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 30},
-  tinyDot: {width: 6, height: 6, borderRadius: 3, backgroundColor: c.muted},
-  pillText: {color: c.secondary, fontSize: 11, fontWeight: '600'},
-  hero: {gap: 15, marginBottom: 14},
-  eyebrow: {fontSize: 10, color: c.cyan, fontWeight: '700', letterSpacing: 2},
-  heroTitle: {fontSize: 36, lineHeight: 42, fontWeight: '700', letterSpacing: -1.7, color: c.text},
-  cyanText: {color: c.cyan},
-  heroBody: {fontSize: 15, lineHeight: 23, color: c.secondary, maxWidth: 410},
-  tabs: {flexDirection: 'row', borderRadius: 13, padding: 4, gap: 3, backgroundColor: c.surface},
-  tab: {flex: 1, minHeight: 48, borderRadius: 10, justifyContent: 'center', alignItems: 'center', padding: 9},
-  selectedTab: {backgroundColor: c.surfaceRaised},
-  tabText: {color: c.muted, fontSize: 12, fontWeight: '600', textAlign: 'center'},
-  selectedTabText: {color: c.text},
-  card: {backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.border, padding: 20, gap: 17},
-  cardHeading: {flexDirection: 'row', alignItems: 'center', gap: 11},
-  cardTitle: {color: c.text, fontSize: 18, lineHeight: 25, fontWeight: '600', flexShrink: 1, letterSpacing: -0.4},
-  stepBadge: {width: 32, height: 32, borderRadius: 10, backgroundColor: c.cyanDark, alignItems: 'center', justifyContent: 'center'},
-  stepText: {fontSize: 11, color: c.cyan, fontWeight: '700'},
-  body: {color: c.secondary, fontSize: 14, lineHeight: 22, flexShrink: 1},
-  strong: {fontWeight: '700', color: c.text},
-  smallText: {color: c.secondary, fontSize: 12, lineHeight: 18},
-  button: {minHeight: 51, justifyContent: 'center', alignItems: 'center', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14},
-  compactButton: {minHeight: 44, paddingVertical: 10},
-  primaryButton: {backgroundColor: c.cyan},
-  secondaryButton: {backgroundColor: c.surfaceRaised, borderWidth: 1, borderColor: c.border},
-  dangerButton: {backgroundColor: c.redDark},
-  buttonText: {fontSize: 13, fontWeight: '700', textAlign: 'center'},
-  primaryButtonText: {color: c.background},
-  secondaryButtonText: {color: c.text},
-  dangerText: {color: c.red},
-  disabled: {opacity: 0.38},
-  pressed: {opacity: 0.7},
-  textButton: {minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingVertical: 8},
-  linkText: {color: c.secondary, fontSize: 12, textAlign: 'center', lineHeight: 19},
-  fieldGroup: {gap: 10},
-  fieldLabel: {color: c.secondary, fontSize: 11, fontWeight: '600', lineHeight: 16},
-  input: {backgroundColor: c.background, borderWidth: 1, borderColor: c.border, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, color: c.text, minHeight: 48},
-  invitationInput: {minHeight: 112, textAlignVertical: 'top'},
-  noticeText: {fontSize: 12, lineHeight: 19, color: c.amber},
-  assurance: {flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 5},
-  assuranceLine: {height: 1, flex: 1, backgroundColor: c.border},
-  assuranceText: {color: c.muted, fontSize: 10, flexShrink: 1, textAlign: 'center'},
-  explainer: {gap: 7, paddingHorizontal: 12, marginBottom: 8},
-  explainerTitle: {color: c.text, fontWeight: '600', fontSize: 14},
-  errorCard: {borderColor: c.redDark, borderWidth: 1, backgroundColor: '#251F2A', borderRadius: 15, padding: 16, gap: 9},
-  errorTitle: {fontSize: 14, fontWeight: '700', color: c.red},
-  errorText: {fontSize: 13, lineHeight: 20, color: c.text},
-  errorDismiss: {color: c.red, fontSize: 12, fontWeight: '600'},
-  invitationBox: {backgroundColor: c.background, padding: 13, borderRadius: 10},
-  invitationCode: {color: c.secondary, fontSize: 11, lineHeight: 17, fontFamily: Platform.select({ios: 'Menlo', default: 'monospace'})},
-  verificationCard: {borderColor: '#32646F'},
-  sectionTitle: {fontSize: 29, lineHeight: 35, color: c.text, fontWeight: '600', letterSpacing: -0.9, flexShrink: 1},
-  codeBox: {backgroundColor: c.background, borderRadius: 12, paddingVertical: 25, alignItems: 'center'},
-  comparisonCode: {fontSize: 31, color: c.cyan, letterSpacing: 4, fontWeight: '600', fontVariant: ['tabular-nums']},
-  waitingRow: {flexDirection: 'row', gap: 12, alignItems: 'center'},
-  connectedHeading: {gap: 12, marginBottom: 2},
-  statusRow: {flexDirection: 'row', alignItems: 'center', gap: 11},
-  statusDot: {width: 10, height: 10, borderRadius: 5, backgroundColor: c.muted},
-  activeDot: {backgroundColor: c.green},
-  rowTitle: {fontSize: 16, color: c.text, fontWeight: '600', marginBottom: 3},
-  statusValue: {fontSize: 10, fontWeight: '700', letterSpacing: 1, color: c.muted},
-  activeText: {color: c.green},
-  sectionHeadingRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap'},
-  liveBadge: {flexDirection: 'row', gap: 6, alignItems: 'center'},
-  remoteFrame: {borderWidth: 1, borderColor: c.border, borderRadius: 20, backgroundColor: '#030A10', overflow: 'hidden'},
-  remoteViewport: {height: 430, width: '100%', overflow: 'hidden'},
-  remoteEmpty: {flex: 1, justifyContent: 'center', alignItems: 'center', padding: 30, gap: 12},
-  emptyTitle: {fontSize: 19, lineHeight: 25, color: c.text, fontWeight: '600', textAlign: 'center'},
-  emptyText: {color: c.secondary, fontSize: 13, lineHeight: 21, textAlign: 'center'},
-  remoteBottom: {backgroundColor: c.surface, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7},
-  remoteCaption: {fontSize: 11, color: c.secondary},
-  navigationBar: {flexDirection: 'row', backgroundColor: c.surface, borderWidth: 1, borderColor: c.border, borderRadius: 15, marginTop: -7},
-  navigationButton: {flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 66, paddingVertical: 9, gap: 3},
-  navigationSymbol: {color: c.text, fontSize: 23, lineHeight: 25},
-  navigationLabel: {color: c.secondary, fontSize: 10},
-  messageInput: {minHeight: 90, textAlignVertical: 'top'},
-  divider: {height: 1, backgroundColor: c.border, marginVertical: 4},
-  alarmRow: {flexDirection: 'row', gap: 12, alignItems: 'flex-end'},
-  timeInput: {textAlign: 'center', fontSize: 24, fontVariant: ['tabular-nums'], marginTop: 8},
-  timeSeparator: {color: c.muted, fontSize: 25, paddingBottom: 12},
-  footer: {alignItems: 'center', gap: 6, paddingTop: 14},
-  footerBrand: {fontSize: 8, color: c.muted, letterSpacing: 2, fontWeight: '700', marginBottom: 3},
-  footerText: {fontSize: 10, color: c.muted, lineHeight: 15, textAlign: 'center'},
-});

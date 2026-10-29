@@ -1,6 +1,7 @@
 // The pinned accessibility package ships TypeScript source but omits its lib output.
 // Compile only that vendor's JS/declarations; never modify or emit native source.
 import ts from 'typescript';
+import { configureBluetoothBuildMetadata } from './bluetooth-build-metadata.mts';
 import { createRequire } from 'node:module';
 import { dirname, join, relative } from 'node:path';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -45,4 +46,10 @@ for (const file of files.filter(file => !file.endsWith('.d.ts'))) {
   });
   writeFileSync(destination, output.outputText);
 }
-console.log('Prepared pinned vendor JavaScript and declarations; native source unchanged.');
+const bluetoothRoot = dirname(require.resolve('react-native-bluetooth-classic/package.json'));
+const bluetoothVersion = JSON.parse(readFileSync(join(bluetoothRoot, 'package.json'), 'utf8')).version as string;
+const metadataPath = join(bluetoothRoot, 'android/build.gradle');
+const metadata = readFileSync(metadataPath, 'utf8');
+const configured = configureBluetoothBuildMetadata(bluetoothVersion, metadata);
+if (configured !== metadata) writeFileSync(metadataPath, configured);
+console.log('Prepared vendor JS/declarations and enabled standard Bluetooth BuildConfig metadata; Java/Kotlin source unchanged.');
