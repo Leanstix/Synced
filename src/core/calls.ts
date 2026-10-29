@@ -167,7 +167,8 @@ export class VoiceSession {
       catch { this.fail('Could not send intercom signaling.'); }
     });
     peer.addEventListener('track', event => {
-      if (generation !== this.generation || event.track?.kind !== 'audio') return;
+      if (!event.track) return;
+      if (generation !== this.generation || event.track.kind !== 'audio') { event.track.stop(); return; }
       if (this.remote) { event.track.stop(); return; }
       this.remote = event.streams[0] ?? new MediaStream([event.track]);
       event.track.addEventListener('ended', () => { if (generation === this.generation) this.fail('Remote microphone stopped.'); });
@@ -254,6 +255,8 @@ export class VoiceSession {
     const local = this.local; this.local = null; if (local) this.release(local);
     const remote = this.remote; this.remote = null; if (remote) this.release(remote);
     this.pendingCandidates = []; this.callId = null; this.caller = false;
+    // A stale OS permission promise must not block invitations for a later call.
+    this.queue = Promise.resolve();
     this.state = { phase: 'idle', muted: false }; this.callbacks.onState({ ...this.state });
   }
 }
