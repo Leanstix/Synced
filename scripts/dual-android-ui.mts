@@ -29,10 +29,14 @@ export class AndroidUi {
   }
   async top(): Promise<void> { for (let i = 0; i < 5; i++) this.swipe(false); await this.pause(200); }
   async locate(label: string, prefix = false): Promise<UiNode> {
+    const match = (nodes: UiNode[]) => findUi(nodes, label, prefix) ?? nodes.find(n => [n.text, n.description].some(v => prefix ? v.toLowerCase().startsWith(label.toLowerCase()) : v.toLowerCase() === label.toLowerCase()));
+    // Dialogs and nearby actions must be inspected before scrolling the app.
+    const current = match(this.dump());
+    if (current) return current;
     await this.top();
     for (let attempt = 0; attempt < 18; attempt++) {
       const nodes = this.dump();
-      const node = findUi(nodes, label, prefix) ?? nodes.find(n => [n.text, n.description].some(v => prefix ? v.toLowerCase().startsWith(label.toLowerCase()) : v.toLowerCase() === label.toLowerCase()));
+      const node = match(nodes);
       if (node) return node;
       if (attempt === 8) await this.top(); else this.swipe(true);
       await this.pause(400);
