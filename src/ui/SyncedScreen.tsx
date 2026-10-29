@@ -163,10 +163,11 @@ export function SyncedScreen({state, actions}: Props) {
             <View style={s.card}>
               <StatusRow label="Touch control" detail={state.controlEnabled ? 'The other phone can tap, swipe and type.' : 'Only you can control this phone.'} active={state.controlEnabled} />
               <Text style={s.body}>Allow the paired phone to interact with your apps. This requires Android Accessibility permission and your explicit approval here.</Text>
+              {state.transport === 'bluetooth' && <Text style={s.noticeText}>The other phone cannot see your screen over Bluetooth. Only approve controls if you can guide them directly.</Text>}
               {!state.accessibilityEnabled && <Button label="Open Accessibility settings" variant="secondary" disabled={!!busy || !state.capabilities.remoteControl} onPress={() => {void run('accessibility', actions.requestAccessibility);}} />}
               <Button label={state.controlEnabled ? 'Turn off touch control' : 'Allow touch control'} variant={state.controlEnabled ? 'secondary' : 'primary'} disabled={!!busy || !state.capabilities.remoteControl || (!state.accessibilityEnabled && !state.controlEnabled)} onPress={() => {void run('control', () => actions.setControlEnabled(!state.controlEnabled));}} />
               {!state.accessibilityEnabled && state.capabilities.remoteControl && <Pressable accessibilityRole="button" onPress={() => {void run('refresh', actions.refreshPermissions);}} style={s.textButton}><Text style={s.linkText}>I enabled it · Check permission</Text></Pressable>}
-              {!state.capabilities.remoteControl && <Text style={s.noticeText}>Touch control is unavailable in this build. Screen viewing can still work.</Text>}
+              {!state.capabilities.remoteControl && <Text style={s.noticeText}>Touch control is unavailable in this build.</Text>}
             </View>
           </>}
 
@@ -194,7 +195,7 @@ function ControllerPanel({state, actions}: Props) {
   useEffect(() => {
     setFrame(null);
     gesture.current = null;
-  }, [state.remoteStreamUrl]);
+  }, [state.remoteStreamUrl, state.transport]);
   useEffect(() => { gesture.current = null; }, [state.controlEnabled, state.remoteStreamSize?.width, state.remoteStreamSize?.height]);
 
   const finishGesture = (event: GestureResponderEvent) => {
@@ -210,12 +211,12 @@ function ControllerPanel({state, actions}: Props) {
   return <>
     <View style={s.connectedHeading}>
       <SectionLabel>THE OTHER PHONE</SectionLabel>
-      <View style={s.sectionHeadingRow}><Text accessibilityRole="header" style={s.sectionTitle}>Within reach.</Text><View style={s.liveBadge}><View style={[s.tinyDot, state.remoteStreamUrl && s.activeDot]} /><Text style={s.smallText}>{bluetooth ? 'Controls only' : hasVideo ? 'Live screen' : 'Waiting'}</Text></View></View>
+      <View style={s.sectionHeadingRow}><Text accessibilityRole="header" style={s.sectionTitle}>Within reach.</Text><View style={s.liveBadge}><View style={[s.tinyDot, hasVideo && s.activeDot]} /><Text style={s.smallText}>{bluetooth ? 'Controls only' : hasVideo ? 'Live screen' : 'Waiting'}</Text></View></View>
       <Text style={s.body}>{bluetooth ? 'No screen preview over Bluetooth. Use the buttons below after the host allows control.' : state.controlEnabled ? 'Tap, hold or swipe the screen to lend a hand.' : 'View only. The other phone must allow touch control.'}</Text>
     </View>
     <View style={s.remoteFrame}>
       <View
-        accessibilityLabel={state.remoteStreamUrl ? 'Live remote phone screen' : 'Waiting for remote screen sharing'}
+        accessibilityLabel={bluetooth ? 'Bluetooth controls only, no live screen preview' : hasVideo ? 'Live remote phone screen' : 'Waiting for remote screen sharing'}
         style={s.remoteViewport}
         onLayout={event => {gesture.current = null; setViewport({width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height});}}>
         {hasVideo ? <RTCView streamURL={state.remoteStreamUrl!} objectFit="contain" mirror={false} style={StyleSheet.absoluteFill} onDimensionsChange={event => {
