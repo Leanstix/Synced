@@ -27,6 +27,8 @@ export class MediaSession {
   private sharing = false;
   private starting = false;
   private queue: Promise<void> = Promise.resolve();
+  private queuedSignals = 0;
+  private queuedSignalBytes = 0;
   private disconnectedTimer: ReturnType<typeof setTimeout> | null = null;
   private displaySubscription: ReturnType<typeof Dimensions.addEventListener> | null = null;
 
@@ -89,12 +91,26 @@ export class MediaSession {
 
   handleSignal(signal: MediaSignal): Promise<void> {
     const generation = this.generation;
+    const bytes = (signal?.type === 'offer' || signal?.type === 'answer') && typeof signal.sdp === 'string' ? signal.sdp.length * 2
+      : signal?.type === 'candidate' ? ((typeof signal.candidate?.candidate === 'string' ? signal.candidate.candidate.length : 0) + (typeof signal.candidate?.sdpMid === 'string' ? signal.candidate.sdpMid.length : 0)) * 2 : 0;
+    if (this.queuedSignals >= 128 || this.queuedSignalBytes + bytes > 524288) {
+      const error = new Error('Too many queued media signals.');
+      this.fail(error.message);
+      return Promise.reject(error);
+    }
+    this.queuedSignals++; this.queuedSignalBytes += bytes;
     const work = this.queue.then(async () => {
       if (generation !== this.generation || !this.role) return;
       await this.receive(signal, generation);
+    }).finally(() => {
+      if (generation === this.generation) { this.queuedSignals--; this.queuedSignalBytes -= bytes; }
     });
     this.queue = work.catch(() => undefined);
-    return work;
+    return work.catch(error => {
+      // A rejected native operation from a stopped session must not tear down
+      // the next session through the controller's signaling error handler.
+      if (generation === this.generation) throw error;
+    });
   }
 
   stop(): void {
@@ -105,6 +121,10 @@ export class MediaSession {
     this.sharing = false;
     this.size = null;
     this.pendingCandidates = [];
+    // An unresolved native operation belongs to the old peer. New sharing must
+    // not wait behind it, and old completions cannot debit the new queue.
+    this.queue = Promise.resolve();
+    this.queuedSignals = 0; this.queuedSignalBytes = 0;
     this.displaySubscription?.remove();
     this.displaySubscription = null;
     if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer);

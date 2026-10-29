@@ -657,7 +657,7 @@
       "source": "config/androidPermissions.ts",
       "testFile": "tests/androidPermissions.test.ts",
       "testPrefix": "legacy Bluetooth manifest merger precedence",
-      "risk": "Prevent an unbounded dependency permission from removing the app\u2019s legacy SDK caps"
+      "risk": "Prevent an unbounded dependency permission from removing the app’s legacy SDK caps"
     },
     {
       "id": "emulator-failure-privacy",
@@ -678,7 +678,49 @@
       "source": "scripts/dual-emulator-start.mts",
       "testFile": "tests/dual-emulator-start.test.ts",
       "testPrefix": "headless emulator version preflight",
-      "risk": "Use the runner\u2019s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
+      "risk": "Use the runner’s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
+    },
+    {
+      "id": "node-native-harness-runtime",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-node-runtime.test.ts",
+      "testPrefix": "direct Node emulator harness runtime",
+      "risk": "Execute actual Node strip-only entry points without transpiler-only syntax or implicit ADB side effects"
+    },
+    {
+      "id": "shared-wifi-readiness",
+      "source": "scripts/dual-emulator-start.mts",
+      "testFile": "tests/dual-emulator-start.test.ts",
+      "testPrefix": "shared Wi-Fi readiness after Android boot",
+      "risk": "Wait for both test phones to associate and obtain distinct private wlan0 addresses before exercising the app"
+    },
+    {
+      "id": "media-generation-recovery",
+      "source": "src/core/media.ts",
+      "testFile": "tests/media.test.ts",
+      "testPrefix": "media signaling generation recovery",
+      "risk": "Unresolved or rejected native operations must not block or tear down a replacement screen session"
+    },
+    {
+      "id": "media-pending-budget",
+      "source": "src/core/media.ts",
+      "testFile": "tests/media.test.ts",
+      "testPrefix": "bounded pending media signaling",
+      "risk": "Bound authenticated peer signaling memory while native WebRTC work is stalled"
+    },
+    {
+      "id": "hook-stale-capture-completion",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "stale capture request completion",
+      "risk": "Late capture consent must not stop or revoke a new session or operate a disposed runtime"
+    },
+    {
+      "id": "continuation-pr-validation",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/dual-workflow.test.ts",
+      "testPrefix": "Android validation for continuation pull requests",
+      "risk": "Build and exercise pull-request code before merge without production credentials or elevated permissions"
     }
   ]
 }
