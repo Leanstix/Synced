@@ -30,3 +30,27 @@ describe('release source boundary', () => {
     expect(sourceViolations([{ path: 'notes.txt', text: ['-----BEGIN', 'PRIVATE KEY-----'].join(' ') }])).not.toEqual([]);
   });
 });
+
+
+describe('application configuration helper boundary', () => {
+  it('rejects bridge entry points in nested TypeScript config helpers', () => {
+    expect(sourceViolations([{ path: 'config/permissions/control.ts', text: 'NativeModules.Control.allow()' }]))
+      .toEqual(['config/permissions/control.ts: custom native bridge entry point']);
+  });
+  it('rejects native build injection in config helpers', () => {
+    expect(sourceViolations([{ path: 'config/build.cts', text: 'withAppBuildGradle(config, mutate)' }]))
+      .toEqual(['config/build.cts: native code or build injection plugin']);
+  });
+  it('allows metadata-only permission helpers', () => {
+    expect(sourceViolations([{ path: 'config/androidPermissions.ts', text: 'export const permissions = ["android.permission.BLUETOOTH_CONNECT"];' }]))
+      .toEqual([]);
+  });
+  it('rejects code generation declarations in config code', () => {
+    expect(sourceViolations([{ path: 'config/generated.mts', text: 'export const options = { codegenConfig: { name: "Control" } };' }]))
+      .toEqual(['config/generated.mts: custom native code generation']);
+  });
+  it('excludes non-code config assets from code-token scanning', () => {
+    expect(sourceViolations([{ path: 'config/help.json', text: '{"description":"NativeModules withAppBuildGradle codegenConfig: are unsupported"}' }]))
+      .toEqual([]);
+  });
+});

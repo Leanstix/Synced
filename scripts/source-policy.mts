@@ -14,7 +14,7 @@ export function sourceViolations(entries: SourceEntry[]): string[] {
     const sensitive = /\.(jks|keystore|p12|pfx|mobileprovision|pem|key)$/.test(lower)
       || /(^|\/)(credentials\.json|google-services\.json|googleservice-info\.plist|\.env(?:\..+)?)$/.test(lower);
     if (sensitive && !/\.env\.(example|sample)$/.test(lower)) failures.push(`${path}: private credentials or environment file`);
-    const appCode = /^(src\/|plugins\/|modules\/|App\.|index\.|app\.config\.|react-native\.config\.)/.test(path)
+    const appCode = /^(src\/|config\/|plugins\/|modules\/|App\.|index\.|app\.config\.|react-native\.config\.)/.test(path)
       && /\.[cm]?[jt]sx?$/.test(path);
     if (appCode && entry.text) {
       if (/\b(NativeModules|TurboModuleRegistry|requireNativeModule|requireOptionalNativeModule|codegenNativeComponent)\b/.test(entry.text)) {
