@@ -201,12 +201,13 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
       },
       rejectPeer() { try { getRuntime().stop(); } catch (error) { fail(error); } },
       async startScreenSharing() {
+        const initialGeneration = runtime.current?.generation;
         try {
           const rt = getRuntime();
           if (current.current.transport !== 'wifi' || current.current.role !== 'HOST' || current.current.status !== 'connected') throw new Error('Approve a Wi-Fi controller before sharing your screen.');
           const generation = rt.generation; patch({ error: null }); await rt.media.startHost();
           if (generation !== rt.generation) rt.media.stop();
-        } catch (error) { fail(error); }
+        } catch (error) { if (runtime.current?.generation === initialGeneration) fail(error); }
       },
       stopScreenSharing() {
         try {
@@ -216,6 +217,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
         } catch (error) { fail(error); }
       },
       async setControlEnabled(enabled) {
+        const initialGeneration = runtime.current?.generation;
         try {
           const rt = getRuntime(); const controlGeneration = ++rt.controlGeneration;
           if (!enabled) { rt.input.revoke(); rt.input.setBluetoothControlAllowed(false); patch({ controlEnabled: false }); rt.permissions(); return; }
@@ -228,10 +230,10 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
             : 'They can tap, swipe, navigate, type into focused fields, and open the alarm screen or dialer. Open only apps you intend to share. Password fields cannot be reliably detected. You can stop control at any time.', 'Allow control');
           if (!approved || !valid()) return;
           rt.input.setBluetoothControlAllowed(snapshot.transport === 'bluetooth');
-          try { await rt.input.grant(); } catch (error) { rt.input.setBluetoothControlAllowed(false); throw error; }
-          if (!valid()) { rt.input.revoke(); rt.input.setBluetoothControlAllowed(false); return; }
+          try { await rt.input.grant(); } catch (error) { if (generation === rt.generation && controlGeneration === rt.controlGeneration) rt.input.setBluetoothControlAllowed(false); throw error; }
+          if (!valid()) { if (generation === rt.generation && controlGeneration === rt.controlGeneration) { rt.input.revoke(); rt.input.setBluetoothControlAllowed(false); } return; }
           patch({ controlEnabled: true, accessibilityEnabled: true, error: null }); rt.permissions();
-        } catch (error) { fail(error); }
+        } catch (error) { if (runtime.current?.generation === initialGeneration) fail(error); }
       },
       async requestAccessibility() { try { await getRuntime().input.requestService(); } catch (error) { fail(error); } },
       async refreshPermissions() {

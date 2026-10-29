@@ -293,6 +293,23 @@ describe('phase2 hook intercom consent and lifecycle', () => {
 });
 
 describe('phase2 hook transport-specific control consent', () => {
+  it('does not clear a newer session grant when an old accessibility request rejects', async () => {
+    const actions = await approvedHost(); let rejectOld!: (error: Error) => void;
+    h.input.grant.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { rejectOld = reject; }));
+    const old = actions.setControlEnabled(true); h.allow!(); await flush(); actions.disconnect();
+    await actions.startBluetoothHost(); h.btCallbacks!.onConnecting('HOST', 'Bluetooth'); h.btCallbacks!.onApproved();
+    const newer = actions.setControlEnabled(true); h.allow!(); await newer;
+    rejectOld(new Error('old grant cancelled')); await old;
+    expect(h.state!.controlEnabled).toBe(true); expect(h.state!.error).toBeNull();
+    expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(true); h.cleanup!();
+  });
+  it('does not display an old capture failure after switching sessions', async () => {
+    const actions = await approvedHost(); let rejectCapture!: (error: Error) => void;
+    h.media.startHost.mockImplementationOnce(() => new Promise<void>((_resolve, reject) => { rejectCapture = reject; }));
+    const old = actions.startScreenSharing(); await actions.startBluetoothHost(); rejectCapture(new Error('old capture cancelled')); await old;
+    expect(h.state!.transport).toBe('bluetooth'); expect(h.state!.error).toBeNull(); h.cleanup!();
+  });
+
   async function bluetoothHost() {
     const { actions } = useSynced(); await actions.startBluetoothHost(); h.btCallbacks!.onConnecting('HOST', 'Bluetooth'); h.btCallbacks!.onApproved(); return actions;
   }
