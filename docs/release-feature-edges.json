@@ -628,7 +628,7 @@
       "id": "legacy-aapt-evidence",
       "source": "scripts/artifact-policy.mts",
       "testFile": "tests/release-artifact.test.ts",
-      "testPrefix": "legacy Bluetooth aapt evidence",
+      "testPrefix": "legacy Bluetooth compiled manifest evidence",
       "risk": "Distinguish actual SDK-bounded declarations from implied permission explanations while rejecting malformed or overbroad grants"
     },
     {
@@ -637,6 +637,20 @@
       "testFile": "tests/dual-workflow.test.ts",
       "testPrefix": "APK audit failure evidence retention",
       "risk": "Preserve permission and certificate diagnostics without publishing an unaudited binary or keys"
+    },
+    {
+      "id": "compiled-xml-permission-parser",
+      "source": "scripts/manifest-permissions.mts",
+      "testFile": "tests/manifest-permissions.test.ts",
+      "testPrefix": "compiled manifest XML permission boundaries",
+      "risk": "Verify real SDK bounds without ambiguous XML, comments, duplicate declarations or unbounded grants"
+    },
+    {
+      "id": "compiled-xml-workflow",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/dual-workflow.test.ts",
+      "testPrefix": "compiled manifest audit workflow evidence",
+      "risk": "Extract, provide and retain compiled XML from the exact APK under audit"
     }
   ]
 }

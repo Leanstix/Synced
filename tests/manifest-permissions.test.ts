@@ -1,8 +1,9 @@
-import {expect, it} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import {assertLegacyBluetoothBounds, manifestPermissions} from '../scripts/manifest-permissions.mts';
 const name = 'android.permission.BLUETOOTH';
 const permission = (max = '30') => `<uses-permission android:name="${name}" android:maxSdkVersion="${max}"/>`;
 const manifest = (content = permission()) => `<?xml version="1.0" encoding="utf-8"?>\n<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.leanstix.synced">\n${content}\n<application android:label="Synced"><activity android:name="MainActivity" /></application>\n</manifest>`;
+describe('compiled manifest XML permission boundaries', () => {
 it('reads standard pretty printed apkanalyzer XML', () => expect(manifestPermissions(manifest())).toEqual([{name, maxSdkVersion: '30'}]));
 it('accepts both quote styles and hexadecimal SDK values', () => expect(() => assertLegacyBluetoothBounds(manifest(permission('0x1e').replaceAll('"', "'")), [name])).not.toThrow());
 it.each(['31', '0x1f', '-1', '30oops', 'NaN', '', '0', '1e1'])('rejects invalid or excessive SDK bound %s', max => expect(() => assertLegacyBluetoothBounds(manifest(permission(max)), [name])).toThrow('Legacy Bluetooth'));
@@ -20,3 +21,5 @@ it('rejects namespace spoofing', () => expect(() => manifestPermissions(manifest
 it('requires each corresponding declared grant in actual XML', () => expect(() => assertLegacyBluetoothBounds(manifest(), [name, name + '_ADMIN'])).toThrow('Legacy Bluetooth'));
 it('also checks an actual unbounded legacy grant omitted from the summary', () => expect(() => assertLegacyBluetoothBounds(manifest(permission() + `<uses-permission android:name="${name}_ADMIN"/>`), [name])).toThrow('Legacy Bluetooth'));
 it('bounds the XML input', () => expect(() => manifestPermissions(' '.repeat(2_000_001))).toThrow('oversized'));
+
+});
