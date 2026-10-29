@@ -812,6 +812,13 @@
       "testFile": "tests/iteration-workflow.test.ts",
       "testPrefix": "source-qualified Android iteration workflow",
       "risk": "Align, development-sign, audit and independently exercise current voice and screen flows without production credentials"
+    },
+    {
+      "id": "wifi-socket-network-binding",
+      "source": "src/core/connection.ts",
+      "testFile": "tests/connection.test.ts",
+      "testPrefix": "Wi-Fi-bound local socket routing",
+      "risk": "Keep private phone traffic on Wi-Fi or hotspot when Android chooses cellular as the default network, and fail closed without fallback"
     }
   ]
 }
