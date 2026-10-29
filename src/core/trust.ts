@@ -15,7 +15,10 @@ export interface TrustDocument { version: 1; identity: DeviceIdentity; peers: Sa
 export interface TrustStorage { read(): Promise<string | null>; write(value: string): Promise<void> }
 export function sanitizeDeviceName(value: unknown): string {
   if (typeof value !== 'string') return 'Synced device';
-  return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, 80) || 'Synced device';
+  return Array.from(value).filter(character => {
+    const code = character.codePointAt(0)!;
+    return code > 31 && (code < 127 || code > 159) && (code < 0x202a || code > 0x202e) && (code < 0x2066 || code > 0x2069);
+  }).join('').trim().slice(0, 80) || 'Synced device';
 }
 export function validEndpoint(value: unknown): value is PeerEndpoint {
   const e = value as Partial<PeerEndpoint> | null;
