@@ -742,6 +742,13 @@
       "testFile": "tests/protocol-hermes-buffer.test.ts",
       "testPrefix": "Hermes Buffer frame decoding",
       "risk": "Decode framed UTF-8 without assuming inherited TypedArray methods preserve the Buffer subclass in Hermes"
+    },
+    {
+      "id": "bluetooth-evidence-privacy",
+      "source": "scripts/dual-android-policy.mts",
+      "testFile": "tests/dual-android-policy.test.ts",
+      "testPrefix": "Bluetooth invitation evidence privacy",
+      "risk": "Refuse emulator screenshots containing Bluetooth invitation secrets as well as Wi-Fi invitation secrets"
     }
   ]
 }

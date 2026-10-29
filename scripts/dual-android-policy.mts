@@ -38,7 +38,7 @@ export function comparisonFromUi(nodes: UiNode[]): string {
   return values[0];
 }
 export function assertEvidenceSafe(nodes: UiNode[]): void {
-  if (nodes.some(node => /synced:\/\/|Comparison code:|PRIVATE INVITATION/i.test(`${node.text} ${node.description}`))) throw new Error('Sensitive invitation or comparison UI is visible; evidence capture refused.');
+  if (nodes.some(node => /synced(?:-bt)?:\/\/|Comparison code:|PRIVATE INVITATION/i.test(`${node.text} ${node.description}`))) throw new Error('Sensitive invitation or comparison UI is visible; evidence capture refused.');
 }
 export function shellQuote(value: string): string {
   if (value.includes('\0') || value.length > 8192) throw new Error('Invalid Android input value.');
