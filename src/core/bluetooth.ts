@@ -129,9 +129,12 @@ export class BluetoothConnection {
     this.subscriptions.push(device.onDataReceived(event => {
       if (generation !== this.generation) return;
       try {
-        for (const frame of decoder.push(event.data)) session.receive(frame);
-        this.lastReceived = Date.now();
-      } catch { this.fail('Bluetooth authentication or protocol validation failed.'); }
+        for (const frame of decoder.push(event.data)) {
+          if (generation !== this.generation) return;
+          session.receive(frame);
+          if (generation === this.generation) this.lastReceived = Date.now();
+        }
+      } catch { if (generation === this.generation) this.fail('Bluetooth authentication or protocol validation failed.'); }
     }));
     this.subscriptions.push(BluetoothClassic.onDeviceDisconnected(event => {
       if (generation === this.generation && event.device.address === address) this.fail('Bluetooth phone disconnected. All permissions ended.');
