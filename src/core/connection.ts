@@ -89,6 +89,7 @@ export class LocalConnection {
         this.endpoint = { address, port: info.port };
         if (peer) this.callbacks.onTrustedListening?.(address, info.port, peer);
         else this.callbacks.onListening(encodeInvitation({ version: 1, address, port: info.port, secret }), address);
+        if (generation !== this.generation) { reject(new Error('Connection cancelled.')); return; }
         this.invitationTimer = setTimeout(() => {
           secret = '';
           if (generation === this.generation) this.fail('Invitation expired. Create a new session.');
@@ -121,6 +122,7 @@ export class LocalConnection {
     this.endpoint = { address: invitation.address, port: invitation.port };
     this.activePeerId = peer?.id ?? null;
     this.callbacks.onConnecting('CONTROLLER', `${invitation.address}:${invitation.port}`);
+    if (generation !== this.generation) throw new Error('Connection cancelled.');
     await new Promise<void>((resolve, reject) => {
       this.pendingReject = reject;
       const socket = TcpSocket.createConnection({ host: invitation.address, port: invitation.port, connectTimeout: 12000 }, () => {
@@ -139,13 +141,14 @@ export class LocalConnection {
   }
 
   private attach(socket: Socket, role: SessionRole, secret: string, address: string, peer?: SavedPeer) {
+    const generation = this.generation;
     this.socket = socket;
     if (this.handshakeTimer) clearTimeout(this.handshakeTimer);
     if (this.invitationTimer) clearTimeout(this.invitationTimer);
     this.callbacks.onConnecting(role, address);
+    if (generation !== this.generation) { socket.destroy(); return; }
     this.lastReceived = Date.now();
     const decoder = new FrameDecoder();
-    const generation = this.generation;
     const options: SessionOptions = this.trust ? {
       identity: this.trust.identity,
       ...(peer ? { trustedPeer: peer } : { pairing: {
@@ -188,9 +191,12 @@ export class LocalConnection {
       if (generation !== this.generation) return;
       try {
         const frames = decoder.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-        for (const frame of frames) session.receive(frame);
-        this.lastReceived = Date.now();
-      } catch { this.fail('Peer authentication or protocol validation failed. Session ended.'); }
+        for (const frame of frames) {
+          if (generation !== this.generation) return;
+          session.receive(frame);
+          if (generation === this.generation) this.lastReceived = Date.now();
+        }
+      } catch { if (generation === this.generation) this.fail('Peer authentication or protocol validation failed. Session ended.'); }
     });
     socket.on('error', () => { if (generation === this.generation) this.fail('Local connection was interrupted.'); });
     socket.on('close', () => { if (generation === this.generation && !this.closing) this.close(true); });
