@@ -49,3 +49,16 @@ describe('app resolved release configuration', () => {
     expect(c.plugins).toContainEqual(['expo-build-properties', expect.objectContaining({ android: expect.objectContaining({ buildArchs: ['arm64-v8a'] }) })]);
   });
 });
+
+describe('unused biometric permission removal', () => {
+  it('blocks transitive biometric permission in the default preview', async () => expect((await config()).android?.blockedPermissions).toContain('android.permission.USE_BIOMETRIC'));
+  it('blocks legacy fingerprint permission as well', async () => expect((await config()).android?.blockedPermissions).toContain('android.permission.USE_FINGERPRINT'));
+  it('preserves the removal in explicit production builds', async () => expect((await config({ EAS_BUILD_PROFILE: 'production', APP_ENV: 'production' })).android?.blockedPermissions).toEqual(expect.arrayContaining(['android.permission.USE_BIOMETRIC', 'android.permission.USE_FINGERPRINT'])));
+  it('does not explicitly request either unused permission', async () => expect((await config()).android?.permissions?.some(value => /BIOMETRIC|FINGERPRINT/.test(value))).toBe(false));
+  it('keeps separately consented microphone and Bluetooth access available', async () => {
+    const c = await config();
+    for (const permission of ['RECORD_AUDIO', 'BLUETOOTH_CONNECT', 'BLUETOOTH_SCAN', 'BLUETOOTH_ADVERTISE']) {
+      expect(c.android?.permissions).toContain(permission); expect(c.android?.blockedPermissions).not.toContain(`android.permission.${permission}`);
+    }
+  });
+});
