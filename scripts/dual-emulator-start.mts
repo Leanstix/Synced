@@ -20,7 +20,7 @@ export async function startSecondEmulator(sdk: string, io: LauncherCommands = co
   const devices = io.run(adb, ['devices']);
   if (/^emulator-5556\s/m.test(devices)) throw new Error('Second emulator port is already occupied, including offline devices.');
   if (!/^emulator-5554\s+device\s*$/m.test(devices)) throw new Error('First emulator must be online on port 5554.');
-  const version = /(?:version\s+)(\d+)\.(\d+)/i.exec(io.run(emulator, ['-version']));
+  const version = /(?:version\s+)(\d+)\.(\d+)/i.exec(io.run(emulator, ['-no-window', '-version']));
   if (!version || Number(version[1]) < 36 || (Number(version[1]) === 36 && Number(version[2]) < 5)) throw new Error('Emulator 36.5 or newer is required for shared Wi-Fi.');
   let owned = false;
   try {
