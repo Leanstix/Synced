@@ -7,6 +7,7 @@ export interface SavedDevice {
   endpoint?: { address: string; port: number };
   bluetoothAddress?: string;
   savedAt: number;
+  revocationPending?: boolean;
 }
 export interface BluetoothPeer { address: string; name: string }
 export interface VoiceStatus { phase: 'idle' | 'outgoing' | 'incoming' | 'connecting' | 'active'; muted: boolean }
