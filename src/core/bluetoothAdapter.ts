@@ -47,7 +47,7 @@ export async function listBondedDevices(): Promise<BluetoothPeer[]> {
   for (const device of devices) {
     if (device.type === 'LOW_ENERGY' || !/^(?:[0-9a-f]{2}:){5}[0-9a-f]{2}$/i.test(device.address)) continue;
     const address = bluetoothAddress(device.address);
-    const name = typeof device.name === 'string' ? device.name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80) : '';
+    const name = typeof device.name === 'string' ? [...device.name].filter(character => character.charCodeAt(0) >= 32 && character.charCodeAt(0) !== 127).join('').trim().slice(0, 80) : '';
     peers.set(address, { address, name: name || 'Paired phone' });
   }
   return [...peers.values()].sort((a, b) => a.name.localeCompare(b.name) || a.address.localeCompare(b.address));

@@ -29,7 +29,7 @@ const deferred = <T>() => { let resolve!: (value: T) => void; let reject!: (erro
 const peer = () => {
   let receive: ((event: { data: string }) => void) | null = null;
   return {
-    address: 'AA:BB:CC:DD:EE:FF', disconnect: vi.fn(async () => true), write: vi.fn(async (_data: string) => true),
+    address: 'AA:BB:CC:DD:EE:FF', disconnect: vi.fn(async () => true), write: vi.fn(async (data: string) => Boolean(data)),
     onDataReceived: vi.fn((fn: typeof receive) => { receive = fn; return { remove: native.remove }; }),
     receive: (data: string) => receive?.({ data }),
   };
