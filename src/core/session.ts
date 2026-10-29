@@ -119,6 +119,6 @@ export class SecureSession {
     if (this.phase !== 'ready') throw new Error('Host approval is required.');
     this.callbacks.send(this.outgoing!.seal(payload));
   }
-  close(): void { this.exchange?.close(); this.exchange = null; this.phase = 'closed'; this.incoming = null; this.outgoing = null; this.secret = ''; }
+  close(): void { this.exchange?.close(); this.exchange = null; this.phase = 'closed'; this.incoming?.destroy(); this.outgoing?.destroy(); this.incoming = null; this.outgoing = null; this.secret = ''; }
   get ready(): boolean { return this.phase === 'ready'; }
 }

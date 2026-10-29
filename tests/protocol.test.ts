@@ -71,3 +71,10 @@ it('owns an independent directional key copy after construction', () => {
   original.fill(0);
   expect(receiver.open(sender.seal({ value: 'intact' }))).toEqual({ value: 'intact' });
 });
+
+it('destroys owned key material without mutating callers and never reuses a closed cipher', () => {
+  const key = deriveSession(secret, cNonce, hNonce).hostKey; const before = new Uint8Array(key);
+  const direction = new CipherDirection(key); const frame = direction.seal({ hello: true });
+  direction.destroy(); direction.destroy();
+  expect(key).toEqual(before); expect(() => direction.seal({ hello: true })).toThrow('closed'); expect(() => direction.open(frame)).toThrow('closed');
+});

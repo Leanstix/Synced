@@ -57,6 +57,7 @@ export interface EncryptedMessage { type: 'encrypted'; sequence: number; ciphert
 /** One direction per key. In-order TCP transport permits strict replay rejection. */
 export class CipherDirection {
   private sequence = 0;
+  private destroyed = false;
   constructor(private readonly key: Uint8Array) {
     if (key.length !== 32) throw new Error('Invalid key.');
     this.key = new Uint8Array(key);
@@ -66,7 +67,9 @@ export class CipherDirection {
     new DataView(nonce.buffer).setUint32(8, sequence, false);
     return nonce;
   }
+  destroy(): void { this.destroyed = true; this.key.fill(0); }
   seal(payload: unknown): EncryptedMessage {
+    if (this.destroyed) throw new Error('Cipher is closed.');
     if (this.sequence >= 0xffffffff) throw new Error('Session limit reached. Reconnect.');
     const plaintext = utf8(JSON.stringify(payload));
     if (plaintext.length > MAX_FRAME_BYTES / 2) throw new Error('Message exceeds size limit.');
@@ -76,6 +79,7 @@ export class CipherDirection {
     return { type: 'encrypted', sequence, ciphertext: base64(ciphertext) };
   }
   open(message: unknown): unknown {
+    if (this.destroyed) throw new Error('Cipher is closed.');
     const envelope = message as Partial<EncryptedMessage> | null;
     if (!envelope || envelope.type !== 'encrypted' || envelope.sequence !== this.sequence ||
         typeof envelope.ciphertext !== 'string' || envelope.ciphertext.length > MAX_FRAME_BYTES ||
