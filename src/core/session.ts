@@ -95,7 +95,7 @@ export class SecureSession {
     if (payload.type === 'trust') { if (!this.exchange) throw new Error('Pairing is unavailable.'); this.exchange.receive((payload as { message?: unknown }).message); return; }
     if (!['media', 'call', 'revoke', 'input', 'permissions', 'ping', 'pong'].includes(payload.type)) throw new Error('Unsupported message.');
     if (payload.type === 'ping') { this.send({ type: 'pong' }); return; }
-    if (payload.type === 'permissions' && (typeof (payload as { screenSharing?: unknown }).screenSharing !== 'boolean' || typeof (payload as { controlEnabled?: unknown }).controlEnabled !== 'boolean')) throw new Error('Invalid permissions message.');
+    if (payload.type === 'permissions' && (typeof (payload as { screenSharing?: unknown }).screenSharing !== 'boolean' || typeof (payload as { controlEnabled?: unknown }).controlEnabled !== 'boolean' || ((payload as { controlMode?: unknown }).controlMode !== undefined && !['screen', 'bluetooth'].includes((payload as { controlMode: string }).controlMode)))) throw new Error('Invalid permissions message.');
     if (payload.type === 'revoke' && !validNonce((payload as { peerId?: unknown }).peerId)) throw new Error('Invalid revocation message.');
     this.callbacks.onPayload(payload as SessionPayload);
   }
