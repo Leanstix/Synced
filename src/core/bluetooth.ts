@@ -173,8 +173,10 @@ export class BluetoothConnection {
       },
     }, this.optionsFor(address, savedPeer));
     this.session = session;
+    this.deadline = setTimeout(() => this.fail('Bluetooth pairing handshake timed out.'), 15000);
     this.callbacks.onConnecting(role, address);
-    this.subscriptions.push(device.onDataReceived(event => {
+    if (generation !== this.generation) return;
+    this.register(device.onDataReceived(event => {
       if (generation !== this.generation) return;
       try {
         for (const frame of decoder.push(event.data)) {
@@ -183,14 +185,16 @@ export class BluetoothConnection {
           if (generation === this.generation) this.lastReceived = Date.now();
         }
       } catch { if (generation === this.generation) this.fail('Bluetooth authentication or protocol validation failed.'); }
-    }));
-    this.subscriptions.push(BluetoothClassic.onDeviceDisconnected(event => {
+    }), generation);
+    if (generation !== this.generation) return;
+    this.register(BluetoothClassic.onDeviceDisconnected(event => {
       if (generation === this.generation && event.device.address === address) this.fail('Bluetooth phone disconnected. All permissions ended.');
-    }));
-    this.subscriptions.push(BluetoothClassic.onBluetoothDisabled(() => {
+    }), generation);
+    if (generation !== this.generation) return;
+    this.register(BluetoothClassic.onBluetoothDisabled(() => {
       if (generation === this.generation) this.fail('Bluetooth was turned off. All permissions ended.');
-    }));
-    this.deadline = setTimeout(() => this.fail('Bluetooth pairing handshake timed out.'), 15000);
+    }), generation);
+    if (generation !== this.generation) return;
     this.heartbeat = setInterval(() => {
       if (!session.ready) return;
       if (Date.now() - this.lastReceived > 25000) { this.fail('Bluetooth peer stopped responding.'); return; }
@@ -199,6 +203,11 @@ export class BluetoothConnection {
       }
     }, 5000);
     session.start();
+  }
+
+  private register(subscription: { remove(): void }, generation: number): void {
+    if (generation !== this.generation) subscription.remove();
+    else this.subscriptions.push(subscription);
   }
 
   private enqueue(frame: Uint8Array): void {
