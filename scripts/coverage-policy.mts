@@ -8,13 +8,15 @@ export interface FeatureUnit {
 export interface FeatureLedger { version: number; minimumEdges: number; units: FeatureUnit[] }
 export interface TestReport {
   success: boolean;
+  startTime?: number;
   testResults: { name: string; assertionResults: { fullName: string; status: string }[] }[];
 }
 
 /** Count executed passing cases, never source-code occurrences of `it(...)`. */
-export function auditFeatureCoverage(ledger: FeatureLedger, report: TestReport, requiredSources: string[] = []): { id: string; passedEdges: number }[] {
+export function auditFeatureCoverage(ledger: FeatureLedger, report: TestReport, requiredSources: string[] = [], latestSourceTime = 0): { id: string; passedEdges: number }[] {
   if (ledger.version !== 1 || !Number.isInteger(ledger.minimumEdges) || ledger.minimumEdges < 5 || !Array.isArray(ledger.units) || !ledger.units.length) throw new Error('Feature ledger must require at least five edges');
   if (report.success !== true || !Array.isArray(report.testResults)) throw new Error('A successful executed test report is required');
+  if (latestSourceTime && (!Number.isFinite(report.startTime) || report.startTime! < latestSourceTime)) throw new Error('Test report predates current feature sources or ledger');
   const seen = new Set<string>();
   const selectors = new Set<string>();
   const result = ledger.units.map(unit => {

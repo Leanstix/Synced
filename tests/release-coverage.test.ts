@@ -40,4 +40,19 @@ describe('release feature edge ledger', () => {
     const value = ledger(); value.units[0].risk = '';
     expect(() => auditFeatureCoverage(value, report())).toThrow('Incomplete');
   });
+  it('rejects old or untimestamped reports when current source times are supplied', () => {
+    expect(() => auditFeatureCoverage(ledger(), { ...report(), startTime: 99 }, [], 100)).toThrow('predates');
+    expect(() => auditFeatureCoverage(ledger(), report(), [], 100)).toThrow('predates');
+    expect(() => auditFeatureCoverage(ledger(), { ...report(), startTime: 100 }, [], 100)).not.toThrow();
+  });
+  it('combines multiple named suites without counting overlap twice', () => {
+    const value = ledger(); value.units[0].testPrefix = ['transport edges', 'transport'];
+    expect(auditFeatureCoverage(value, report())[0].passedEdges).toBe(5);
+  });
+  it('rejects path traversal and an empty suite selector', () => {
+    const value = ledger(); value.units[0].source = 'src/../../private.ts';
+    expect(() => auditFeatureCoverage(value, report())).toThrow('Incomplete');
+    value.units[0].source = 'src/core/transport.ts'; value.units[0].testPrefix = [];
+    expect(() => auditFeatureCoverage(value, report())).toThrow('Incomplete');
+  });
 });
