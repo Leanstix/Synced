@@ -77,8 +77,6 @@ export class BluetoothConnection {
     this.accepting = true;
     this.nativeBusy = true;
     const accepted = BluetoothClassic.accept(BLUETOOTH_OPTIONS);
-    if (peer) this.callbacks.onTrustedListening?.('Bluetooth • paired phones', peer);
-    else this.callbacks.onListening(`${INVITATION_PREFIX}${secret}`, 'Bluetooth • paired phones');
     this.deadline = setTimeout(() => {
       if (generation === this.generation) this.fail('Bluetooth invitation expired. Create a new session.');
     }, 10 * 60 * 1000);
@@ -91,6 +89,8 @@ export class BluetoothConnection {
       this.nativeBusy = false;
       if (generation === this.generation) this.fail('Could not accept a Bluetooth connection.');
     });
+    if (peer) this.callbacks.onTrustedListening?.('Bluetooth • paired phones', peer);
+    else this.callbacks.onListening(`${INVITATION_PREFIX}${secret}`, 'Bluetooth • paired phones');
   }
 
   async connect(invitation: string, selectedAddress: string): Promise<void> {
@@ -119,6 +119,7 @@ export class BluetoothConnection {
     this.assertGeneration(generation);
     if (!devices.some(device => device.address === address)) throw new Error('Pair this phone in Android Bluetooth settings first.');
     this.callbacks.onConnecting('CONTROLLER', address);
+    this.assertGeneration(generation);
     this.nativeBusy = true;
     await new Promise<void>((resolve, reject) => {
       this.pendingReject = reject;

@@ -205,3 +205,36 @@ describe('saved Bluetooth trust', () => {
     expect(manager.get(remoteIdentity.id)?.bluetoothAddress).toBe(device.address); expect(remoteSaved).toHaveBeenCalledOnce(); connection.dispose();
   });
 });
+
+describe('Bluetooth observer cancellation boundaries', () => {
+  it('does not start a native connector after the connecting observer cancels', async () => {
+    const cb = callbacks(); const connection = new BluetoothConnection(cb); cb.onConnecting.mockImplementation(() => connection.close(false));
+    await expect(connection.connect(invitation, 'AA:BB:CC:DD:EE:FF')).rejects.toThrow('cancelled');
+    expect(native.connect).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('clears invitation deadlines when the listening observer cancels', async () => {
+    const accept = deferred<ReturnType<typeof peer>>(); native.accept.mockReturnValue(accept.promise);
+    const cb = callbacks(); const connection = new BluetoothConnection(cb); cb.onListening.mockImplementation(() => connection.close(false));
+    await connection.host(); expect(vi.getTimerCount()).toBe(0); expect(native.cancelAccept).toHaveBeenCalledOnce();
+    const device = peer(); accept.resolve(device); await flush(); expect(device.disconnect).toHaveBeenCalledOnce(); expect(cb.onConnecting).not.toHaveBeenCalled();
+  });
+  it('handles native accept rejection after observer cancellation without reporting a new error', async () => {
+    const accept = deferred<ReturnType<typeof peer>>(); native.accept.mockReturnValue(accept.promise);
+    const cb = callbacks(); const connection = new BluetoothConnection(cb); cb.onListening.mockImplementation(() => connection.close(false));
+    await connection.host(); accept.reject(new Error('cancelled native accept')); await flush();
+    expect(cb.onClosed).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+    native.accept.mockReturnValue(new Promise(() => undefined)); await connection.host(); connection.close(false);
+  });
+  it('does not register native readers after an attachment observer cancels', async () => {
+    const device = peer(); native.accept.mockResolvedValue(device);
+    const cb = callbacks(); const connection = new BluetoothConnection(cb); cb.onConnecting.mockImplementation(() => connection.close(false));
+    await connection.host(); await flush(); expect(device.onDataReceived).not.toHaveBeenCalled();
+    expect(device.disconnect).toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('cleans accepted native work even when the invitation observer throws', async () => {
+    const accept = deferred<ReturnType<typeof peer>>(); native.accept.mockReturnValue(accept.promise);
+    const cb = callbacks(); const connection = new BluetoothConnection(cb); cb.onListening.mockImplementation(() => { connection.close(false); throw new Error('observer failed'); });
+    await expect(connection.host()).rejects.toThrow('observer failed');
+    const device = peer(); accept.resolve(device); await flush(); expect(device.disconnect).toHaveBeenCalledOnce(); expect(vi.getTimerCount()).toBe(0);
+  });
+});
