@@ -91,7 +91,7 @@ Source layout: `src/ui` contains the native screens and viewport geometry; `src/
 With two booted Android emulators on a shared virtual Wi-Fi network and the built APK:
 
 ```sh
-ADB=/path/to/adb npm run test:android:dual -- /path/to/app.apk --screen-control
+ADB=/path/to/adb npm run test:android:dual -- /path/to/app.apk --voice --screen-control
 ```
 
-The harness drives the public UI on `emulator-5554` and `emulator-5556`: compare codes, approve, save on both devices, disconnect, explicitly receive/reconnect, then verify grants remain off. The optional screen/control stage requires real video and an observed remote Home action. It fails rather than counting isolated emulator NAT or a missing stream as success. Other serials can be set through `HOST_SERIAL` and `CONTROLLER_SERIAL`. Pairing credentials stay in memory; screenshots are refused while invitation or comparison UI is visible. Bluetooth radio and real microphone routing still require physical qualification.
+The harness drives the public UI on `emulator-5554` and `emulator-5556`: compare codes, approve, save on both devices, disconnect, explicitly receive/reconnect, restart both app processes, then verify the saved connection works and grants remain off. The optional voice stage checks bilateral acceptance, microphone prompts, active signaling, mute and hangup; audio samples are not verified. The optional screen/control stage requires real video and an observed remote Home action. It fails rather than counting isolated emulator NAT or a missing stream as success. Other serials can be set through `HOST_SERIAL` and `CONTROLLER_SERIAL`. Pairing credentials stay in memory; screenshots are refused while invitation or comparison UI is visible. Bluetooth radio and real microphone routing still require physical qualification.
