@@ -420,6 +420,97 @@
       "testFile": "tests/androidPermissions.test.ts",
       "testPrefix": "legacy Bluetooth manifest limits",
       "risk": "Limit dependency legacy grants without changing modern Bluetooth permissions"
+    },
+    {
+      "id": "hook-secure-startup",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook trust initialization and public state",
+      "risk": "Secure storage failure, secret minimization and late initialization"
+    },
+    {
+      "id": "hook-mutual-save",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook save consent",
+      "risk": "Stale consent, replacement identities and mutual save completion"
+    },
+    {
+      "id": "hook-durable-forget",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook forgetting and durable retry",
+      "risk": "Immediate revocation and durable deletion retry"
+    },
+    {
+      "id": "hook-trusted-reconnect",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook explicit trusted reconnect",
+      "risk": "Cryptographic approval wait, explicit listeners and cancellation"
+    },
+    {
+      "id": "hook-bluetooth-setup",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook Bluetooth setup and transport isolation",
+      "risk": "Bonded devices, permission errors and stale transport callbacks"
+    },
+    {
+      "id": "hook-voice-lifecycle",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook intercom consent and lifecycle",
+      "risk": "Separate audio consent and foreground transport lifecycle"
+    },
+    {
+      "id": "hook-control-modes",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook transport-specific control consent",
+      "risk": "Blind control consent, transport-bound grants and asynchronous revocation"
+    },
+    {
+      "id": "hook-native-retry",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "phase2 hook native reconnect failures",
+      "risk": "Native failure ordering, bounded opt-in retry and delay cancellation"
+    },
+    {
+      "id": "voice-observer-bounds",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/calls.test.ts",
+      "testPrefix": "intercom observer cancellation and signaling limits",
+      "risk": "Observer cancellation and bounded SDP and candidate signaling"
+    },
+    {
+      "id": "permission-mode-enum",
+      "source": "src/core/session.ts",
+      "testFile": "tests/session.test.ts",
+      "testPrefix": "authenticated permission mode validation",
+      "risk": "Reject unknown permission modes before dispatch"
+    },
+    {
+      "id": "tcp-authenticated-liveness",
+      "source": "src/core/connection.ts",
+      "testFile": "tests/connection.test.ts",
+      "testPrefix": "authenticated TCP liveness and observer cancellation",
+      "risk": "Partial unauthenticated frames cannot renew liveness"
+    },
+    {
+      "id": "pairing-final-rollback",
+      "source": "src/core/trustExchange.ts",
+      "testFile": "tests/trustExchange.test.ts",
+      "testPrefix": "pairing completion delivery",
+      "risk": "Roll back durable trust when final delivery fails"
+    },
+    {
+      "id": "bluetooth-observer-boundaries",
+      "source": "src/core/bluetooth.ts",
+      "testFile": "tests/bluetooth.test.ts",
+      "testPrefix": "Bluetooth observer cancellation boundaries",
+      "risk": "Native listener callbacks cannot outlive cancellation"
     }
   ]
 }
