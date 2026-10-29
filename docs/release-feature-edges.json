@@ -665,6 +665,13 @@
       "testFile": "tests/dual-android-failure-evidence.test.ts",
       "testPrefix": "secret-safe emulator failure evidence",
       "risk": "Preserve the original failure and refuse screenshots while pairing secrets are visible"
+    },
+    {
+      "id": "android-sdk-signer-format",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/release-artifact.test.ts",
+      "testPrefix": "Android SDK signer output formats",
+      "risk": "Support verified signing-scheme labels without accepting malformed, ambiguous, debug-production or mismatched certificate identity"
     }
   ]
 }
