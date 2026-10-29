@@ -20,7 +20,7 @@ const h = vi.hoisted(() => ({
   bt: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn(), savePairing: vi.fn() },
   connection: { hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), savePairing: vi.fn(), host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn() },
   input: { setBluetoothControlAllowed: vi.fn(), isAvailable: vi.fn(async () => true), requestService: vi.fn(async () => undefined), grant: vi.fn(async (): Promise<void> => undefined), revoke: vi.fn(), setSharing: vi.fn(), dispose: vi.fn(), execute: vi.fn(async () => undefined) },
-  media: { startController: vi.fn(), startHost: vi.fn(async () => undefined), stop: vi.fn(), handleSignal: vi.fn(async () => undefined) },
+  media: { startController: vi.fn(), startHost: vi.fn(async (): Promise<void> => undefined), stop: vi.fn(), handleSignal: vi.fn(async () => undefined) },
 }));
 vi.mock('react', () => ({
   useState: (initial: SyncedState) => { h.state = initial; return [initial, (value: SyncedState) => { h.state = value; }]; },
