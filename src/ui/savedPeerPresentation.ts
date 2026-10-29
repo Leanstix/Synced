@@ -4,6 +4,7 @@ export type SavedPeerSummary = {
   role: 'HOST' | 'CONTROLLER';
   endpoint?: {address: string; port: number};
   savedAt: number;
+  revocationPending?: boolean;
 };
 
 // Device labels must not carry control characters into visible consent text.
@@ -26,6 +27,7 @@ export function peerNameField(input: string): {value: string; valid: boolean; er
 
 /** Never turn a saved record into a claim that the peer is nearby or online. */
 export function savedPeerDetail(peer: SavedPeerSummary): string {
+  if (peer.revocationPending) return 'Forget is pending. Connections are blocked; retry forgetting this phone to finish removing it.';
   return peer.role === 'HOST'
     ? `You control this phone${peer.endpoint ? ` · Last address ${peer.endpoint.address}` : ' · Enter its address to reconnect'}`
     : 'This phone can request to control yours · Receive its connection here';

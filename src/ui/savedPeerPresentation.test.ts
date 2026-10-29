@@ -55,3 +55,12 @@ describe('saved device rows', () => {
     expect(sortedSavedPeers([])).toEqual([]);
   });
 });
+
+ describe('pending revocation visibility', () => {
+  it.each(['HOST', 'CONTROLLER'] as const)('shows pending removal instead of reconnect instructions for %s', role => {
+    expect(savedPeerDetail({...peer, role, revocationPending: true})).toContain('Connections are blocked');
+  });
+  it('keeps the pending record in the list for retry', () => expect(sortedSavedPeers([{...peer, revocationPending: true}])).toHaveLength(1));
+  it('does not show stale endpoint as a reconnect instruction', () => expect(savedPeerDetail({...peer, revocationPending: true, endpoint: {address: '10.0.0.2', port: 1}})).not.toContain('10.0.0.2'));
+  it('keeps ordinary records reconnectable when revocation is false', () => expect(savedPeerDetail({...peer, revocationPending: false})).toContain('Enter its address'));
+});

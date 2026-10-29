@@ -42,9 +42,10 @@ function SavedDeviceRow({state, actions, transport, busy, run, peer}: Props & {p
   return <View style={s.savedRow}>
     <View style={s.sectionHeadingRow}>
       <View style={s.flex}><Text style={s.rowTitle}>{name}</Text><Text style={s.smallText}>{savedPeerDetail(peer)}</Text></View>
-      <View style={s.savedBadge}><Text style={s.savedBadgeText}>SAVED</Text></View>
+      <View style={s.savedBadge}><Text style={s.savedBadgeText}>{peer.revocationPending ? 'FORGET PENDING' : 'SAVED'}</Text></View>
     </View>
-    {!forgetting && <>
+    {peer.revocationPending && <Button label={busy === `forget-${peer.id}` ? 'Forgetting…' : 'Retry forget'} variant="danger" disabled={!!busy} onPress={() => {void run(`forget-${peer.id}`, () => actions.forgetPeer(peer.id));}} />}
+    {!forgetting && !peer.revocationPending && <>
       <Button label={expanded ? 'Hide connection options' : hostPeer ? 'Reconnect' : 'Receive connection'} variant="secondary" compact disabled={!!busy} onPress={() => setExpanded(!expanded)} />
       {expanded && <View style={s.fieldGroup}>
         <Text style={s.smallText}>{hostPeer ? 'On the other phone, open Synced and choose “Receive connection” for this phone. Then connect below.' : 'Keep Synced open here. On the other phone, choose “Reconnect” for this phone.'}</Text>
@@ -61,7 +62,7 @@ function SavedDeviceRow({state, actions, transport, busy, run, peer}: Props & {p
       </View>}
       <Pressable accessibilityRole="button" accessibilityLabel={`Forget ${name}`} disabled={!!busy} onPress={() => {setExpanded(false); setForgetting(true);}} style={s.textButton}><Text style={[s.linkText, s.dangerText]}>Forget phone</Text></Pressable>
     </>}
-    {forgetting && <View accessibilityRole="alert" style={s.confirmationBox}>
+    {forgetting && !peer.revocationPending && <View accessibilityRole="alert" style={s.confirmationBox}>
       <Text style={s.rowTitle}>Forget {name}?</Text>
       <Text style={s.smallText}>This removes the saved pairing from this phone. A new invitation will be needed to pair again. The other phone keeps its own saved list.</Text>
       <Button label={busy === `forget-${peer.id}` ? 'Forgetting…' : 'Forget this phone'} variant="danger" disabled={!!busy} onPress={() => {void run(`forget-${peer.id}`, () => actions.forgetPeer(peer.id));}} />
