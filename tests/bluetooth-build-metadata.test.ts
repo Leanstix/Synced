@@ -16,3 +16,14 @@ describe('reviewed Bluetooth dependency build metadata', () => {
   it('preserves every other dependency byte and writes no Java or Kotlin source', () => { const result = configure(version, original); expect(result.replace(BUILD_METADATA, '')).toBe(original); expect(BUILD_METADATA).not.toMatch(/class |package |import |\.java|\.kt/); });
   it('refuses empty and truncated metadata', () => { for (const value of ['', original.slice(0, 100), original + '\n']) expect(() => configure(version, value)).toThrow('differs'); });
 });
+
+
+describe('Bluetooth build metadata marker placement', () => {
+  it.each([
+    ['appended', (text: string) => text + BUILD_METADATA],
+    ['prepended', (text: string) => BUILD_METADATA + text],
+    ['buildscript block', (text: string) => text.replace('buildscript {\n', `buildscript {\n${BUILD_METADATA}`)],
+    ['repositories block', (text: string) => text.replace('    repositories {\n', `    repositories {\n${BUILD_METADATA}`)],
+    ['late android block', (text: string) => text.replace('    lintOptions {\n', `${BUILD_METADATA}    lintOptions {\n`)],
+  ])('refuses a marker relocated to %s', (_label, change) => { expect(() => configure(version, change(original))).toThrow('location'); });
+});

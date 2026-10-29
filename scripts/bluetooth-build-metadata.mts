@@ -9,6 +9,7 @@ export function configureBluetoothBuildMetadata(version: string, source: string)
   if (version !== VERSION) throw new Error('Unreviewed Bluetooth package version.');
   const original = source.replace(BUILD_METADATA, '');
   if (createHash('sha256').update(original).digest('hex') !== ORIGINAL_SHA256) throw new Error('Bluetooth build metadata differs from the reviewed package.');
-  if (source.includes(BUILD_METADATA)) return source;
-  return source.replace('android {\n', `android {\n${BUILD_METADATA}`);
+  const configured = original.replace('android {\n', `android {\n${BUILD_METADATA}`);
+  if (source !== original && source !== configured) throw new Error('Bluetooth metadata preparation marker is not in the reviewed location.');
+  return configured;
 }
