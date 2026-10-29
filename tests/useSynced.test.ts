@@ -255,3 +255,32 @@ describe('phase2 hook Bluetooth setup and transport isolation', () => {
     expect(h.bt.connectTrusted).toHaveBeenCalledWith('saved-id', 'AA:BB:CC:DD:EE:FF'); expect(h.state!.reconnect.active).toBe(true); h.btCallbacks!.onApproved(); await pending; expect(h.state!.status).toBe('connected'); h.cleanup!();
   });
 });
+
+describe('phase2 hook intercom consent and lifecycle', () => {
+  it('permits calls only for approved foreground Wi-Fi sessions', async () => {
+    const { actions } = useSynced(); expect(h.voiceCallbacks!.canCall()).toBe(false); await actions.connect('invitation'); expect(h.voiceCallbacks!.canCall()).toBe(false);
+    h.connectionCallbacks!.onApproved(); expect(h.voiceCallbacks!.canCall()).toBe(true); expect(h.voice.requestCall).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('routes incoming signals without automatically accepting microphone consent', async () => {
+    const { cb, actions } = await connectedController(); cb.onPayload({ type: 'call', signal: { type: 'invite' } });
+    expect(h.voice.handleSignal).toHaveBeenCalledWith({ type: 'invite' }); expect(h.voice.acceptCall).not.toHaveBeenCalled(); await actions.acceptVoiceCall(); expect(h.voice.acceptCall).toHaveBeenCalledOnce(); h.cleanup!();
+  });
+  it('routes independent call request reject hangup and mute controls', async () => {
+    const { actions } = await connectedController(); await actions.requestVoiceCall(); actions.rejectVoiceCall(); actions.endVoiceCall(); actions.setVoiceMuted(true);
+    expect(h.voice.requestCall).toHaveBeenCalledOnce(); expect(h.voice.rejectCall).toHaveBeenCalledOnce(); expect(h.voice.setMuted).toHaveBeenCalledWith(true); expect(h.voice.endCall).toHaveBeenCalled(); h.cleanup!();
+  });
+  it('ends audio immediately on background and refuses further incoming signals', async () => {
+    const { cb } = await connectedController(); h.voice.endCall.mockClear(); h.appChange!('inactive'); expect(h.voice.endCall).toHaveBeenCalledOnce(); expect(h.voiceCallbacks!.canCall()).toBe(false);
+    cb.onPayload({ type: 'call', signal: { type: 'invite' } }); expect(h.voice.handleSignal).not.toHaveBeenCalled(); h.appChange!('active'); expect(h.voiceCallbacks!.canCall()).toBe(true); h.cleanup!();
+  });
+  it('blocks Bluetooth audio and ignores call signaling on that transport', async () => {
+    const { cb } = await connectedController('bluetooth'); expect(h.voiceCallbacks!.canCall()).toBe(false); cb.onPayload({ type: 'call', signal: { type: 'invite' } }); expect(h.voice.handleSignal).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('ends calls on transport switch disconnect and unmount', async () => {
+    const { actions } = await connectedController(); h.voice.endCall.mockClear(); await actions.startBluetoothHost(); expect(h.voice.endCall).toHaveBeenCalledOnce();
+    actions.disconnect(); expect(h.voice.endCall).toHaveBeenCalledTimes(2); h.cleanup!(); expect(h.voice.endCall).toHaveBeenCalledTimes(3); expect(h.voiceCallbacks!.canCall()).toBe(false);
+  });
+  it('publishes call state independently of screen and control grants', async () => {
+    await connectedController(); h.voiceCallbacks!.onState({ phase: 'incoming', muted: false }); expect(h.state!.voice.phase).toBe('incoming'); expect(h.state!.screenSharing).toBe(false); expect(h.state!.controlEnabled).toBe(false); h.cleanup!();
+  });
+});
