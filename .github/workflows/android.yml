@@ -2,7 +2,7 @@ name: Android
 
 on:
   push:
-    branches: [main, feat/typescript-only-restart]
+    branches: [main, feat/trusted-transports]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version: '24.22.1'
           cache: npm
       - uses: actions/setup-java@v5
         with:
@@ -45,26 +45,27 @@ jobs:
         run: |
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" "ndk;27.1.12297006" "cmake;3.22.1"
-      - name: Build installable preview
+      - name: Build optimized preview APK (CI debug key; not for production)
         working-directory: android
         run: ./gradlew :app:assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a,x86_64 '-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g'
       - name: Verify APK identity, signing, and permission boundary
         shell: bash
+        env:
+          ALLOW_DEBUG_PREVIEW_SIGNER: '1'
+          APP_ENV: preview
         run: |
           preview_apk=android/app/build/outputs/apk/release/app-release.apk
-          preview_metadata=android/app/build/outputs/apk/release/verification.txt
-          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump permissions "$preview_apk" > "$preview_metadata"
-          if grep -Eq 'android[.]permission[.](CAMERA|RECORD_AUDIO|SYSTEM_ALERT_WINDOW|READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE)' "$preview_metadata"; then
-            echo 'Unexpected camera, microphone, overlay, or storage permission in APK.' >&2
-            exit 1
-          fi
-          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$preview_apk" >> "$preview_metadata"
-          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$preview_apk" >> "$preview_metadata"
-          sha256sum "$preview_apk" >> "$preview_metadata"
+          evidence=android/app/build/outputs/apk/release
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump permissions "$preview_apk" > "$evidence/permissions.txt"
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$preview_apk" > "$evidence/badging.txt"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$preview_apk" > "$evidence/certificate.txt"
+          node scripts/audit-manifest.mts "$evidence/permissions.txt" "$evidence/badging.txt" "$evidence/certificate.txt"
+          sha256sum "$preview_apk" > "$evidence/SHA256SUMS"
+          echo 'CI preview only: optimized APK signed using the generated Android debug keystore. Production uses the EAS production profile and remote credentials.' > "$evidence/SIGNING-NOTICE.txt"
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
         with:
-          name: synced-android-preview
+          name: synced-android-preview-debug-signed
           path: android/app/build/outputs/apk/release/
           if-no-files-found: error
           retention-days: 14
@@ -80,7 +81,7 @@ jobs:
           java-version: '17'
       - uses: actions/download-artifact@v4
         with:
-          name: synced-android-preview
+          name: synced-android-preview-debug-signed
           path: preview
       - name: Enable KVM access
         run: |
