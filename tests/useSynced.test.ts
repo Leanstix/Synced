@@ -13,9 +13,10 @@ const h = vi.hoisted(() => ({
   btCallbacks: null as ConnectionCallbacks | null,
   peers: [] as Array<{ id: string; name: string; role: 'HOST' | 'CONTROLLER'; secret: string; savedAt: number; endpoint?: { address: string; port: number } }>,
   trustListener: null as null | ((id?: string) => void),
+  microphonePermission: vi.fn(async (): Promise<boolean> => true),
   trust: { initialize: vi.fn(async (): Promise<void> => undefined), list: vi.fn(), get: vi.fn(), subscribe: vi.fn(), remove: vi.fn(async (id: string): Promise<void> => { void id; }), allowNewPairing: vi.fn() },
   voiceCallbacks: null as ConstructorParameters<typeof import('../src/core/calls').VoiceSession>[0] | null,
-  voice: { requestCall: vi.fn(async () => undefined), acceptCall: vi.fn(async () => undefined), rejectCall: vi.fn(), endCall: vi.fn(), setMuted: vi.fn(), handleSignal: vi.fn(async () => undefined) },
+  voice: { awaitingMicrophonePermission: false, requestCall: vi.fn(async () => undefined), acceptCall: vi.fn(async () => undefined), rejectCall: vi.fn(), endCall: vi.fn(), setMuted: vi.fn(), handleSignal: vi.fn(async () => undefined) },
   bluetooth: { listBondedDevices: vi.fn(async () => [{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }]), requestBluetoothEnable: vi.fn(async () => undefined), requestBluetoothDiscoverable: vi.fn(async () => undefined), openBluetoothPairingSettings: vi.fn(async () => undefined) },
   bt: { host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn(), savePairing: vi.fn() },
   connection: { hostTrusted: vi.fn(async () => undefined), connectTrusted: vi.fn(async () => undefined), savePairing: vi.fn(), host: vi.fn(async () => undefined), connect: vi.fn(async () => undefined), send: vi.fn(), approve: vi.fn(), dispose: vi.fn(), revokePeer: vi.fn(async (id: string) => { await h.trust.remove(id); }), close: vi.fn() },
@@ -43,11 +44,12 @@ vi.mock('expo-device', () => ({ deviceName: 'Local phone' }));
 vi.mock('../src/core/secureStorage', () => ({ createSecureTrustManager: () => h.trust }));
 vi.mock('../src/core/bluetooth', () => ({ BluetoothConnection: class { constructor(callbacks: ConnectionCallbacks) { h.btCallbacks = callbacks; return h.bt; } } }));
 vi.mock('../src/core/bluetoothAdapter', () => h.bluetooth);
-vi.mock('../src/core/calls', () => ({ requestMicrophonePermission: vi.fn(async () => true), VoiceSession: class { constructor(callbacks: typeof h.voiceCallbacks) { h.voiceCallbacks = callbacks; return h.voice; } } }));
+vi.mock('../src/core/calls', () => ({ requestMicrophonePermission: h.microphonePermission, VoiceSession: class { constructor(callbacks: typeof h.voiceCallbacks) { h.voiceCallbacks = callbacks; return h.voice; } } }));
 import { useSynced } from '../src/controller/useSynced';
 
 beforeEach(() => {
   vi.clearAllMocks(); h.allow = null; h.peers = [];
+  h.voice.awaitingMicrophonePermission = false; h.microphonePermission.mockResolvedValue(true);
   h.trust.initialize.mockResolvedValue(undefined);
   h.trust.list.mockImplementation(() => h.peers);
   h.trust.get.mockImplementation((id: string) => h.peers.find(p => p.id === id));
@@ -454,4 +456,48 @@ describe('stale capture request completion', () => {
     h.media.stop.mockClear(); h.input.revoke.mockClear(); finish(); await pending;
     expect(h.media.stop).not.toHaveBeenCalled(); expect(h.input.revoke).not.toHaveBeenCalled(); expect(h.state!.controlEnabled).toBe(true); h.cleanup!();
   });
+});
+
+describe('microphone permission foreground resume',()=>{
+ it('waits for the owner UI to resume after an Android permission dialog',async()=>{
+  await connectedController();h.voice.awaitingMicrophonePermission=true;h.voice.endCall.mockClear();h.appChange!('background');
+  const pending=h.voiceCallbacks!.requestMicrophonePermission();await flush();let done=false;void pending.then(()=>{done=true});
+  expect(done).toBe(false);expect(h.voice.endCall).not.toHaveBeenCalled();
+  h.appChange!('active');await expect(pending).resolves.toBe(true);h.cleanup!();
+ });
+ it('still ends active or negotiating audio immediately on real backgrounding',async()=>{
+  await connectedController();h.voice.awaitingMicrophonePermission=false;h.voice.endCall.mockClear();h.appChange!('background');
+  expect(h.voice.endCall).toHaveBeenCalledOnce();expect(h.voiceCallbacks!.canCall()).toBe(false);h.cleanup!();
+ });
+ it('refuses microphone capture if the UI does not resume within the bounded grace period',async()=>{
+  vi.useFakeTimers();try{
+   await connectedController();h.voice.awaitingMicrophonePermission=true;h.appChange!('background');
+   const pending=h.voiceCallbacks!.requestMicrophonePermission();const refused=expect(pending).rejects.toThrow('Return to Synced');await flush();
+   await vi.advanceTimersByTimeAsync(5000);await refused;expect(vi.getTimerCount()).toBe(0);h.cleanup!();
+  }finally{vi.useRealTimers()}
+ });
+ it('cancels a foreground waiter immediately on disconnect',async()=>{
+  vi.useFakeTimers();try{
+   const {actions}=await connectedController();h.voice.awaitingMicrophonePermission=true;h.appChange!('background');
+   const pending=h.voiceCallbacks!.requestMicrophonePermission();await flush();actions.disconnect();
+   await expect(pending).resolves.toBe(false);expect(vi.getTimerCount()).toBe(0);h.appChange!('active');h.cleanup!();
+  }finally{vi.useRealTimers()}
+ });
+ it('cancels foreground waiters on unmount without leaking their timers',async()=>{
+  vi.useFakeTimers();try{
+   await connectedController();h.voice.awaitingMicrophonePermission=true;h.appChange!('background');
+   const pending=h.voiceCallbacks!.requestMicrophonePermission();await flush();h.cleanup!();
+   await expect(pending).resolves.toBe(false);expect(vi.getTimerCount()).toBe(0);
+  }finally{vi.useRealTimers()}
+ });
+ it('does not carry a late permission grant into a replacement connection',async()=>{
+  const {actions}=await connectedController();let allow!: (value:boolean)=>void;
+  h.microphonePermission.mockReturnValueOnce(new Promise<boolean>(resolve=>{allow=resolve}));
+  const pending=h.voiceCallbacks!.requestMicrophonePermission();await actions.startBluetoothHost();allow(true);
+  await expect(pending).resolves.toBe(false);h.cleanup!();
+ });
+ it('returns a declined permission without waiting for foreground or acquiring resources',async()=>{
+  await connectedController();h.microphonePermission.mockResolvedValueOnce(false);h.voice.awaitingMicrophonePermission=true;h.appChange!('background');
+  await expect(h.voiceCallbacks!.requestMicrophonePermission()).resolves.toBe(false);h.cleanup!();
+ });
 });

@@ -66,6 +66,7 @@ export class VoiceSession {
   private callId: string | null = null;
   private caller = false;
   private generation = 0;
+  private permissionGeneration: number | null = null;
   private peer: RTCPeerConnection | null = null;
   private local: MediaStream | null = null;
   private remote: MediaStream | null = null;
@@ -77,6 +78,9 @@ export class VoiceSession {
   private disconnectedTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly callbacks: VoiceCallbacks) {}
+
+  /** No microphone exists while the owner's OS permission decision is pending. */
+  get awaitingMicrophonePermission(): boolean { return this.permissionGeneration === this.generation; }
 
   async requestCall(): Promise<void> {
     if (!this.callbacks.canCall()) throw new Error('Intercom requires an approved foreground Wi-Fi session.');
@@ -154,8 +158,13 @@ export class VoiceSession {
   private async capture(generation: number): Promise<boolean> {
     if (generation !== this.generation) return false;
     if (!this.callbacks.canCall()) throw new Error('Intercom session is no longer available.');
-    if (!await this.callbacks.requestMicrophonePermission()) throw new Error('Microphone permission was declined.');
+    this.permissionGeneration = generation;
+    let allowed: boolean;
+    try { allowed = await this.callbacks.requestMicrophonePermission(); }
+    catch (error) { if (generation !== this.generation) return false; throw error; }
+    finally { if (this.permissionGeneration === generation) this.permissionGeneration = null; }
     if (generation !== this.generation) return false;
+    if (!allowed) throw new Error('Microphone permission was declined.');
     if (!this.callbacks.canCall()) throw new Error('Intercom session is no longer available.');
     const stream = await mediaDevices.getUserMedia({ audio: true, video: false });
     if (generation !== this.generation) { this.release(stream); return false; }
@@ -266,7 +275,7 @@ export class VoiceSession {
   }
   private fail(message: string): void { this.finish('end'); this.callbacks.onError(message); }
   private stop(): void {
-    this.generation++; this.clearDeadline();
+    this.generation++; this.permissionGeneration = null; this.clearDeadline();
     if (this.disconnectedTimer) clearTimeout(this.disconnectedTimer);
     this.disconnectedTimer = null;
     const peer = this.peer; this.peer = null; peer?.close();

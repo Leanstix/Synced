@@ -31,3 +31,15 @@ describe('Bluetooth invitation evidence privacy',()=>{
   expect(()=>assertEvidenceSafe([item('Bluetooth controls'),item('Connected')])).not.toThrow();
  });
 });
+
+import {microphoneGrantedForOwner} from '../scripts/dual-android-policy.mts';
+describe('retained owner microphone grant evidence',()=>{
+ const owner=(grant:string)=>`Packages:\n Package [com.leanstix.synced]\n User 0: installed=true\n  runtime permissions:\n   android.permission.RECORD_AUDIO: granted=${grant}, flags=[ USER_SET ]\n`;
+ it('recognizes an existing explicit owner permission grant',()=>expect(microphoneGrantedForOwner(owner('true'))).toBe(true));
+ it('rejects an owner denial',()=>expect(microphoneGrantedForOwner(owner('false'))).toBe(false));
+ it('does not use a grant from a different Android profile',()=>expect(microphoneGrantedForOwner(owner('false')+' User 10: installed=true\n runtime permissions:\n android.permission.RECORD_AUDIO: granted=true')).toBe(false));
+ it('does not confuse installation metadata with a runtime grant',()=>expect(microphoneGrantedForOwner('install permissions:\n android.permission.RECORD_AUDIO: granted=true\n User 0: installed=true')).toBe(false));
+ it('rejects ambiguous duplicate owner records',()=>expect(microphoneGrantedForOwner(owner('true')+owner('false'))).toBe(false));
+ it('rejects malformed grant values and other permissions',()=>{expect(microphoneGrantedForOwner(owner('trueish'))).toBe(false);expect(microphoneGrantedForOwner(owner('true').replace('RECORD_AUDIO','READ_CONTACTS'))).toBe(false)});
+ it('rejects unavailable permission evidence',()=>expect(microphoneGrantedForOwner('')).toBe(false));
+});

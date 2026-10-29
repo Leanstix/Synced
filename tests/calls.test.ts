@@ -232,3 +232,41 @@ describe('intercom observer cancellation and signaling limits', () => {
     expect(callbacks.onState).toHaveBeenLastCalledWith({ phase: 'incoming', muted: false }); voice.endCall();
   });
 });
+
+describe('microphone permission capture boundary',()=>{
+ it('marks only a pending owner permission decision as safe to await without capture',async()=>{
+  const {voice,callbacks}=setup(),permission=deferred<boolean>();callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+  await voice.handleSignal({type:'invite',callId});const pending=voice.acceptCall();
+  expect(voice.awaitingMicrophonePermission).toBe(true);expect(mock.getUserMedia).not.toHaveBeenCalled();
+  permission.resolve(true);await pending;expect(voice.awaitingMicrophonePermission).toBe(false);voice.endCall();
+ });
+ it('clears the permission marker on refusal and never acquires audio',async()=>{
+  const {voice,callbacks}=setup();callbacks.requestMicrophonePermission.mockResolvedValue(false);
+  await voice.handleSignal({type:'invite',callId});await expect(voice.acceptCall()).rejects.toThrow('declined');
+  expect(voice.awaitingMicrophonePermission).toBe(false);expect(mock.getUserMedia).not.toHaveBeenCalled();
+ });
+ it('clears the marker immediately on hangup even if Android never resolves its prompt',async()=>{
+  const {voice,callbacks}=setup(),permission=deferred<boolean>();callbacks.requestMicrophonePermission.mockReturnValue(permission.promise);
+  await voice.handleSignal({type:'invite',callId});const pending=voice.acceptCall();voice.endCall();
+  expect(voice.awaitingMicrophonePermission).toBe(false);permission.resolve(true);await pending;expect(mock.getUserMedia).not.toHaveBeenCalled();
+ });
+ it('does not let an old permission result clear a newer call permission marker',async()=>{
+  const {voice,callbacks}=setup(),older=deferred<boolean>(),newer=deferred<boolean>();
+  callbacks.requestMicrophonePermission.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
+  await voice.handleSignal({type:'invite',callId});const old=voice.acceptCall();voice.endCall();
+  await voice.handleSignal({type:'invite',callId:otherId});const fresh=voice.acceptCall();older.resolve(false);
+  await expect(old).resolves.toBeUndefined();expect(voice.awaitingMicrophonePermission).toBe(true);expect(mock.getUserMedia).not.toHaveBeenCalled();
+  newer.resolve(true);await fresh;expect(voice.awaitingMicrophonePermission).toBe(false);expect(mock.getUserMedia).toHaveBeenCalledOnce();voice.endCall();
+ });
+ it('does not exempt an in-flight native microphone acquisition from background teardown',async()=>{
+  const {voice}=setup(),capture=deferred<ReturnType<typeof stream>>();mock.getUserMedia.mockReturnValue(capture.promise);
+  await voice.handleSignal({type:'invite',callId});const pending=voice.acceptCall();await flush();
+  expect(voice.awaitingMicrophonePermission).toBe(false);voice.endCall();const late=stream();capture.resolve(late);await pending;expect(late.release).toHaveBeenCalledOnce();
+ });
+ it('ignores a rejected old OS permission request after hangup',async()=>{
+  const {voice,callbacks}=setup();let reject!: (error:Error)=>void;
+  callbacks.requestMicrophonePermission.mockReturnValue(new Promise<boolean>((_resolve,no)=>{reject=no}));
+  await voice.handleSignal({type:'invite',callId});const pending=voice.acceptCall();voice.endCall();reject(new Error('stale Android prompt'));
+  await expect(pending).resolves.toBeUndefined();expect(callbacks.onError).not.toHaveBeenCalled();expect(mock.getUserMedia).not.toHaveBeenCalled();
+ });
+});

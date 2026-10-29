@@ -756,6 +756,34 @@
       "testFile": "tests/release-log.test.ts",
       "testPrefix": "Bluetooth invitation diagnostic redaction",
       "risk": "Redact Bluetooth invitation credentials in diagnostic output without depending on Wi-Fi-only URI matching"
+    },
+    {
+      "id": "microphone-permission-boundary",
+      "source": "src/core/calls.ts",
+      "testFile": "tests/calls.test.ts",
+      "testPrefix": "microphone permission capture boundary",
+      "risk": "Distinguish an OS permission decision from native audio acquisition and invalidate stale permission work"
+    },
+    {
+      "id": "microphone-foreground-resume",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "microphone permission foreground resume",
+      "risk": "Wait briefly for the owner Activity after a system permission dialog, while preventing background or stale microphone capture"
+    },
+    {
+      "id": "retained-microphone-grant",
+      "source": "scripts/dual-android-policy.mts",
+      "testFile": "tests/dual-android-policy.test.ts",
+      "testPrefix": "retained owner microphone grant evidence",
+      "risk": "Honor only the tested owner runtime grant when retrying a microphone flow without silently granting permission"
+    },
+    {
+      "id": "voice-permission-diagnostics",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android-voice.test.ts",
+      "testPrefix": "voice permission stage diagnostics",
+      "risk": "Identify the exact failed permission stage without claiming acceptance, recording or active audio prematurely"
     }
   ]
 }

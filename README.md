@@ -56,7 +56,7 @@ Forget blocks the peer immediately. If secure storage cannot persist deletion, t
 
 For Bluetooth, pair the phones in Android settings first, then select the real bonded device in Synced. Enable Bluetooth and discoverability when requested, exchange the private Bluetooth invitation, compare codes and approve. Bluetooth offers controls without a live preview, so the host must separately approve that access. Use Wi-Fi for screen viewing or voice. Hotspot membership alone grants no access.
 
-The optional voice link connects the two Synced apps. One phone invites and the other accepts; each microphone requires OS permission. Either side can mute or end the link, and leaving the foreground ends it. It does not forward SIM call audio or guarantee answering protected OEM call screens. The dialer shortcut opens the normal phone UI; the owner completes the call there.
+The optional voice link connects the two Synced apps. One phone invites and the other accepts; each microphone requires OS permission. Opening Android's permission dialog does not start recording: Synced waits briefly for its own screen to resume before acquiring a microphone. Either side can mute or end the link, and leaving the foreground stops acquired audio. It does not forward SIM call audio or guarantee answering protected OEM call screens. The dialer shortcut opens the normal phone UI; the owner completes the call there.
 
 ## Permission and security boundary
 

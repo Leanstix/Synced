@@ -57,3 +57,11 @@ describe('current visible Android UI lookup', () => {
     expect(run.mock.calls.filter(([args]) => args.includes('swipe'))).toHaveLength(27);
   });
 });
+
+describe('retained microphone permission on emulator retries',()=>{
+ it('honors an existing owner grant without pretending a new OS prompt appeared',async()=>{
+  const run=vi.fn<AdbCommand>(()=>'User 0: installed=true\n runtime permissions:\n android.permission.RECORD_AUDIO: granted=true, flags=[USER_SET]');
+  await new AndroidUi('emulator-5554','com.leanstix.synced',run,instant).allowMicrophone();
+  expect(run).toHaveBeenCalledExactlyOnceWith(['-s','emulator-5554','shell','dumpsys','package','com.leanstix.synced'],undefined);
+ });
+});

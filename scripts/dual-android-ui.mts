@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseUi, findUi, assertEvidenceSafe, shellQuote, type UiNode } from './dual-android-policy.mts';
+import { parseUi, findUi, assertEvidenceSafe, microphoneGrantedForOwner, shellQuote, type UiNode } from './dual-android-policy.mts';
 export type AdbCommand = (args: string[], timeout?: number) => string;
 export const realAdb: AdbCommand = (args, timeout = 30000) => execFileSync(process.env.ADB ?? 'adb', args, { encoding: 'utf8', timeout, maxBuffer: 2_000_000, stdio: ['ignore', 'pipe', 'pipe'] });
 export const delay = (milliseconds: number) => new Promise<void>(resolve => setTimeout(resolve, milliseconds));
@@ -67,6 +67,7 @@ export class AndroidUi {
   async visible(label: string, prefix = false): Promise<void> { await this.locate(label, prefix); }
   async noAutoGrants(): Promise<void> { await this.visible('Your screen is private.'); await this.visible('Only you can control this phone.'); }
   async allowMicrophone(): Promise<void> {
+    if (microphoneGrantedForOwner(this.adb(['shell', 'dumpsys', 'package', this.packageName]))) return;
     // Permission controller buttons are read and tapped directly, never app-op grants.
     for (let attempt = 0; attempt < 30; attempt++) {
       const nodes = this.dump();

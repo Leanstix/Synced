@@ -40,6 +40,14 @@ export function comparisonFromUi(nodes: UiNode[]): string {
 export function assertEvidenceSafe(nodes: UiNode[]): void {
   if (nodes.some(node => /synced(?:-bt)?:\/\/|Comparison code:|PRIVATE INVITATION/i.test(`${node.text} ${node.description}`))) throw new Error('Sensitive invitation or comparison UI is visible; evidence capture refused.');
 }
+/** A retained grant must belong to the tested app's owner user, not another profile. */
+export function microphoneGrantedForOwner(packageDump: string): boolean {
+  const sections = packageDump.split(/(?:^|\n)[ \t]*User 0:/);
+  if (sections.length !== 2) return false;
+  const owner = sections[1].split(/\n[ \t]*User \d+:/)[0];
+  const runtime = owner.split(/\bruntime permissions:/)[1];
+  return !!runtime && /(?:^|\n)[ \t]*android\.permission\.RECORD_AUDIO:[ \t]*granted=true(?:,|[ \t\r\n]|$)/.test(runtime);
+}
 export function shellQuote(value: string): string {
   if (value.includes('\0') || value.length > 8192) throw new Error('Invalid Android input value.');
   return `'${value.replace(/'/g, `'\\''`)}'`;

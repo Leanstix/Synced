@@ -40,14 +40,15 @@ export interface VoicePhone {
 }
 export async function voiceLink(host: VoicePhone, controller: VoicePhone, stage: (name: string) => void = () => {}) {
   await host.visible('Talk while you help.'); await controller.visible('Talk while you help.');
-  await host.tap('Request voice link');
+  await host.tap('Request voice link'); stage('voice-request-tapped');
   await host.visible('Waiting for them to accept'); await controller.visible('A voice request is waiting');
   for (const phone of [host, controller]) {
     if (phone.dump().some(node => [node.text, node.description].includes('Voice link is active'))) throw new Error('Voice became active before explicit acceptance.');
   }
   stage('voice-waits-for-explicit-acceptance');
-  await controller.tap('Accept · Use microphone'); await controller.allowMicrophone();
-  await host.allowMicrophone();
+  await controller.tap('Accept · Use microphone'); stage('voice-accept-tapped');
+  await controller.allowMicrophone(); stage('voice-controller-permission-confirmed');
+  await host.allowMicrophone(); stage('voice-host-permission-confirmed');
   await host.visible('Voice link is active'); await controller.visible('Voice link is active'); stage('voice-link-active-both');
   for (const phone of [host, controller]) {
     await phone.tap('Mute my microphone'); await phone.visible('Your microphone is muted');
