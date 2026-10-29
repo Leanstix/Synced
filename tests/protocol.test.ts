@@ -63,3 +63,11 @@ describe('malformed cryptographic material', () => {
   it('rejects negative fractional and unsafe sequence numbers', () => { const key = deriveSession(secret, cNonce, hNonce).hostKey; const frame = new CipherDirection(key).seal({ ping: true }); for (const sequence of [-1, 0.5, Number.MAX_SAFE_INTEGER]) expect(() => new CipherDirection(key).open({ ...frame, sequence })).toThrow(); });
   it('does not allow session contexts to share directional keys', () => { expect(deriveSession(secret, cNonce, hNonce, 'trusted:a:b').hostKey).not.toEqual(deriveSession(secret, cNonce, hNonce).hostKey); });
 });
+
+it('owns an independent directional key copy after construction', () => {
+  const original = deriveSession(secret, cNonce, hNonce).hostKey;
+  const receiver = new CipherDirection(original);
+  const sender = new CipherDirection(original);
+  original.fill(0);
+  expect(receiver.open(sender.seal({ value: 'intact' }))).toEqual({ value: 'intact' });
+});

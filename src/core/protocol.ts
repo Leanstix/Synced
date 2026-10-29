@@ -57,7 +57,10 @@ export interface EncryptedMessage { type: 'encrypted'; sequence: number; ciphert
 /** One direction per key. In-order TCP transport permits strict replay rejection. */
 export class CipherDirection {
   private sequence = 0;
-  constructor(private readonly key: Uint8Array) { if (key.length !== 32) throw new Error('Invalid key.'); }
+  constructor(private readonly key: Uint8Array) {
+    if (key.length !== 32) throw new Error('Invalid key.');
+    this.key = new Uint8Array(key);
+  }
   private nonce(sequence: number) {
     const nonce = new Uint8Array(12);
     new DataView(nonce.buffer).setUint32(8, sequence, false);
