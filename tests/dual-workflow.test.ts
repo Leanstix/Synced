@@ -19,3 +19,11 @@ describe('APK audit failure evidence retention', () => {
   it('does not expose an unaudited APK or signing key in the metadata artifact', () => { expect(metadata).not.toMatch(/app-release\.apk|keystore|\.jks|\*\*/); });
   it('does not turn absence of build output into an extra failure or weaken the build audit', () => { expect(metadata).toContain('if-no-files-found: ignore'); expect(workflow).toContain('node scripts/audit-manifest.mts'); expect(workflow).not.toContain('continue-on-error: true'); });
 });
+
+describe('compiled manifest audit workflow evidence', () => {
+  it('extracts compiled XML from the same APK used by permission and signer checks', () => expect(workflow).toContain('"$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$preview_apk" > "$evidence/manifest.xml"'));
+  it('extracts XML before invoking the audit', () => expect(workflow.indexOf('apkanalyzer" manifest print')).toBeLessThan(workflow.indexOf('node scripts/audit-manifest.mts')));
+  it('passes compiled XML as the fourth audit input', () => expect(workflow).toContain('"$evidence/certificate.txt" "$evidence/manifest.xml"'));
+  it('retains compiled XML along with the human-readable summary', () => expect(workflow).toContain('android/app/build/outputs/apk/release/manifest.xml'));
+  it('requires the CLI caller to provide the compiled manifest file', () => { const cli = readFileSync('scripts/audit-manifest.mts', 'utf8'); expect(cli).toContain('!manifest'); expect(cli).toContain("manifest: readFileSync(manifest, 'utf8')"); });
+});

@@ -59,7 +59,8 @@ jobs:
           "$ANDROID_HOME/build-tools/37.0.0/aapt" dump permissions "$preview_apk" > "$evidence/permissions.txt"
           "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$preview_apk" > "$evidence/badging.txt"
           "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs "$preview_apk" > "$evidence/certificate.txt"
-          node scripts/audit-manifest.mts "$evidence/permissions.txt" "$evidence/badging.txt" "$evidence/certificate.txt"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print "$preview_apk" > "$evidence/manifest.xml"
+          node scripts/audit-manifest.mts "$evidence/permissions.txt" "$evidence/badging.txt" "$evidence/certificate.txt" "$evidence/manifest.xml"
           (cd "$evidence" && sha256sum app-release.apk > SHA256SUMS)
           echo 'CI preview only: optimized APK signed using the generated Android debug keystore. Production uses the EAS production profile and remote credentials.' > "$evidence/SIGNING-NOTICE.txt"
       - name: Upload APK audit metadata
@@ -71,6 +72,7 @@ jobs:
             android/app/build/outputs/apk/release/permissions.txt
             android/app/build/outputs/apk/release/badging.txt
             android/app/build/outputs/apk/release/certificate.txt
+            android/app/build/outputs/apk/release/manifest.xml
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload preview APK
