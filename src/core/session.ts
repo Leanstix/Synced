@@ -7,7 +7,7 @@ export type SessionPayload =
   | { type: 'call'; signal: unknown }
   | { type: 'revoke'; peerId: string }
   | { type: 'input'; command: unknown }
-  | { type: 'permissions'; screenSharing: boolean; controlEnabled: boolean }
+  | { type: 'permissions'; screenSharing: boolean; controlEnabled: boolean; controlMode?: 'screen' | 'bluetooth' }
   | { type: 'ping' }
   | { type: 'pong' };
 export type SessionRole = 'HOST' | 'CONTROLLER';
