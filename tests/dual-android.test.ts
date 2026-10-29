@@ -7,7 +7,7 @@ function phone(serial: string, ip: string) {
     serial, privateIp: vi.fn(() => ip), install: vi.fn(), launch: vi.fn(async () => {}), top: vi.fn(async () => {}),
     locate: vi.fn(async (label: string) => { comparison = label === 'Comparison code:'; }),
     dump: vi.fn(() => parseUi(`<hierarchy><node bounds="[0,0][100,100]" ${comparison ? 'content-desc="Comparison code: 1 2 3 4 5 6"' : 'text="synced://private-in-memory"'}/></hierarchy>`)),
-    tap: vi.fn(async () => {}), fill: vi.fn(async () => {}), visible: vi.fn(async () => {}), noAutoGrants: vi.fn(async () => {}),
+    tap: vi.fn(async (label: string) => { void label; }), fill: vi.fn(async () => {}), visible: vi.fn(async () => {}), noAutoGrants: vi.fn(async () => {}),
   } satisfies PairingPhone;
 }
 describe('dual Android pairing saved resume orchestration', () => {
