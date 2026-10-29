@@ -77,10 +77,17 @@ export class TrustManager {
     return result;
   }
   save(peer: SavedPeer): Promise<void> {
+    const candidate: SavedPeer = { ...peer, ...(peer.endpoint ? { endpoint: { ...peer.endpoint } } : {}) };
     return this.enqueue(current => {
+      peer = candidate;
       if (this.revoked.has(peer.id)) throw new Error('This peer was revoked. Pair again in a new session.');
       const peers = current.peers.filter(p => p.id !== peer.id);
-      return { ...current, peers: [...peers, peer] };
+      const previous = current.peers.find(p => p.id === peer.id && p.role === peer.role);
+      const saved: SavedPeer = { ...peer,
+        ...(!peer.endpoint && previous?.endpoint ? { endpoint: { ...previous.endpoint } } : {}),
+        ...(!peer.bluetoothAddress && previous?.bluetoothAddress ? { bluetoothAddress: previous.bluetoothAddress } : {}),
+      };
+      return { ...current, peers: [...peers, saved] };
     });
   }
   rename(peerId: string, name: string): Promise<void> {
