@@ -9,3 +9,13 @@ describe('two-phone CI workflow contract', () => {
   it('requires both the voice and actual screen/control checks without masking failures', () => { expect(launch).toContain('--voice --screen-control --evidence=smoke-evidence/dual'); expect(launch).not.toContain('continue-on-error: true'); expect(launch).not.toContain('|| true'); });
   it('retains evidence on failure within a bounded accelerated test job', () => { expect(launch).toContain('timeout-minutes: 30'); expect(launch).toContain('Enable KVM access'); expect(launch).toContain('if: always()'); expect(launch).toContain('path: smoke-evidence/'); });
 });
+
+
+describe('APK audit failure evidence retention', () => {
+  const metadata = workflow.slice(workflow.indexOf('      - name: Upload APK audit metadata'), workflow.indexOf('      - name: Upload preview APK'));
+  it('retains metadata even if the preceding audit fails', () => expect(metadata).toContain('if: always()'));
+  it('includes the exact permission evidence used by the audit', () => expect(metadata).toContain('android/app/build/outputs/apk/release/permissions.txt'));
+  it('includes package and signer evidence for independent diagnosis', () => { expect(metadata).toContain('/badging.txt'); expect(metadata).toContain('/certificate.txt'); });
+  it('does not expose an unaudited APK or signing key in the metadata artifact', () => { expect(metadata).not.toMatch(/app-release\.apk|keystore|\.jks|\*\*/); });
+  it('does not turn absence of build output into an extra failure or weaken the build audit', () => { expect(metadata).toContain('if-no-files-found: ignore'); expect(workflow).toContain('node scripts/audit-manifest.mts'); expect(workflow).not.toContain('continue-on-error: true'); });
+});

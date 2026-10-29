@@ -623,6 +623,20 @@
       "testFile": "tests/dual-android.test.ts",
       "testPrefix": "two-phone saved trust survives process restart",
       "risk": "Prove saved identity reconnects from encrypted storage after both app processes restart"
+    },
+    {
+      "id": "legacy-aapt-evidence",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/release-artifact.test.ts",
+      "testPrefix": "legacy Bluetooth aapt evidence",
+      "risk": "Distinguish actual SDK-bounded declarations from implied permission explanations while rejecting malformed or overbroad grants"
+    },
+    {
+      "id": "audit-failure-metadata",
+      "source": "scripts/artifact-policy.mts",
+      "testFile": "tests/dual-workflow.test.ts",
+      "testPrefix": "APK audit failure evidence retention",
+      "risk": "Preserve permission and certificate diagnostics without publishing an unaudited binary or keys"
     }
   ]
 }

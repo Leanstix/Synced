@@ -62,6 +62,17 @@ jobs:
           node scripts/audit-manifest.mts "$evidence/permissions.txt" "$evidence/badging.txt" "$evidence/certificate.txt"
           (cd "$evidence" && sha256sum app-release.apk > SHA256SUMS)
           echo 'CI preview only: optimized APK signed using the generated Android debug keystore. Production uses the EAS production profile and remote credentials.' > "$evidence/SIGNING-NOTICE.txt"
+      - name: Upload APK audit metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synced-apk-metadata
+          path: |
+            android/app/build/outputs/apk/release/permissions.txt
+            android/app/build/outputs/apk/release/badging.txt
+            android/app/build/outputs/apk/release/certificate.txt
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
         with:
