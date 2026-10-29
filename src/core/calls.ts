@@ -115,11 +115,20 @@ export class VoiceSession {
   }
 
   handleSignal(value: unknown): Promise<void> {
+    // Termination must preempt a pending OS permission or WebRTC promise.
+    // Otherwise a remote hangup could be stuck behind microphone acquisition.
+    let signal: CallSignal;
+    try { signal = validateCallSignal(value); }
+    catch (error) { return Promise.reject(error); }
+    if ((signal.type === 'end' || signal.type === 'reject') && signal.callId === this.callId) {
+      this.stop();
+      return Promise.resolve();
+    }
     const generation = this.generation;
     const work = this.queue.then(async () => {
       if (generation !== this.generation) return;
       if (!this.callbacks.canCall()) { this.stop(); return; }
-      await this.receive(validateCallSignal(value), generation);
+      await this.receive(signal, generation);
     });
     this.queue = work.catch(() => undefined);
     return work.catch(error => {
