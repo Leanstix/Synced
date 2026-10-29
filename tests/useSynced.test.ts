@@ -336,3 +336,34 @@ describe('phase2 hook transport-specific control consent', () => {
     expect(h.state!.controlEnabled).toBe(false); expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(false); h.cleanup!();
   });
 });
+
+describe('phase2 hook native reconnect failures', () => {
+  it.each(['wifi', 'bluetooth'] as const)('retries %s native rejection only after classifying its transport close callback', async transport => {
+    vi.useFakeTimers();
+    const actions = await savedHook(); const connection = transport === 'wifi' ? h.connection : h.bt;
+    connection.connectTrusted.mockImplementationOnce(async () => {
+      const cb = transport === 'wifi' ? h.connectionCallbacks! : h.btCallbacks!;
+      cb.onClosed(transport === 'wifi' ? 'Could not reach the host. Check the invitation and Wi-Fi network.' : 'Could not connect to this paired Bluetooth phone.');
+      throw new Error('ECONNREFUSED');
+    });
+    const pending = actions.reconnectPeer('saved-id', { transport, retry: true }); await flush(); await vi.advanceTimersByTimeAsync(500); await flush();
+    expect(connection.connectTrusted).toHaveBeenCalledTimes(2);
+    (transport === 'wifi' ? h.connectionCallbacks! : h.btCallbacks!).onApproved(); await pending; h.cleanup!(); vi.useRealTimers();
+  });
+  it('does not retry an ordinary reconnect unless retry was explicitly selected', async () => {
+    const actions = await savedHook(); const pending = actions.reconnectPeer('saved-id'); await flush(); h.connectionCallbacks!.onClosed('Network connection lost.'); await pending;
+    expect(h.connection.connectTrusted).toHaveBeenCalledOnce(); expect(h.state!.reconnect.active).toBe(false); h.cleanup!();
+  });
+  it('bounds retries at four attempts and clears every failed connection', async () => {
+    vi.useFakeTimers(); const actions = await savedHook();
+    h.connection.connectTrusted.mockImplementation(async () => { h.connectionCallbacks!.onClosed('Network connection lost.'); });
+    const pending = actions.reconnectPeer('saved-id', { retry: true }); await flush(); await vi.advanceTimersByTimeAsync(3500); await pending;
+    expect(h.connection.connectTrusted).toHaveBeenCalledTimes(4); expect(h.state!.reconnect.active).toBe(false); expect(h.state!.status).toBe('error');
+    expect(h.connection.dispose.mock.calls.length).toBeGreaterThanOrEqual(4); h.cleanup!(); vi.useRealTimers();
+  });
+  it('cancels the delay between retries without starting a second native dial', async () => {
+    vi.useFakeTimers(); const actions = await savedHook(); const pending = actions.reconnectPeer('saved-id', { retry: true }); await flush();
+    h.connectionCallbacks!.onClosed('Network connection lost.'); await flush(); actions.cancelReconnect(); await vi.advanceTimersByTimeAsync(10000); await pending;
+    expect(h.connection.connectTrusted).toHaveBeenCalledOnce(); expect(h.state!.status).toBe('idle'); h.cleanup!(); vi.useRealTimers();
+  });
+});
