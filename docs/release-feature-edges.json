@@ -735,6 +735,13 @@
       "testFile": "tests/assert-preview-source.test.ts",
       "testPrefix": "audited APK source reuse boundary",
       "risk": "Reuse an APK only when all binary source, native configuration and locked dependency inputs are identical"
+    },
+    {
+      "id": "hermes-buffer-framing",
+      "source": "src/core/protocol.ts",
+      "testFile": "tests/protocol-hermes-buffer.test.ts",
+      "testPrefix": "Hermes Buffer frame decoding",
+      "risk": "Decode framed UTF-8 without assuming inherited TypedArray methods preserve the Buffer subclass in Hermes"
     }
   ]
 }
