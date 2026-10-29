@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('buffer', async () => { const { createRequire } = await import('node:module'); return createRequire(import.meta.url)('buffer/') as typeof import('buffer'); });
 const secure = vi.hoisted(() => ({ isAvailableAsync: vi.fn(async () => true), getItemAsync: vi.fn(async (): Promise<string | null> => null), setItemAsync: vi.fn(async () => {}), WHEN_UNLOCKED_THIS_DEVICE_ONLY: 6 }));
 vi.mock('expo-secure-store', () => secure);
 vi.mock('expo-crypto', () => ({ getRandomBytes: (length: number) => new Uint8Array(length).fill(7) }));

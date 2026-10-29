@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('buffer', async () => { const { createRequire } = await import('node:module'); return createRequire(import.meta.url)('buffer/') as typeof import('buffer'); });
 import { base64, CipherDirection, deriveSession } from '../src/core/protocol';
 import { SecureSession } from '../src/core/session';
 

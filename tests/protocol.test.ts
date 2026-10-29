@@ -55,3 +55,11 @@ describe('authenticated direction keys', () => {
     expect(() => new CipherDirection(other.hostKey).open(first)).toThrow();
   });
 });
+
+describe('malformed cryptographic material', () => {
+  it('rejects noncanonical final base64 bits instead of accepting secret aliases', () => { const alias = secret.slice(0, -1) + 'l'; expect(() => deriveSession(alias, cNonce, hNonce)).toThrow(); });
+  it('rejects malformed nonce encodings and weak secret lengths', () => { expect(() => deriveSession(secret, 'A'.repeat(42), hNonce)).toThrow(); expect(() => deriveSession('A'.repeat(44), cNonce, hNonce)).toThrow(); expect(() => deriveSession(secret, cNonce + '=', hNonce)).toThrow(); });
+  it('never advances receiving sequence after failed authentication', () => { const key = deriveSession(secret, cNonce, hNonce).hostKey; const sender = new CipherDirection(key), receiver = new CipherDirection(key); const frame = sender.seal({ ping: true }); expect(() => receiver.open({ ...frame, ciphertext: `${frame.ciphertext.slice(0, -1)}A` })).toThrow(); expect(receiver.open(frame)).toEqual({ ping: true }); });
+  it('rejects negative fractional and unsafe sequence numbers', () => { const key = deriveSession(secret, cNonce, hNonce).hostKey; const frame = new CipherDirection(key).seal({ ping: true }); for (const sequence of [-1, 0.5, Number.MAX_SAFE_INTEGER]) expect(() => new CipherDirection(key).open({ ...frame, sequence })).toThrow(); });
+  it('does not allow session contexts to share directional keys', () => { expect(deriveSession(secret, cNonce, hNonce, 'trusted:a:b').hostKey).not.toEqual(deriveSession(secret, cNonce, hNonce).hostKey); });
+});

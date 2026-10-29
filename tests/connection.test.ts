@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('buffer', async () => { const { createRequire } = await import('node:module'); return createRequire(import.meta.url)('buffer/') as typeof import('buffer'); });
 import { base64, encodeInvitation, parseInvitation } from '../src/core/protocol';
 
 const transport = vi.hoisted(() => {
