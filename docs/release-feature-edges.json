@@ -784,6 +784,34 @@
       "testFile": "tests/dual-android-voice.test.ts",
       "testPrefix": "voice permission stage diagnostics",
       "risk": "Identify the exact failed permission stage without claiming acceptance, recording or active audio prematurely"
+    },
+    {
+      "id": "native-envelope-identity",
+      "source": "scripts/assert-preview-source.mts",
+      "testFile": "tests/assert-preview-source.test.ts",
+      "testPrefix": "audited native envelope reuse boundary",
+      "risk": "Permit JS iteration only when native configuration, assets, dependencies and imported release policy remain identical"
+    },
+    {
+      "id": "iteration-apk-preservation",
+      "source": "scripts/prepare-iteration-apk.mts",
+      "testFile": "tests/prepare-iteration-apk.test.ts",
+      "testPrefix": "JS-only APK envelope preservation",
+      "risk": "Preserve audited native bytes, remove obsolete signatures, reject ambiguous bundles and retain the input APK"
+    },
+    {
+      "id": "iteration-export-selection",
+      "source": "scripts/prepare-iteration-apk.mts",
+      "testFile": "tests/prepare-iteration-apk.test.ts",
+      "testPrefix": "Android export metadata bundle selection",
+      "risk": "Select the current compiled bundle from export metadata without stale files or paths outside the export"
+    },
+    {
+      "id": "iteration-workflow-boundary",
+      "source": "scripts/assert-preview-source.mts",
+      "testFile": "tests/iteration-workflow.test.ts",
+      "testPrefix": "source-qualified Android iteration workflow",
+      "risk": "Align, development-sign, audit and independently exercise current voice and screen flows without production credentials"
     }
   ]
 }

@@ -12,10 +12,15 @@ jobs:
   qualify-audited-source:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        flow: [voice, screen]
     env:
-      APK_SOURCE_SHA: 11be998306cd0ccc85e021ff0978e522a7ecb50c
+      APK_SOURCE_SHA: 2213b56df0573ed4b931b6dcce469e71952742ad
       CI: '1'
       EXPO_OFFLINE: '1'
+      EXPO_NO_TELEMETRY: '1'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -29,13 +34,13 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Verify reused APK source identity
-        run: node scripts/assert-preview-source.mts "$APK_SOURCE_SHA"
+        run: node scripts/assert-preview-source.mts "$APK_SOURCE_SHA" --javascript-only
       - run: npm ci
       - run: npm run check
       - uses: actions/download-artifact@v4
         with:
           name: synced-android-preview-debug-signed
-          run-id: 40954639132
+          run-id: 40961430641
           github-token: ${{ github.token }}
           path: preview
       - name: Verify reused artifact checksum and permission evidence
@@ -45,10 +50,26 @@ jobs:
         run: |
           (cd preview && sha256sum --check SHA256SUMS)
           node scripts/audit-manifest.mts preview/permissions.txt preview/badging.txt preview/certificate.txt preview/manifest.xml
+      - name: Build an aligned JS iteration APK from the audited native envelope
+        env:
+          SYNCED_DEBUG_STORE_PASS: android
+        run: |
+          npm run bundle:android -- --max-workers 2
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;37.0.0"
+          node scripts/prepare-iteration-apk.mts preview/app-release.apk dist/metadata.json preview/iteration-unsigned.apk
+          "$ANDROID_HOME/build-tools/37.0.0/zipalign" -P 16 -f 4 preview/iteration-unsigned.apk preview/iteration-aligned.apk
+          tar -xOf node_modules/expo/template.tgz package/android/app/debug.keystore > "$RUNNER_TEMP/synced-iteration-debug.keystore"
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" sign --ks "$RUNNER_TEMP/synced-iteration-debug.keystore" --ks-key-alias androiddebugkey --ks-pass env:SYNCED_DEBUG_STORE_PASS --key-pass env:SYNCED_DEBUG_STORE_PASS --out preview/app-release.apk preview/iteration-aligned.apk
+          "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --print-certs preview/app-release.apk > preview/certificate.txt
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump permissions preview/app-release.apk > preview/permissions.txt
+          "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging preview/app-release.apk > preview/badging.txt
+          "$ANDROID_HOME/cmdline-tools/latest/bin/apkanalyzer" manifest print preview/app-release.apk > preview/manifest.xml
+          APP_ENV=preview ALLOW_DEBUG_PREVIEW_SIGNER=1 node scripts/audit-manifest.mts preview/permissions.txt preview/badging.txt preview/certificate.txt preview/manifest.xml
+          (cd preview && sha256sum app-release.apk > SHA256SUMS)
       - name: Record exact source qualification
         run: |
           mkdir -p smoke-evidence
-          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40954639132\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" > smoke-evidence/qualified-source.txt
+          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40961430641\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" > smoke-evidence/qualified-source.txt
       - name: Enable KVM access
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -64,12 +85,12 @@ jobs:
           script: |
             bash scripts/smoke-android.sh
             node scripts/dual-emulator-start.mts
-            node scripts/dual-android.mts preview/app-release.apk --voice --screen-control --evidence=smoke-evidence/dual
+            node scripts/dual-android.mts preview/app-release.apk ${{ matrix.flow == 'voice' && '--voice' || '--screen-control' }} --evidence=smoke-evidence/dual
       - name: Upload two-phone evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: verified-two-phone-evidence
+          name: verified-${{ matrix.flow }}-evidence
           path: smoke-evidence/
           if-no-files-found: warn
           retention-days: 14

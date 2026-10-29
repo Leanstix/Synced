@@ -1,0 +1,10 @@
+import {readFileSync} from 'node:fs';
+import {describe,expect,it} from 'vitest';
+const workflow=readFileSync('.github/workflows/verified-two-phone.yml','utf8');
+describe('source-qualified Android iteration workflow',()=>{
+ it('requires the native source boundary before reusing any APK',()=>{expect(workflow).toContain('node scripts/assert-preview-source.mts "$APK_SOURCE_SHA" --javascript-only');expect(workflow.indexOf('assert-preview-source')).toBeLessThan(workflow.indexOf('actions/download-artifact'))});
+ it('builds the current JavaScript offline and replaces the metadata-selected bundle',()=>{expect(workflow).toContain("EXPO_OFFLINE: '1'");expect(workflow).toContain("EXPO_NO_TELEMETRY: '1'");expect(workflow).toContain('node scripts/prepare-iteration-apk.mts preview/app-release.apk dist/metadata.json')});
+ it('requires alignment, development signing and a fresh signature/manifest audit',()=>{for(const requirement of ['zipalign" -P 16','apksigner" sign','apksigner" verify --print-certs','apkanalyzer" manifest print','APP_ENV=preview ALLOW_DEBUG_PREVIEW_SIGNER=1 node scripts/audit-manifest.mts'])expect(workflow).toContain(requirement)});
+ it('keeps voice and screen diagnostics independent without masking failures',()=>{expect(workflow).toContain('fail-fast: false');expect(workflow).toContain('flow: [voice, screen]');expect(workflow).not.toContain('continue-on-error');expect(workflow).toContain("matrix.flow == 'voice' && '--voice' || '--screen-control'")});
+ it('never publishes temporary signing material and retains guarded evidence',()=>{expect(workflow).toContain('$RUNNER_TEMP/synced-iteration-debug.keystore');expect(workflow).toContain('name: verified-${{ matrix.flow }}-evidence');expect(workflow).toContain('path: smoke-evidence/');expect(workflow).toContain('if: always()');expect(workflow).not.toContain('path: preview/')});
+});

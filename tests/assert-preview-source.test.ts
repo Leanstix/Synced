@@ -24,3 +24,12 @@ it.each([undefined, '', 'HEAD', '--help', 'a'.repeat(39), 'z'.repeat(40)])('reje
 it('rejects a well formed but unavailable source SHA', () => {const {root} = fixture(); expect(() => assertPreviewSource('0'.repeat(40), root)).toThrow('unavailable');});
 
 });
+
+import {assertPreviewNativeSource, NATIVE_APK_SOURCE_PATHS} from '../scripts/assert-preview-source.mts';
+describe('audited native envelope reuse boundary',()=>{
+ it('allows changed application JavaScript with identical native inputs',()=>{const {root,sha}=fixture();writeFileSync(join(root,'src/fixture'),'new application code');expect(()=>assertPreviewNativeSource(sha,root)).not.toThrow()});
+ it.each(['app.config.ts','config/fixture','package-lock.json','scripts/prepare-dependencies.mts','assets/fixture'])('refuses changed native envelope input %s',path=>{const {root,sha}=fixture();writeFileSync(join(root,path),'changed');expect(()=>assertPreviewNativeSource(sha,root)).toThrow('native inputs differ')});
+ it('treats release policy imported by app configuration as a native input',()=>expect(NATIVE_APK_SOURCE_PATHS).toContain('src/core/releasePolicy.ts'));
+ it('rejects newly created untracked native inputs',()=>{const {root,sha}=fixture();mkdirSync(join(root,'src/core'),{recursive:true});writeFileSync(join(root,'src/core/releasePolicy.ts'),'new native policy');expect(()=>assertPreviewNativeSource(sha,root)).toThrow('native inputs differ')});
+ it('rejects unavailable or malformed audited source identity',()=>{const {root}=fixture();expect(()=>assertPreviewNativeSource('HEAD',root)).toThrow();expect(()=>assertPreviewNativeSource('f'.repeat(40),root)).toThrow()});
+});
