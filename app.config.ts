@@ -1,6 +1,6 @@
 import type { ExpoConfig } from 'expo/config';
 import { AndroidConfig, withStringsXml } from 'expo/config-plugins';
-import { resolveReleasePolicy } from './src/core/releasePolicy';
+import { resolveReleasePolicy } from './src/core/releasePolicy.ts';
 
 const release = resolveReleasePolicy(process.env);
 
