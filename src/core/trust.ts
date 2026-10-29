@@ -107,7 +107,9 @@ export class TrustManager {
   remove(peerId: string): Promise<void> {
     this.revoked.add(peerId);
     this.notify(peerId);
-    return this.enqueue(current => ({ ...current, peers: current.peers.filter(p => p.id !== peerId) }));
+    return this.enqueue(current => ({ ...current, peers: current.peers.filter(p => p.id !== peerId) })).catch(() => {
+      throw new Error('Peer blocked for this run. Revocation was not saved; try Forget again before restarting the app.');
+    });
   }
   /** Explicit new-session consent permits a previously revoked identity to pair again. */
   allowNewPairing(peerId: string): void { this.revoked.delete(peerId); }
