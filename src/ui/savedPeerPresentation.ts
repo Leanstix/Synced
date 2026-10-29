@@ -6,6 +6,8 @@ export type SavedPeerSummary = {
   savedAt: number;
 };
 
+// Device labels must not carry control characters into visible consent text.
+// eslint-disable-next-line no-control-regex
 const unsafeDisplayCharacters = /[\u0000-\u001f\u007f-\u009f\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
 /** Nearby devices choose their own names; keep labels on one readable line. */
