@@ -88,6 +88,14 @@ export function captureSafeFailureEvidence(host: Pick<AndroidUi, 'screenshot'>, 
   }
 }
 
+/** Error banners sit at the top; preserve them without dumping private UI text. */
+export async function captureTopFailureEvidence(host: Pick<AndroidUi, 'top' | 'screenshot'>, controller: Pick<AndroidUi, 'top' | 'screenshot'>, directory: string): Promise<void> {
+  for (const phone of [host, controller]) {
+    try { await phone.top(); } catch { /* A disconnected device must not hide the other phone's evidence. */ }
+  }
+  captureSafeFailureEvidence(host, controller, directory);
+}
+
 async function main() {
   const apk = process.argv[2];
   if (!apk || !existsSync(apk)) throw new Error('Usage: node scripts/dual-android.mts <apk> [--voice] [--screen-control] [--evidence=directory]');
@@ -109,7 +117,7 @@ async function main() {
     await controller.tap('Disconnect phones'); await host.visible('Disconnected'); stage('final-disconnect');
   } catch (error) {
     failure = redactReleaseLog(error instanceof Error ? error.message : 'Two-device validation failed.');
-    captureSafeFailureEvidence(host, controller, evidence);
+    await captureTopFailureEvidence(host, controller, evidence);
     // No XML, raw adb stderr, invitation screenshots or payloads are persisted.
     console.error(failure); process.exitCode = 1;
   } finally {

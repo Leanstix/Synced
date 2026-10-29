@@ -721,6 +721,13 @@
       "testFile": "tests/dual-workflow.test.ts",
       "testPrefix": "Android validation for continuation pull requests",
       "risk": "Build and exercise pull-request code before merge without production credentials or elevated permissions"
+    },
+    {
+      "id": "failure-error-banner-evidence",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android-failure-evidence.test.ts",
+      "testPrefix": "visible error banners in guarded failure evidence",
+      "risk": "Expose public error banners in emulator failure evidence while retaining secret guards and the original failure"
     }
   ]
 }

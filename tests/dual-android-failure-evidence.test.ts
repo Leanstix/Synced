@@ -43,3 +43,30 @@ it('retains a successful host capture even if the controller fails', () => {
 });
 
 });
+
+import {captureTopFailureEvidence} from '../scripts/dual-android.mts';
+describe('visible error banners in guarded failure evidence', () => {
+ const phone=()=>({top:vi.fn(async()=>{}),screenshot:vi.fn()});
+ it('returns both views to their error banners before guarded screenshots', async()=>{
+  const host=phone(),peer=phone();await captureTopFailureEvidence(host,peer,'/evidence');
+  for(const p of [host,peer])expect(p.top.mock.invocationCallOrder[0]).toBeLessThan(p.screenshot.mock.invocationCallOrder[0]);
+ });
+ it('still captures both guarded views when the host cannot scroll', async()=>{
+  const host=phone(),peer=phone();host.top.mockRejectedValueOnce(new Error('offline'));
+  await expect(captureTopFailureEvidence(host,peer,'/evidence')).resolves.toBeUndefined();
+  expect(host.screenshot).toHaveBeenCalledOnce();expect(peer.screenshot).toHaveBeenCalledOnce();
+ });
+ it('keeps host evidence when the controller cannot scroll or capture', async()=>{
+  const host=phone(),peer=phone();peer.top.mockRejectedValueOnce(new Error('offline'));peer.screenshot.mockImplementation(()=>{throw new Error('offline')});
+  await expect(captureTopFailureEvidence(host,peer,'/evidence')).resolves.toBeUndefined();expect(host.screenshot).toHaveBeenCalledOnce();
+ });
+ it('continues to refuse secrets revealed by scrolling to the top', async()=>{
+  const write=vi.fn(),p=phone();p.screenshot.mockImplementation(()=>{assertEvidenceSafe([node('PRIVATE INVITATION')]);write()});
+  await captureTopFailureEvidence(p,p,'/evidence');expect(write).not.toHaveBeenCalled();
+ });
+ it('never replaces the test failure or logs raw errors from either device', async()=>{
+  const p=phone(),log=vi.spyOn(console,'error').mockImplementation(()=>{});
+  p.top.mockRejectedValue(new Error('synced://SECRET'));p.screenshot.mockImplementation(()=>{throw new Error('private data')});
+  try{await expect(captureTopFailureEvidence(p,p,'/evidence')).resolves.toBeUndefined();expect(log).not.toHaveBeenCalled();}finally{log.mockRestore()}
+ });
+});
