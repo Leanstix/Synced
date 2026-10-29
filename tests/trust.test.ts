@@ -13,3 +13,14 @@ describe('saved peer schema', () => {
   it('caps file size and peer count', () => { expect(() => parseTrustDocument(' '.repeat(65537))).toThrow(); expect(() => parseTrustDocument(JSON.stringify(doc(Array.from({ length: MAX_SAVED_PEERS + 1 }, (_, i) => peer(i + 2)))))).toThrow(); });
   it('removes control and bidi characters and bounds names', () => { expect(sanitizeDeviceName('\n\u2066')).toBe('Synced device'); expect(sanitizeDeviceName('a'.repeat(100))).toHaveLength(80); });
 });
+
+import { TrustManager, type TrustStorage } from '../src/core/trust';
+function storage(raw: string | null = null) { let value = raw; const adapter: TrustStorage = { read: vi.fn(async () => value), write: vi.fn(async next => { value = next; }) }; return adapter; }
+describe('secure trust manager', () => {
+  it('creates one stable random identity even with concurrent initialization', async () => { const s = storage(); const random = vi.fn(() => new Uint8Array(32).fill(9)); const a = new TrustManager(s, random); await Promise.all([a.initialize(), a.initialize()]); const b = new TrustManager(s, random); await b.initialize(); expect(a.identity).toEqual(b.identity); expect(random).toHaveBeenCalledTimes(1); });
+  it('never replaces corrupt data with a new identity', async () => { const s = storage('{bad'); const a = new TrustManager(s, () => new Uint8Array(32)); await expect(a.initialize()).rejects.toThrow(); expect(s.write).not.toHaveBeenCalled(); });
+  it('fails closed when storage cannot create the identity', async () => { const s = storage(); vi.mocked(s.write).mockRejectedValue(new Error('locked')); const a = new TrustManager(s, () => new Uint8Array(32)); await expect(a.initialize()).rejects.toThrow('locked'); expect(() => a.identity).toThrow(); });
+  it('serializes concurrent peer saves without losing records', async () => { const a = new TrustManager(storage(), () => new Uint8Array(32).fill(1)); await a.initialize(); await Promise.all([a.save(peer(2)), a.save(peer(3))]); expect(a.list()).toHaveLength(2); });
+  it('keeps memory unchanged after save failure and permits the next write', async () => { const s = storage(); const a = new TrustManager(s, () => new Uint8Array(32).fill(1)); await a.initialize(); vi.mocked(s.write).mockRejectedValueOnce(new Error('full')); await expect(a.save(peer())).rejects.toThrow(); expect(a.list()).toEqual([]); await a.save(peer(3)); expect(a.get(id(3))).toBeDefined(); });
+  it('returns defensive copies and validates endpoint updates', async () => { const a = new TrustManager(storage(), () => new Uint8Array(32).fill(1)); await a.initialize(); await a.save(peer()); const copy = a.get(id(2))!; copy.secret = 'bad'; expect(a.get(id(2))!.secret).toBe(id(200)); await expect(a.updateEndpoint(id(2), { address: 'localhost', port: 5000 })).rejects.toThrow(); await expect(a.updateEndpoint(id(3), { address: '10.0.0.2', port: 5000 })).rejects.toThrow(); });
+});
