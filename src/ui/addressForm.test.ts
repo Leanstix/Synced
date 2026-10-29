@@ -22,3 +22,19 @@ describe('private address field', () => {
     expect(privateAddressField(address).error).not.toBeNull();
   });
 });
+
+import {portField} from './addressForm';
+
+describe('saved connection port field', () => {
+  it('accepts the normal trusted-device listener port', () => expect(portField('47631').value).toBe(47631));
+  it('accepts the lowest and highest supported unprivileged ports', () => {
+    expect(portField('1024').valid).toBe(true);
+    expect(portField('65535').valid).toBe(true);
+  });
+  it('trims pasted surrounding whitespace', () => expect(portField(' 47631\n').value).toBe(47631));
+  it('rejects privileged and out-of-range ports', () => {
+    expect(portField('1023').valid).toBe(false);
+    expect(portField('65536').valid).toBe(false);
+  });
+  it.each(['', '-47631', '4.7631', '47e3', 'abc', '047631'])('rejects ambiguous port %s', input => expect(portField(input).value).toBeNull());
+});
