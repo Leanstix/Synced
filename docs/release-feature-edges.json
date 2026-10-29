@@ -574,6 +574,41 @@
       "testFile": "tests/bluetooth-build-metadata.test.ts",
       "testPrefix": "Bluetooth build metadata marker placement",
       "risk": "Reject a valid metadata marker relocated outside its exact reviewed Android DSL position"
+    },
+    {
+      "id": "unused-biometric-config",
+      "source": "app.config.ts",
+      "testFile": "tests/appConfig.test.ts",
+      "testPrefix": "unused biometric permission removal",
+      "risk": "Remove unused transitive fingerprint/biometric permissions without weakening encrypted storage or voice consent"
+    },
+    {
+      "id": "second-emulator-lifecycle",
+      "source": "scripts/dual-emulator-start.mts",
+      "testFile": "tests/dual-emulator-start.test.ts",
+      "testPrefix": "accelerated second emulator lifecycle",
+      "risk": "Require shared-network emulator version, explicit ports, bounded boot and owned-resource cleanup"
+    },
+    {
+      "id": "dual-voice-ui",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android-voice.test.ts",
+      "testPrefix": "two-phone explicit voice flow",
+      "risk": "Assert explicit bilateral acceptance, separate microphone prompts, active states, mute and end"
+    },
+    {
+      "id": "dual-mic-ui",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-android-ui.test.ts",
+      "testPrefix": "explicit Android microphone permission",
+      "risk": "Never grant an unrelated permission or skip local microphone consent"
+    },
+    {
+      "id": "two-phone-ci-contract",
+      "source": "scripts/dual-emulator-start.mts",
+      "testFile": "tests/dual-workflow.test.ts",
+      "testPrefix": "two-phone CI workflow contract",
+      "risk": "Run real pairing/media/voice only on the current audited APK with bounded runtime and retained failure evidence"
     }
   ]
 }
