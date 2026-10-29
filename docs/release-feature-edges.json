@@ -16,6 +16,7 @@
     { "id": "artifact-permissions", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact permission boundary", "risk": "Transitive native dependencies expanding Android permissions" },
     { "id": "artifact-signing", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact signing evidence", "risk": "Debug keys, mismatched signer and missing signature evidence" },
     { "id": "artifact-identity-abi", "source": "scripts/artifact-policy.mts", "testFile": "tests/release-artifact.test.ts", "testPrefix": "release artifact package and architecture", "risk": "Wrong package, debuggable artifact and unsupported architectures" },
-    { "id": "feature-edge-evidence", "source": "scripts/coverage-policy.mts", "testFile": "tests/release-coverage.test.ts", "testPrefix": "release feature edge ledger", "risk": "Counting skipped, duplicated, missing or unrelated tests as release evidence" }
+    { "id": "feature-edge-evidence", "source": "scripts/coverage-policy.mts", "testFile": "tests/release-coverage.test.ts", "testPrefix": "release feature edge ledger", "risk": "Counting skipped, duplicated, missing or unrelated tests as release evidence" },
+    { "id": "diagnostic-redaction", "source": "scripts/log-policy.mts", "testFile": "tests/release-log.test.ts", "testPrefix": "release diagnostic redaction", "risk": "Accidental pairing credentials, typed text, keys or peer addresses in diagnostic artifacts" }
   ]
 }
