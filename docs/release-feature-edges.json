@@ -672,6 +672,13 @@
       "testFile": "tests/release-artifact.test.ts",
       "testPrefix": "Android SDK signer output formats",
       "risk": "Support verified signing-scheme labels without accepting malformed, ambiguous, debug-production or mismatched certificate identity"
+    },
+    {
+      "id": "headless-emulator-preflight",
+      "source": "scripts/dual-emulator-start.mts",
+      "testFile": "tests/dual-emulator-start.test.ts",
+      "testPrefix": "headless emulator version preflight",
+      "risk": "Use the runner\u2019s headless executable without GUI/audio library dependencies or unsafe resource cleanup"
     }
   ]
 }
