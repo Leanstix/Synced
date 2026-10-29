@@ -3,6 +3,11 @@ import { AndroidUi, type AdbCommand } from '../scripts/dual-android-ui.mts';
 const dump = '<hierarchy><node text="Save phone" enabled="true" bounds="[20,30][100,70]"/></hierarchy>';
 const instant = async () => {};
 describe('dual Android public UI command boundary', () => {
+  it('replaces existing input with an actual Ctrl+A chord before entering new text', async () => {
+    const run = vi.fn<AdbCommand>(() => dump); await new AndroidUi('host', 'com.leanstix.synced', run, instant).fill('Save phone', '47631');
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'keycombination', '113', '29'], undefined);
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'text', "'47631'"], undefined);
+  });
   it('targets every Android command to its explicit serial', async () => { const run = vi.fn<AdbCommand>(() => dump); const phone = new AndroidUi('emulator-5554', 'com.leanstix.synced', run, instant); await phone.tap('Save phone'); expect(run.mock.calls.every(([args]) => args[0] === '-s' && args[1] === 'emulator-5554')).toBe(true); });
   it('taps the center of enabled public node bounds', async () => { const run = vi.fn<AdbCommand>(() => dump); await new AndroidUi('host', 'com.leanstix.synced', run, instant).tap('Save phone'); expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '60', '50'], undefined); });
   it('refuses disabled actions rather than bypassing UI consent', async () => { const run = vi.fn<AdbCommand>(() => dump.replace('enabled="true"', 'enabled="false"')); await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).tap('Save phone')).rejects.toThrow('disabled'); expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false); });

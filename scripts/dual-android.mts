@@ -33,7 +33,7 @@ export async function pairSaveReconnect(host: PairingPhone, controller: PairingP
   await host.visible('Connected'); await controller.visible('Connected'); await host.noAutoGrants(); stage('trusted-reconnect-no-grants');
 }
 
-async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (name: string) => void) {
+export async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (name: string) => void, pause = delay) {
   await host.enableTestAccessibility();
   // Refresh the service state through the public button rather than an app hook.
   await host.tap('I enabled it · Check permission');
@@ -45,14 +45,14 @@ async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (
   await controller.visible('Live remote phone screen');
   await host.tap('Allow touch control'); await host.tap('Allow control');
   await controller.visible('Touch control allowed'); stage('real-video-and-control-ready');
-  await controller.tap('Home on the other phone'); await delay(1000);
+  await controller.tap('Home on the other phone'); await pause(1000);
   const resumed = host.adb(['shell', 'dumpsys', 'activity', 'activities']);
   const foreground = resumed.split('\n').filter(line => /(?:mResumedActivity|topResumedActivity)/.test(line)).join(' ');
   if (!/(?:launcher|NexusLauncherActivity|Launcher)/i.test(foreground) || foreground.includes(host.packageName)) throw new Error('Remote Home did not open the host launcher.');
   stage('remote-home-opened-launcher');
   // Bring the owner UI back through the normal launcher; the grants remain explicit.
   host.adb(['shell', 'monkey', '-p', host.packageName, '-c', 'android.intent.category.LAUNCHER', '1']);
-  await delay(700);
+  await pause(700);
 }
 
 async function main() {

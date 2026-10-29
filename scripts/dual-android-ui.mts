@@ -49,7 +49,7 @@ export class AndroidUi {
   async fill(label: string, value: string, prefix = false): Promise<void> {
     await this.tap(label, prefix);
     this.adb(['shell', 'input', 'keyevent', 'KEYCODE_MOVE_END']);
-    this.adb(['shell', 'input', 'keyevent', '--longpress', 'KEYCODE_CTRL_LEFT', 'KEYCODE_A']);
+    this.adb(['shell', 'input', 'keycombination', '113', '29']);
     this.adb(['shell', 'input', 'keyevent', 'KEYCODE_DEL']);
     this.adb(['shell', 'input', 'text', shellQuote(value.replace(/ /g, '%s'))]);
     this.adb(['shell', 'input', 'keyevent', 'KEYCODE_BACK']); await this.pause(200);
