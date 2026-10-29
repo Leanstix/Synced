@@ -205,8 +205,9 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
         try {
           const rt = getRuntime();
           if (current.current.transport !== 'wifi' || current.current.role !== 'HOST' || current.current.status !== 'connected') throw new Error('Approve a Wi-Fi controller before sharing your screen.');
-          const generation = rt.generation; patch({ error: null }); await rt.media.startHost();
-          if (generation !== rt.generation) rt.media.stop();
+          // MediaSession releases a stale capture using its own generation.
+          // A global stop here could terminate a newer session's capture.
+          patch({ error: null }); await rt.media.startHost();
         } catch (error) { if (runtime.current?.generation === initialGeneration) fail(error); }
       },
       stopScreenSharing() {

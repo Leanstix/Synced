@@ -415,3 +415,43 @@ describe('trusted listener endpoint display', () => {
     expect(h.state!.transport).toBe('bluetooth'); expect(h.state!.localAddress).toBeNull(); h.cleanup!();
   });
 });
+
+describe('stale capture request completion', () => {
+  async function delayedCapture() {
+    const actions = await approvedHost(); actions.stopScreenSharing();
+    let finish!: () => void;
+    h.media.startHost.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    const pending = actions.startScreenSharing();
+    return { actions, pending, finish };
+  }
+  async function replaceWifi(actions: ReturnType<typeof useSynced>['actions']) {
+    await actions.startHost(); h.connectionCallbacks!.onConnecting('HOST', 'new-peer'); h.connectionCallbacks!.onApproved();
+    await actions.startScreenSharing();
+  }
+  it('does not stop fresh Wi-Fi sharing when old capture consent resolves', async () => {
+    const { actions, pending, finish } = await delayedCapture(); await replaceWifi(actions);
+    h.media.stop.mockClear(); finish(); await pending;
+    expect(h.media.stop).not.toHaveBeenCalled(); expect(h.state!.screenSharing).toBe(true); h.cleanup!();
+  });
+  it('does not interfere with a replacement Bluetooth session', async () => {
+    const { actions, pending, finish } = await delayedCapture(); await actions.startBluetoothHost();
+    h.btCallbacks!.onConnecting('HOST', 'bluetooth'); h.btCallbacks!.onApproved(); h.media.stop.mockClear();
+    finish(); await pending;
+    expect(h.media.stop).not.toHaveBeenCalled(); expect(h.state!.transport).toBe('bluetooth'); expect(h.state!.status).toBe('connected'); h.cleanup!();
+  });
+  it('does not issue another global media stop after explicit disconnect', async () => {
+    const { actions, pending, finish } = await delayedCapture(); actions.disconnect(); h.media.stop.mockClear();
+    finish(); await pending;
+    expect(h.media.stop).not.toHaveBeenCalled(); expect(h.state!.role).toBe('IDLE'); h.cleanup!();
+  });
+  it('does not operate the disposed media runtime after unmount', async () => {
+    const { pending, finish } = await delayedCapture(); h.cleanup!(); h.media.stop.mockClear();
+    finish(); await pending; expect(h.media.stop).not.toHaveBeenCalled();
+  });
+  it('preserves a new explicit control grant when an old capture request completes', async () => {
+    const { actions, pending, finish } = await delayedCapture(); await replaceWifi(actions);
+    const grant = actions.setControlEnabled(true); h.allow!(); await grant;
+    h.media.stop.mockClear(); h.input.revoke.mockClear(); finish(); await pending;
+    expect(h.media.stop).not.toHaveBeenCalled(); expect(h.input.revoke).not.toHaveBeenCalled(); expect(h.state!.controlEnabled).toBe(true); h.cleanup!();
+  });
+});

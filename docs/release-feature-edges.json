@@ -707,6 +707,13 @@
       "testFile": "tests/media.test.ts",
       "testPrefix": "bounded pending media signaling",
       "risk": "Bound authenticated peer signaling memory while native WebRTC work is stalled"
+    },
+    {
+      "id": "hook-stale-capture-completion",
+      "source": "src/controller/useSynced.ts",
+      "testFile": "tests/useSynced.test.ts",
+      "testPrefix": "stale capture request completion",
+      "risk": "Late capture consent must not stop or revoke a new session or operate a disposed runtime"
     }
   ]
 }
