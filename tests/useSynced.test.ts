@@ -105,3 +105,39 @@ describe('session controller consent and teardown', () => {
     expect(h.connection.close).toHaveBeenCalledWith(false); expect(h.input.dispose).toHaveBeenCalled(); expect(h.media.stop).toHaveBeenCalled();
   });
 });
+
+const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); };
+const saved = (role: 'HOST' | 'CONTROLLER' = 'HOST') => ({ id: 'saved-id', name: 'Saved phone', role, secret: 'NEVER-EXPOSE', savedAt: 12, endpoint: { address: '192.168.1.7', port: 4000 } });
+async function savedHook(role: 'HOST' | 'CONTROLLER' = 'HOST') {
+  h.peers = [saved(role)]; const hook = useSynced(); await flush(); return hook.actions;
+}
+async function connectedController(transport: 'wifi' | 'bluetooth' = 'wifi') {
+  const { actions } = useSynced(); await flush();
+  if (transport === 'wifi') await actions.connect('invitation'); else await actions.connectBluetooth('invitation', 'AA:BB:CC:DD:EE:FF');
+  const cb = transport === 'wifi' ? h.connectionCallbacks! : h.btCallbacks!;
+  cb.onConnecting('CONTROLLER', 'remote'); cb.onApproved(); return { actions, cb };
+}
+
+describe('phase2 hook trust initialization and public state', () => {
+  it('publishes only whitelisted metadata after durable initialization', async () => {
+    await savedHook(); expect(h.state!.trustReady).toBe(true);
+    expect(h.state!.savedPeers[0]).toEqual({ id: 'saved-id', name: 'Saved phone', role: 'HOST', savedAt: 12, endpoint: { address: '192.168.1.7', port: 4000 } });
+    expect(JSON.stringify(h.state)).not.toContain('NEVER-EXPOSE'); h.cleanup!();
+  });
+  it('fails closed when secure storage is unavailable', async () => {
+    h.trust.initialize.mockRejectedValueOnce(new Error('locked')); useSynced(); await flush();
+    expect(h.state!.trustReady).toBe(false); expect(h.state!.capabilities.persistentPairing).toBe(false); expect(h.state!.error).toBe('locked'); h.cleanup!();
+  });
+  it('does not publish late secure initialization after unmount', async () => {
+    let done!: () => void; h.trust.initialize.mockImplementationOnce(() => new Promise<void>(resolve => { done = resolve; }));
+    useSynced(); h.cleanup!(); done(); await flush(); expect(h.state!.trustReady).toBe(false);
+  });
+  it('preserves saved metadata and trust readiness through disconnect', async () => {
+    const actions = await savedHook(); await actions.connect('invitation'); actions.disconnect();
+    expect(h.state!.savedPeers).toHaveLength(1); expect(h.state!.trustReady).toBe(true); expect(h.state!.peerIdentity).toBeNull(); h.cleanup!();
+  });
+  it('subscribes to metadata changes without publishing secrets', async () => {
+    useSynced(); await flush(); h.peers = [saved()]; h.trustListener!();
+    expect(h.state!.savedPeers).toHaveLength(1); expect(h.state!.savedPeers[0]).not.toHaveProperty('secret'); h.cleanup!();
+  });
+});
