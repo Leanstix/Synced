@@ -1,3 +1,4 @@
+import {assertLegacyBluetoothBounds} from './manifest-permissions.mts';
 export const REQUIRED_PERMISSIONS = [
   'android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE',
   'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION',
@@ -15,6 +16,7 @@ export const ALLOWED_PERMISSIONS = new Set([
 
 export interface ArtifactEvidence {
   permissions: string;
+  manifest?: string;
   badging: string;
   certificate: string;
   profile: 'preview' | 'production';
@@ -26,10 +28,9 @@ export function auditAndroidArtifact(evidence: ArtifactEvidence): void {
   const permissions = [...evidence.permissions.matchAll(/^uses-permission(?:-sdk-\d+)?: name='([^']+)'/gm)].map(match => match[1]);
   if (!permissions.length) throw new Error('Permission evidence is missing or malformed');
   for (const permission of permissions) if (!ALLOWED_PERMISSIONS.has(permission)) throw new Error(`Unreviewed Android permission: ${permission}`);
-  const declaredPermissionLines = evidence.permissions.split('\n').filter(line => /^uses-permission(?:-sdk-\d+)?: name=/.test(line));
-  for (const line of declaredPermissionLines.filter(line => /name='android\.permission\.BLUETOOTH(?:_ADMIN)?'/.test(line))) {
-    const maxSdk = line.match(/maxSdkVersion='((?:0x[\da-f]+)|\d+)'/i);
-    if (!maxSdk || Number(maxSdk[1]) > 30) throw new Error(`Legacy Bluetooth permissions must be limited to Android 11 and earlier: ${line}`);
+  if (permissions.some(permission => /^android\.permission\.BLUETOOTH(?:_ADMIN)?$/.test(permission))) {
+    if (!evidence.manifest) throw new Error('Legacy Bluetooth permissions require compiled manifest XML evidence.');
+    assertLegacyBluetoothBounds(evidence.manifest, permissions);
   }
   for (const permission of REQUIRED_PERMISSIONS) if (!permissions.includes(permission)) throw new Error(`Missing Android permission: ${permission}`);
   const identity = evidence.badging.match(/^package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'/m);
