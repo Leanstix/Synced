@@ -35,3 +35,40 @@ it('reports rollback failure without leaking an unhandled rejected transaction',
   exchange.receive({ type: 'identity', id: id(2), name: 'Peer' }); exchange.savePairing(); exchange.receive({ type: 'save-intent' }); exchange.receive({ type: 'save-accept' });
   await expect(exchange.settled()).resolves.toBeUndefined(); expect(onError).toHaveBeenCalledWith(expect.stringContaining('Forget this peer'));
 });
+
+function completingHost(sendComplete: () => void, saved = vi.fn()) {
+  const rollback = vi.fn(async () => {}), error = vi.fn();
+  const host = new TrustExchange('HOST', { id: id(1), name: 'Host' }, () => id(9), {
+    send: value => { if ((value as { type: string }).type === 'save-complete') sendComplete(); },
+    persist: async () => {}, rollback, onPairingSaved: saved, onPairingError: error,
+  });
+  host.receive({ type: 'identity', id: id(2), name: 'Peer' }); host.savePairing(); host.receive({ type: 'save-intent' }); host.receive({ type: 'save-accept' });
+  return { host, rollback, saved, error };
+}
+describe('pairing completion delivery', () => {
+  it('rolls back a persisted host record when final confirmation cannot be sent', async () => {
+    const p = completingHost(() => { throw new Error('transport closed'); }); await p.host.settled();
+    p.host.receive({ type: 'save-done' }); await p.host.settled();
+    expect(p.rollback).toHaveBeenCalledWith(id(2)); expect(p.saved).not.toHaveBeenCalled(); expect(p.error).toHaveBeenCalledWith(expect.stringContaining('confirm'));
+  });
+  it('keeps the failure rollback scheduled if close follows the failed final send', async () => {
+    const p = completingHost(() => { throw new Error('transport closed'); }); await p.host.settled();
+    p.host.receive({ type: 'save-done' }); p.host.close(); await p.host.settled();
+    expect(p.rollback).toHaveBeenCalledWith(id(2)); expect(p.saved).not.toHaveBeenCalled();
+  });
+  it('does not report saved after final-send observers close the exchange', async () => {
+    const p = completingHost(() => p.host.close()); await p.host.settled();
+    p.host.receive({ type: 'save-done' }); await p.host.settled();
+    expect(p.rollback).toHaveBeenCalledWith(id(2)); expect(p.saved).not.toHaveBeenCalled();
+  });
+  it('keeps successfully confirmed records after normal disconnect', async () => {
+    const p = completingHost(() => {}); await p.host.settled();
+    p.host.receive({ type: 'save-done' }); p.host.close(); await p.host.settled();
+    expect(p.saved).toHaveBeenCalledOnce(); expect(p.rollback).not.toHaveBeenCalled();
+  });
+  it('does not report saved if a peer abort arrives during final delivery', async () => {
+    const p = completingHost(() => p.host.receive({ type: 'save-abort' })); await p.host.settled();
+    p.host.receive({ type: 'save-done' }); await p.host.settled();
+    expect(p.saved).not.toHaveBeenCalled(); expect(p.rollback).toHaveBeenCalledWith(id(2));
+  });
+});

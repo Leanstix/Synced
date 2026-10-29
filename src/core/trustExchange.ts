@@ -52,7 +52,10 @@ export class TrustExchange {
       this.persistThen('await-complete', { type: 'save-done' }); return;
     }
     if (m.type === 'save-done' && this.role === 'HOST' && this.phase === 'await-done') {
-      this.phase = 'saved'; this.callbacks.send({ type: 'save-complete' }); this.callbacks.onPairingSaved?.({ ...this.record! }); return;
+      try { this.callbacks.send({ type: 'save-complete' }); }
+      catch { this.abort('Could not confirm saved pairing.'); return; }
+      if (this.phase !== 'await-done') return;
+      this.phase = 'saved'; this.callbacks.onPairingSaved?.({ ...this.record! }); return;
     }
     if (m.type === 'save-complete' && this.role === 'CONTROLLER' && this.phase === 'await-complete') {
       this.phase = 'saved'; this.callbacks.onPairingSaved?.({ ...this.record! }); return;
