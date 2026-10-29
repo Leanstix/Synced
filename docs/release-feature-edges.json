@@ -819,6 +819,13 @@
       "testFile": "tests/connection.test.ts",
       "testPrefix": "Wi-Fi-bound local socket routing",
       "risk": "Keep private phone traffic on Wi-Fi or hotspot when Android chooses cellular as the default network, and fail closed without fallback"
+    },
+    {
+      "id": "screen-visual-evidence",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android.test.ts",
+      "testPrefix": "guarded real screen visual evidence",
+      "risk": "Preserve guarded images of actual shared content and remote Home without substituting labels for pixel observations"
     }
   ]
 }

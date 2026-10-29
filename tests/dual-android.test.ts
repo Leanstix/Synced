@@ -42,3 +42,52 @@ describe('two-phone saved trust survives process restart', () => {
   it('does not claim saved resume when the controller cannot restart', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); peer.launch.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('controller restart failed')); await expect(pairSaveReconnect(host, peer, '/tmp/app.apk')).rejects.toThrow('controller restart'); expect(peer.tap).not.toHaveBeenCalledWith('Reconnect'); });
   it('rechecks private grants after saved authentication from fresh processes', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); const stage = vi.fn(); await pairSaveReconnect(host, peer, '/tmp/app.apk', stage); const names = stage.mock.calls.map(([name]) => name); expect(names.indexOf('cold-restart-saved-devices')).toBeLessThan(names.indexOf('trusted-reconnect-no-grants')); expect(host.noAutoGrants).toHaveBeenCalledTimes(2); });
 });
+
+describe('guarded real screen visual evidence', () => {
+  function phones() {
+    const host = controlPhone(), peer = controlPhone();
+    vi.spyOn(host, 'screenshot').mockImplementation(() => {});
+    vi.spyOn(peer, 'screenshot').mockImplementation(() => {});
+    return { host, peer };
+  }
+  it('captures both shared screens through the existing secret guard', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence');
+    expect(host.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'host-screen-shared.png');
+    expect(peer.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'controller-screen-shared.png');
+  });
+  it('captures the actual host launcher and its remote image after Home is observed', async () => {
+    const { host, peer } = phones(); const stage = vi.fn();
+    await screenAndControl(host, peer, stage, async () => {}, '/tmp/evidence');
+    expect(host.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'host-remote-home.png');
+    expect(peer.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'controller-remote-home.png');
+    expect(vi.mocked(host.screenshot).mock.invocationCallOrder[1]).toBeGreaterThan(stage.mock.invocationCallOrder[1]!);
+  });
+  it('brings the remote video into view before capturing each controller image', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence');
+    for (const order of vi.mocked(peer.screenshot).mock.invocationCallOrder) {
+      const last = vi.mocked(peer.visible).mock.invocationCallOrder.filter(n => n < order).at(-1)!;
+      const index = vi.mocked(peer.visible).mock.invocationCallOrder.indexOf(last);
+      expect(vi.mocked(peer.visible).mock.calls[index]).toEqual(['Live remote phone screen']);
+    }
+  });
+  it('does not capture a claimed launcher image when remote Home failed', async () => {
+    const { host, peer } = phones();
+    vi.mocked(host.adb).mockReturnValue('mResumedActivity: com.leanstix.synced/.MainActivity');
+    await expect(screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence')).rejects.toThrow('Remote Home');
+    expect(host.screenshot).not.toHaveBeenCalledWith('/tmp/evidence', 'host-remote-home.png');
+    expect(peer.screenshot).not.toHaveBeenCalledWith('/tmp/evidence', 'controller-remote-home.png');
+  });
+  it('propagates the secret guard refusal without capturing the other screen', async () => {
+    const { host, peer } = phones();
+    vi.mocked(host.screenshot).mockImplementation(() => { throw new Error('private invitation'); });
+    await expect(screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence')).rejects.toThrow('private invitation');
+    expect(peer.screenshot).not.toHaveBeenCalled();
+  });
+  it('keeps screenshot collection optional for in-memory orchestration tests', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {});
+    expect(host.screenshot).not.toHaveBeenCalled(); expect(peer.screenshot).not.toHaveBeenCalled();
+  });
+});
