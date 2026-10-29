@@ -5,7 +5,7 @@ import { SecureSession } from '../src/core/session';
 
 const native = vi.hoisted(() => {
   const state = {
-    accept: vi.fn(), connect: vi.fn(), cancelAccept: vi.fn(async () => true), enabled: vi.fn(async () => undefined),
+    accept: vi.fn(), connect: vi.fn(), cancelAccept: vi.fn(async () => true), enabled: vi.fn(async (): Promise<void> => undefined),
     bonded: vi.fn(async () => [{ address: 'AA:BB:CC:DD:EE:FF', name: 'Phone' }]),
     disconnected: null as null | ((event: { device: { address: string } }) => void),
     disabled: null as null | (() => void), remove: vi.fn(),
