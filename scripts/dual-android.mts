@@ -80,6 +80,14 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
   await pause(700);
 }
 
+/** Each screenshot retains AndroidUi's secret guard; diagnostic failures stay private. */
+export function captureSafeFailureEvidence(host: Pick<AndroidUi, 'screenshot'>, controller: Pick<AndroidUi, 'screenshot'>, directory: string): void {
+  for (const [phone, filename] of [[host, 'failure-host.png'], [controller, 'failure-controller.png']] as const) {
+    try { phone.screenshot(directory, filename); }
+    catch { /* Evidence is optional: never replace the original failure or log raw data. */ }
+  }
+}
+
 async function main() {
   const apk = process.argv[2];
   if (!apk || !existsSync(apk)) throw new Error('Usage: node scripts/dual-android.mts <apk> [--voice] [--screen-control] [--evidence=directory]');
@@ -101,6 +109,7 @@ async function main() {
     await controller.tap('Disconnect phones'); await host.visible('Disconnected'); stage('final-disconnect');
   } catch (error) {
     failure = redactReleaseLog(error instanceof Error ? error.message : 'Two-device validation failed.');
+    captureSafeFailureEvidence(host, controller, evidence);
     // No XML, raw adb stderr, invitation screenshots or payloads are persisted.
     console.error(failure); process.exitCode = 1;
   } finally {
