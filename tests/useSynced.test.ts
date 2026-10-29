@@ -284,3 +284,48 @@ describe('phase2 hook intercom consent and lifecycle', () => {
     await connectedController(); h.voiceCallbacks!.onState({ phase: 'incoming', muted: false }); expect(h.state!.voice.phase).toBe('incoming'); expect(h.state!.screenSharing).toBe(false); expect(h.state!.controlEnabled).toBe(false); h.cleanup!();
   });
 });
+
+describe('phase2 hook transport-specific control consent', () => {
+  async function bluetoothHost() {
+    const { actions } = useSynced(); await actions.startBluetoothHost(); h.btCallbacks!.onConnecting('HOST', 'Bluetooth'); h.btCallbacks!.onApproved(); return actions;
+  }
+  it('requires explicit blind-control approval before granting Bluetooth input', async () => {
+    const actions = await bluetoothHost(); const pending = actions.setControlEnabled(true);
+    expect(h.input.grant).not.toHaveBeenCalled(); h.allow!(); await pending;
+    expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(true); expect(h.input.grant).toHaveBeenCalledOnce();
+    expect(h.bt.send).toHaveBeenLastCalledWith({ type: 'permissions', screenSharing: false, controlEnabled: true, controlMode: 'bluetooth' }); h.cleanup!();
+  });
+  it('invalidates Bluetooth control consent when the transport changes', async () => {
+    const actions = await bluetoothHost(); const pending = actions.setControlEnabled(true); await actions.startHost(); h.allow!(); await pending;
+    expect(h.input.grant).not.toHaveBeenCalled(); expect(h.state!.controlEnabled).toBe(false); h.cleanup!();
+  });
+  it('clears Bluetooth permission after a failed accessibility grant', async () => {
+    const actions = await bluetoothHost(); h.input.grant.mockRejectedValueOnce(new Error('accessibility unavailable')); const pending = actions.setControlEnabled(true); h.allow!(); await pending;
+    expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(false); expect(h.state!.controlEnabled).toBe(false); expect(h.state!.error).toBe('accessibility unavailable'); h.cleanup!();
+  });
+  it('rejects Bluetooth-mode permissions over Wi-Fi', async () => {
+    const { cb } = await connectedController(); cb.onPayload({ type: 'permissions', screenSharing: true, controlEnabled: true, controlMode: 'bluetooth' });
+    expect(h.state!.controlEnabled).toBe(false); expect(h.state!.screenSharing).toBe(false); h.cleanup!();
+  });
+  it('rejects Wi-Fi-mode permissions over Bluetooth', async () => {
+    const { cb } = await connectedController('bluetooth'); cb.onPayload({ type: 'permissions', screenSharing: false, controlEnabled: true, controlMode: 'screen' });
+    expect(h.state!.controlEnabled).toBe(false); h.cleanup!();
+  });
+  it('allows controller input after explicit Bluetooth permission without video', async () => {
+    const { cb, actions } = await connectedController('bluetooth'); cb.onPayload({ type: 'permissions', screenSharing: false, controlEnabled: true, controlMode: 'bluetooth' });
+    actions.sendInput({ type: 'globalAction', action: 'back' }); expect(h.bt.send).toHaveBeenCalledWith({ type: 'input', command: { type: 'globalAction', action: 'back' } }); expect(h.state!.screenSharing).toBe(false); h.cleanup!();
+  });
+  it('rejects Wi-Fi input when screen capture is absent despite a remote control flag', async () => {
+    const { cb, actions } = await connectedController(); cb.onPayload({ type: 'permissions', screenSharing: false, controlEnabled: true, controlMode: 'screen' }); actions.sendInput({ type: 'tap', x: 0.5, y: 0.5 });
+    expect(h.connection.send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'input' })); h.cleanup!();
+  });
+  it('sends immediate grant revocation when Bluetooth control is disabled', async () => {
+    const actions = await bluetoothHost(); const pending = actions.setControlEnabled(true); h.allow!(); await pending; await actions.setControlEnabled(false);
+    expect(h.bt.send).toHaveBeenLastCalledWith({ type: 'permissions', screenSharing: false, controlEnabled: false, controlMode: 'bluetooth' }); expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(false); h.cleanup!();
+  });
+  it('invalidates an accessibility grant completing after disconnect', async () => {
+    const actions = await bluetoothHost(); let done!: () => void; h.input.grant.mockImplementationOnce(() => new Promise<void>(resolve => { done = resolve; }));
+    const pending = actions.setControlEnabled(true); h.allow!(); await flush(); actions.disconnect(); done(); await pending;
+    expect(h.state!.controlEnabled).toBe(false); expect(h.input.setBluetoothControlAllowed).toHaveBeenLastCalledWith(false); h.cleanup!();
+  });
+});
