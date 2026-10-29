@@ -225,3 +225,33 @@ describe('phase2 hook explicit trusted reconnect', () => {
     h.peers = [saved('HOST')]; await actions.receiveTrustedPeer('saved-id'); expect(h.connection.hostTrusted).not.toHaveBeenCalled(); h.cleanup!();
   });
 });
+
+describe('phase2 hook Bluetooth setup and transport isolation', () => {
+  it('lists bonded phones and clears the loading indicator', async () => {
+    const { actions } = useSynced(); await actions.refreshBluetoothDevices(); expect(h.state!.bluetooth).toEqual({ devices: [{ address: 'AA:BB:CC:DD:EE:FF', name: 'phone' }], enabled: true, loading: false }); h.cleanup!();
+  });
+  it('reports a listing permission failure and clears loading', async () => {
+    h.bluetooth.listBondedDevices.mockRejectedValueOnce(new Error('Nearby devices denied')); const { actions } = useSynced(); await actions.refreshBluetoothDevices(); expect(h.state!.bluetooth.loading).toBe(false); expect(h.state!.error).toBe('Nearby devices denied'); h.cleanup!();
+  });
+  it('routes explicit enable discoverability and system settings separately', async () => {
+    const { actions } = useSynced(); await actions.enableBluetooth(); await actions.makeBluetoothDiscoverable(); await actions.openBluetoothSettings();
+    expect(h.bluetooth.requestBluetoothEnable).toHaveBeenCalledOnce(); expect(h.bluetooth.requestBluetoothDiscoverable).toHaveBeenCalledOnce(); expect(h.bluetooth.openBluetoothPairingSettings).toHaveBeenCalledOnce(); expect(h.state!.bluetooth.enabled).toBe(true); h.cleanup!();
+  });
+  it('starts Bluetooth host without a Wi-Fi listener or capture', async () => {
+    const { actions } = useSynced(); await actions.startBluetoothHost(); h.btCallbacks!.onListening('bt-invite', 'Bluetooth'); h.btCallbacks!.onApproved(); await actions.startScreenSharing();
+    expect(h.bt.host).toHaveBeenCalledOnce(); expect(h.connection.host).not.toHaveBeenCalled(); expect(h.media.startHost).not.toHaveBeenCalled(); expect(h.state!.transport).toBe('bluetooth'); h.cleanup!();
+  });
+  it('connects a selected paired phone and never starts video for it', async () => {
+    const { cb } = await connectedController('bluetooth'); expect(h.bt.connect).toHaveBeenCalledWith('invitation', 'AA:BB:CC:DD:EE:FF');
+    cb.onPayload({ type: 'media', signal: { type: 'offer' } }); expect(h.media.startController).not.toHaveBeenCalled(); expect(h.media.handleSignal).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('ignores late Wi-Fi approval and permissions after switching to Bluetooth', async () => {
+    const { actions, cb } = await connectedController(); await actions.startBluetoothHost(); cb.onApproved(); cb.onPayload({ type: 'permissions', screenSharing: true, controlEnabled: true });
+    expect(h.state!.status).toBe('connecting'); expect(h.state!.controlEnabled).toBe(false); expect(h.state!.transport).toBe('bluetooth'); h.cleanup!();
+  });
+  it('uses Bluetooth trusted listeners and waits for trusted Bluetooth approval', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id', { transport: 'bluetooth' }); expect(h.bt.hostTrusted).toHaveBeenCalledWith('saved-id');
+    h.peers = [saved('HOST')]; const pending = actions.reconnectPeer('saved-id', { transport: 'bluetooth', address: 'AA:BB:CC:DD:EE:FF' }); await flush();
+    expect(h.bt.connectTrusted).toHaveBeenCalledWith('saved-id', 'AA:BB:CC:DD:EE:FF'); expect(h.state!.reconnect.active).toBe(true); h.btCallbacks!.onApproved(); await pending; expect(h.state!.status).toBe('connected'); h.cleanup!();
+  });
+});
