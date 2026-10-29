@@ -190,3 +190,38 @@ describe('phase2 hook forgetting and durable retry', () => {
     await actions.forgetPeer('saved-id'); await actions.reconnectPeer('saved-id'); expect(h.connection.connectTrusted).not.toHaveBeenCalled(); h.cleanup!();
   });
 });
+
+describe('phase2 hook explicit trusted reconnect', () => {
+  it('never auto-connects or starts a trusted listener on initialization', async () => {
+    await savedHook(); expect(h.connection.connectTrusted).not.toHaveBeenCalled(); expect(h.connection.hostTrusted).not.toHaveBeenCalled(); h.cleanup!();
+  });
+  it('waits for cryptographic approval after native connect resolves', async () => {
+    const actions = await savedHook(); let finished = false;
+    const request = actions.reconnectPeer('saved-id').then(() => { finished = true; }); await flush();
+    expect(h.connection.connectTrusted).toHaveBeenCalledWith('saved-id', undefined); expect(finished).toBe(false); expect(h.state!.reconnect.active).toBe(true);
+    h.connectionCallbacks!.onApproved(); await request; expect(finished).toBe(true); expect(h.state!.status).toBe('connected'); expect(h.state!.controlEnabled).toBe(false); expect(h.state!.screenSharing).toBe(false); h.cleanup!();
+  });
+  it('cancels a pending authenticated attempt without late approval', async () => {
+    const actions = await savedHook(); const request = actions.reconnectPeer('saved-id', { retry: true }); await flush();
+    const old = h.connectionCallbacks!; actions.cancelReconnect(); await request; old.onApproved();
+    expect(h.state!.status).toBe('idle'); expect(h.state!.reconnect.active).toBe(false); h.cleanup!();
+  });
+  it('does not retry an authentication failure even when retry is selected', async () => {
+    const actions = await savedHook(); const request = actions.reconnectPeer('saved-id', { retry: true }); await flush();
+    h.connectionCallbacks!.onClosed('Peer authentication proof failed.'); await request;
+    expect(h.connection.connectTrusted).toHaveBeenCalledOnce(); expect(h.state!.error).toContain('authentication'); h.cleanup!();
+  });
+  it('only retries transient network failures when explicitly requested', async () => {
+    vi.useFakeTimers(); const actions = await savedHook(); const request = actions.reconnectPeer('saved-id', { retry: true }); await flush();
+    h.connectionCallbacks!.onClosed('Network connection lost.'); await flush(); await vi.advanceTimersByTimeAsync(500); await flush();
+    expect(h.connection.connectTrusted).toHaveBeenCalledTimes(2); h.connectionCallbacks!.onApproved(); await request; h.cleanup!(); vi.useRealTimers();
+  });
+  it('starts a saved controller listener only on explicit receive action', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.receiveTrustedPeer('saved-id', { privateAddress: '192.168.1.2', port: 4010 });
+    expect(h.connection.hostTrusted).toHaveBeenCalledWith('saved-id', '192.168.1.2', 4010); expect(h.state!.controlEnabled).toBe(false); h.cleanup!();
+  });
+  it('rejects incorrect saved roles for both trusted operations', async () => {
+    const actions = await savedHook('CONTROLLER'); await actions.reconnectPeer('saved-id'); expect(h.connection.connectTrusted).not.toHaveBeenCalled();
+    h.peers = [saved('HOST')]; await actions.receiveTrustedPeer('saved-id'); expect(h.connection.hostTrusted).not.toHaveBeenCalled(); h.cleanup!();
+  });
+});
