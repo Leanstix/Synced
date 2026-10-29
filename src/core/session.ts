@@ -33,6 +33,8 @@ export class SecureSession {
   private exchange: TrustExchange | null = null;
   private started = false;
   constructor(private role: SessionRole, private secret: string, private nonce: () => string, private callbacks: SessionCallbacks, private options: SessionOptions = {}) {
+    if (!validNonce(secret) || (options.identity && !validNonce(options.identity.id))) throw new Error('Invalid session key or identity.');
+    this.options = { ...options, ...(options.identity ? { identity: { ...options.identity } } : {}), ...(options.trustedPeer ? { trustedPeer: { ...options.trustedPeer } } : {}) };
     if (options.trustedPeer && (!options.identity || !validNonce(options.identity.id) || !validNonce(options.trustedPeer.id) || options.identity.id === options.trustedPeer.id || options.trustedPeer.secret !== secret)) throw new Error('Invalid trusted session.');
     this.phase = role === 'HOST' ? 'hello' : 'challenge';
     this.controllerNonce = role === 'CONTROLLER' ? nonce() : '';
@@ -50,6 +52,9 @@ export class SecureSession {
     this.secret = '';
   }
   receive(frame: unknown): void {
+    try { this.receiveFrame(frame); } catch (error) { this.close(); throw error; }
+  }
+  private receiveFrame(frame: unknown): void {
     if (this.phase === 'closed') throw new Error('Session closed.');
     const plain = frame as Record<string, unknown> | null;
     if (this.phase === 'hello') {
@@ -90,6 +95,8 @@ export class SecureSession {
     if (payload.type === 'trust') { if (!this.exchange) throw new Error('Pairing is unavailable.'); this.exchange.receive((payload as { message?: unknown }).message); return; }
     if (!['media', 'call', 'revoke', 'input', 'permissions', 'ping', 'pong'].includes(payload.type)) throw new Error('Unsupported message.');
     if (payload.type === 'ping') { this.send({ type: 'pong' }); return; }
+    if (payload.type === 'permissions' && (typeof (payload as { screenSharing?: unknown }).screenSharing !== 'boolean' || typeof (payload as { controlEnabled?: unknown }).controlEnabled !== 'boolean')) throw new Error('Invalid permissions message.');
+    if (payload.type === 'revoke' && !validNonce((payload as { peerId?: unknown }).peerId)) throw new Error('Invalid revocation message.');
     this.callbacks.onPayload(payload as SessionPayload);
   }
   approve(): void {

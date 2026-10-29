@@ -81,7 +81,11 @@ export class LocalConnection {
       server.listen({ port: listenPort, host: '0.0.0.0' }, () => {
         if (generation !== this.generation) { server.close(); reject(new Error('Connection cancelled.')); return; }
         const info = server.address();
-        if (!info || typeof info === 'string') { reject(new Error('Could not allocate local port.')); return; }
+        if (!info || typeof info === 'string') {
+          if (this.pendingReject === reject) this.pendingReject = null;
+          server.close(); this.server = null;
+          reject(new Error('Could not allocate local port.')); return;
+        }
         this.endpoint = { address, port: info.port };
         if (peer) this.callbacks.onTrustedListening?.(address, info.port, peer);
         else this.callbacks.onListening(encodeInvitation({ version: 1, address, port: info.port, secret }), address);
@@ -157,7 +161,7 @@ export class LocalConnection {
       } }),
     } : {};
     const session = new SecureSession(role, secret, nonce, {
-      send: frame => { if (!this.socket || this.socket.destroyed) throw new Error('Connection is closed.'); this.socket.write(encodeFrame(frame)); },
+      send: frame => { if (generation !== this.generation || this.socket !== socket || socket.destroyed) throw new Error('Connection is closed.'); this.socket.write(encodeFrame(frame)); },
       onVerified: code => {
         if (this.handshakeTimer) clearTimeout(this.handshakeTimer);
         this.handshakeTimer = setTimeout(() => this.fail('Pairing approval expired. Start a new session.'), 120000);
@@ -166,6 +170,7 @@ export class LocalConnection {
       onApproved: () => {
         if (this.handshakeTimer) clearTimeout(this.handshakeTimer);
         this.handshakeTimer = null;
+        if (peer && this.endpoint && this.trust) void this.trust.updateEndpoint(peer.id, this.endpoint).catch(() => this.callbacks.onPairingError?.('Connected, but the remembered address could not be updated.'));
         this.callbacks.onApproved();
       },
       onPayload: payload => {
