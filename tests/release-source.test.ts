@@ -17,6 +17,11 @@ describe('release source boundary', () => {
   it('rejects manifest native codegen', () => {
     expect(sourceViolations([{ path: 'package.json', text: '{"codegenConfig":{"name":"Bridge"}}' }])).not.toEqual([]);
   });
+  it('rejects custom autolinking manifests and out-of-tree dependency bypasses', () => {
+    for (const path of ['modules/control/expo-module.config.json', 'react-native.config.js', 'bridge.podspec']) expect(sourceViolations([{ path }])).not.toEqual([]);
+    expect(sourceViolations([{ path: 'package.json', text: '{"dependencies":{"bridge":"file:../outside-native"}}' }])).not.toEqual([]);
+    expect(sourceViolations([{ path: 'package.json', text: '{"dependencies":{"safe":"1.2.3"}}' }])).toEqual([]);
+  });
   it.each(['release.jks', 'credentials.json', '.env.production', 'keys/upload.P12', 'google-services.json'])('rejects secret path %s', path => {
     expect(sourceViolations([{ path }])).not.toEqual([]);
   });

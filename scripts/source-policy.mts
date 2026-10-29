@@ -8,8 +8,9 @@ export function sourceViolations(entries: SourceEntry[]): string[] {
     const lower = path.toLowerCase();
     const native = /\.(java|kt|kts|swift|m|mm|h|c|cc|cpp|rs|aar|so|dylib|framework)$/.test(lower)
       || /(^|\/)(android|ios)\//.test(lower)
-      || /(^|\/)(podfile|.*\.gradle|.*\.xcodeproj)(\/|$)/.test(lower);
+      || /(^|\/)(podfile|.*\.gradle|.*\.xcodeproj|.*\.podspec)(\/|$)/.test(lower);
     if (native) failures.push(`${path}: authored native source or platform artifact`);
+    if (/(^|\/)(expo-module\.config\.json|react-native\.config\.[cm]?[jt]s)$/.test(lower)) failures.push(`${path}: custom native module linking configuration`);
     const sensitive = /\.(jks|keystore|p12|pfx|mobileprovision|pem|key)$/.test(lower)
       || /(^|\/)(credentials\.json|google-services\.json|googleservice-info\.plist|\.env(?:\..+)?)$/.test(lower);
     if (sensitive && !/\.env\.(example|sample)$/.test(lower)) failures.push(`${path}: private credentials or environment file`);
@@ -27,6 +28,10 @@ export function sourceViolations(entries: SourceEntry[]): string[] {
     if (lower === 'package.json' && entry.text) {
       const manifest = JSON.parse(entry.text) as Record<string, unknown>;
       if (manifest.codegenConfig) failures.push(`${path}: custom native code generation`);
+      for (const group of ['dependencies', 'optionalDependencies']) {
+        const dependencies = manifest[group] as Record<string, unknown> | undefined;
+        if (dependencies && Object.values(dependencies).some(value => typeof value === 'string' && /^(file:|link:|workspace:)/.test(value))) failures.push(`${path}: unreviewed local dependency can bypass the authored source boundary`);
+      }
     }
     if (entry.text && /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(entry.text)) failures.push(`${path}: private key material`);
   }
