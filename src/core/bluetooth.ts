@@ -70,10 +70,10 @@ export class BluetoothConnection {
     this.assertGeneration(generation);
     const peer = peerId ? this.trust?.get(peerId) : undefined;
     if (peerId && (!peer || peer.role !== 'CONTROLLER')) throw new Error('Saved Bluetooth controller is unavailable or revoked.');
+    this.activePeerId = peer?.id ?? null;
     await requestBluetoothEnable();
     this.assertGeneration(generation);
     const secret = peer?.secret ?? nonce();
-    this.activePeerId = peer?.id ?? null;
     this.accepting = true;
     this.nativeBusy = true;
     const accepted = BluetoothClassic.accept(BLUETOOTH_OPTIONS);
@@ -113,10 +113,11 @@ export class BluetoothConnection {
     const generation = this.generation;
     if (this.trust) await this.trust.initialize();
     this.assertGeneration(generation);
+    if (peer && this.trust?.get(peer.id)?.secret !== peer.secret) throw new Error('Saved Bluetooth peer was revoked.');
+    this.activePeerId = peer?.id ?? null;
     const devices = await listBondedDevices();
     this.assertGeneration(generation);
     if (!devices.some(device => device.address === address)) throw new Error('Pair this phone in Android Bluetooth settings first.');
-    this.activePeerId = peer?.id ?? null;
     this.callbacks.onConnecting('CONTROLLER', address);
     this.nativeBusy = true;
     await new Promise<void>((resolve, reject) => {
