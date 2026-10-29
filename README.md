@@ -80,8 +80,18 @@ CI runs these checks, audits the merged APK permissions/signature, and launches 
 
 CI builds an ARM64/x86_64 preview APK. The preview uses generated development signing and is intended for personal device testing, not store publication. See [Android workflow](.github/workflows/android.yml), [owner build/signing steps](docs/release.md), and [physical phone qualification](docs/release-qualification.md).
 
-The Accessibility dependency is experimental and pinned to [upstream source](https://github.com/bedda-tech/react-native-accessibility-controller/tree/133fdaf0a61044e1c899681391b79f1845c9c2ee). Its package omits compiled JS/declarations, so `postinstall` compiles its TypeScript without changing native code. Its screenshot APIs are not used. The pinned dependency and the security protocol need independent review before a public release.
+The Accessibility dependency is experimental and pinned to [upstream source](https://github.com/bedda-tech/react-native-accessibility-controller/tree/133fdaf0a61044e1c899681391b79f1845c9c2ee). Its package omits compiled JS/declarations, so `postinstall` compiles its TypeScript without changing native code. The postinstall step also enables the Bluetooth dependency's standard AGP-generated BuildConfig metadata, guarded by its exact version and original file hash; it changes no Java/Kotlin adapter source. Its screenshot APIs are not used. The pinned dependency and the security protocol need independent review before a public release.
 
 The prefixed WebRTC AAR contains an unused class-loader customization method that references an omitted generated JNI class. The Expo configuration suppresses only that exact R8 warning (`livekit.org.jni_zero.JniZeroJni`); normal initialization uses the default loader. Release optimization remains enabled. The configuration also overrides dependency labels and disclosures in generated resources so Accessibility settings identify Synced and explain local screen/control sharing correctly.
 
 Source layout: `src/ui` contains the native screens and viewport geometry; `src/core` contains protocol, transport, media and input; `src/controller` coordinates local permissions and session state. The linked-phone logo is maintained as a vector in `assets/logo.svg`.
+
+## Two-emulator integration test
+
+With two booted Android emulators on a shared virtual Wi-Fi network and the built APK:
+
+```sh
+ADB=/path/to/adb npm run test:android:dual -- /path/to/app.apk --screen-control
+```
+
+The harness drives the public UI on `emulator-5554` and `emulator-5556`: compare codes, approve, save on both devices, disconnect, explicitly receive/reconnect, then verify grants remain off. The optional screen/control stage requires real video and an observed remote Home action. It fails rather than counting isolated emulator NAT or a missing stream as success. Other serials can be set through `HOST_SERIAL` and `CONTROLLER_SERIAL`. Pairing credentials stay in memory; screenshots are refused while invitation or comparison UI is visible. Bluetooth radio and real microphone routing still require physical qualification.

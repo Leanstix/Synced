@@ -525,6 +525,55 @@
       "testFile": "tests/useSynced.test.ts",
       "testPrefix": "trusted listener endpoint display",
       "risk": "Expose the actual selected LAN port without stale listeners or fictitious Bluetooth TCP ports"
+    },
+    {
+      "id": "dual-ui-parser",
+      "source": "scripts/dual-android-policy.mts",
+      "testFile": "tests/dual-android-policy.test.ts",
+      "testPrefix": "dual Android UI parser boundaries",
+      "risk": "Bound malformed XML and resolve only exact public UI targets"
+    },
+    {
+      "id": "dual-secret-input",
+      "source": "scripts/dual-android-policy.mts",
+      "testFile": "tests/dual-android-policy.test.ts",
+      "testPrefix": "dual Android secret and input boundaries",
+      "risk": "Keep pairing secrets out of artifacts and command arguments safe"
+    },
+    {
+      "id": "dual-device-command",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-android-ui.test.ts",
+      "testPrefix": "dual Android public UI command boundary",
+      "risk": "Require explicit device serials, bounded retries and real foreground evidence"
+    },
+    {
+      "id": "dual-pair-resume",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android.test.ts",
+      "testPrefix": "dual Android pairing saved resume orchestration",
+      "risk": "Refuse code mismatches, isolated virtual networks and restored grants"
+    },
+    {
+      "id": "dual-screen-control",
+      "source": "scripts/dual-android.mts",
+      "testFile": "tests/dual-android.test.ts",
+      "testPrefix": "dual Android real media and control proof requirements",
+      "risk": "Do not claim media or input success without visible stream and actual remote action"
+    },
+    {
+      "id": "bluetooth-build-metadata",
+      "source": "scripts/bluetooth-build-metadata.mts",
+      "testFile": "tests/bluetooth-build-metadata.test.ts",
+      "testPrefix": "reviewed Bluetooth dependency build metadata",
+      "risk": "Only enable AGP-generated metadata for the exact reviewed external package without changing Java/Kotlin"
+    },
+    {
+      "id": "bluetooth-build-marker-placement",
+      "source": "scripts/bluetooth-build-metadata.mts",
+      "testFile": "tests/bluetooth-build-metadata.test.ts",
+      "testPrefix": "Bluetooth build metadata marker placement",
+      "risk": "Reject a valid metadata marker relocated outside its exact reviewed Android DSL position"
     }
   ]
 }

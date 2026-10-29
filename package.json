@@ -24,7 +24,8 @@
     "bundle:android": "expo export --platform android",
     "postinstall": "node scripts/prepare-dependencies.mts",
     "check:release": "node scripts/check-release.mts",
-    "check:coverage": "node scripts/check-feature-coverage.mts .test-results/vitest.json"
+    "check:coverage": "node scripts/check-feature-coverage.mts .test-results/vitest.json",
+    "test:android:dual": "node scripts/dual-android.mts"
   },
   "dependencies": {
     "@config-plugins/react-native-webrtc": "15.0.2",
