@@ -63,6 +63,13 @@ const disclosedConfig = withStringsXml(config, mod => {
 
 export default withAndroidManifest(disclosedConfig, mod => {
   const manifest = mod.modResults.manifest;
-  manifest['uses-permission'] = limitLegacyBluetoothPermissions(manifest['uses-permission'] ?? []);
+  manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+  const permissions = manifest['uses-permission'] ?? [];
+  for (const name of ['android.permission.BLUETOOTH', 'android.permission.BLUETOOTH_ADMIN']) {
+    if (!permissions.some(permission => permission.$['android:name'] === name)) permissions.push({ $: { 'android:name': name } });
+  }
+  // Library requests are merged using permission-specific rules. Replace the
+  // legacy elements so a dependency cannot remove the app's SDK limit.
+  manifest['uses-permission'] = limitLegacyBluetoothPermissions(permissions);
   return mod;
 });

@@ -4,6 +4,6 @@ export function limitLegacyBluetoothPermissions<T extends { $: { 'android:name'?
     if (!['android.permission.BLUETOOTH', 'android.permission.BLUETOOTH_ADMIN'].includes(permission.$['android:name'] ?? '')) return permission;
     const existing = permission.$['android:maxSdkVersion'];
     const maximum = existing && /^\d+$/.test(existing) ? Math.min(30, Number(existing)) : 30;
-    return { ...permission, $: { ...permission.$, 'android:maxSdkVersion': String(maximum) } };
+    return { ...permission, $: { ...permission.$, 'android:maxSdkVersion': String(maximum), 'tools:node': 'replace' } };
   });
 }

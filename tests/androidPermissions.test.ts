@@ -10,3 +10,11 @@ describe('legacy Bluetooth manifest limits', () => {
   it('does not restrict modern connect permission', () => { const value = permission('android.permission.BLUETOOTH_CONNECT'); expect(limit([value])[0]).toBe(value); });
   it('does not mutate original dependency metadata', () => { const value = permission('android.permission.BLUETOOTH'); limit([value]); expect(value.$['android:maxSdkVersion']).toBeUndefined(); });
 });
+
+describe('legacy Bluetooth manifest merger precedence', () => {
+  it('replaces a broader Bluetooth dependency declaration', () => expect(limit([permission('android.permission.BLUETOOTH')])[0].$).toMatchObject({'android:maxSdkVersion': '30', 'tools:node': 'replace'}));
+  it('replaces a broader admin dependency declaration', () => expect(limit([permission('android.permission.BLUETOOTH_ADMIN')])[0].$).toMatchObject({'android:maxSdkVersion': '30', 'tools:node': 'replace'}));
+  it('keeps a stricter app bound while enforcing precedence', () => expect(limit([permission('android.permission.BLUETOOTH', '28')])[0].$).toMatchObject({'android:maxSdkVersion': '28', 'tools:node': 'replace'}));
+  it('does not replace modern permissions or their location flags', () => { const item = {$: {'android:name': 'android.permission.BLUETOOTH_SCAN', 'android:usesPermissionFlags': 'neverForLocation'}}; expect(limit([item])[0]).toBe(item); });
+  it('does not mutate another plugin’s original legacy element', () => { const item = permission('android.permission.BLUETOOTH_ADMIN'); const output = limit([item])[0]; expect(output).not.toBe(item); expect(item.$).not.toHaveProperty('tools:node'); });
+});
