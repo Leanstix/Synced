@@ -17,7 +17,8 @@ jobs:
       matrix:
         flow: [voice, screen]
     env:
-      APK_SOURCE_SHA: 2213b56df0573ed4b931b6dcce469e71952742ad
+      APK_SOURCE_SHA: fed4703eb8c3b7e5d9622dc0daafc0f256f6ebe4
+      REUSE_APK_EXACT: '1'
       CI: '1'
       EXPO_OFFLINE: '1'
       EXPO_NO_TELEMETRY: '1'
@@ -34,13 +35,18 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Verify reused APK source identity
-        run: node scripts/assert-preview-source.mts "$APK_SOURCE_SHA" --javascript-only
+        run: |
+          if [ "$REUSE_APK_EXACT" = 1 ]; then
+            node scripts/assert-preview-source.mts "$APK_SOURCE_SHA"
+          else
+            node scripts/assert-preview-source.mts "$APK_SOURCE_SHA" --javascript-only
+          fi
       - run: npm ci
       - run: npm run check
       - uses: actions/download-artifact@v4
         with:
           name: synced-android-preview-debug-signed
-          run-id: 40961430641
+          run-id: 40968725019
           github-token: ${{ github.token }}
           path: preview
       - name: Verify reused artifact checksum and permission evidence
@@ -51,6 +57,7 @@ jobs:
           (cd preview && sha256sum --check SHA256SUMS)
           node scripts/audit-manifest.mts preview/permissions.txt preview/badging.txt preview/certificate.txt preview/manifest.xml
       - name: Build an aligned JS iteration APK from the audited native envelope
+        if: env.REUSE_APK_EXACT != '1'
         env:
           SYNCED_DEBUG_STORE_PASS: android
         run: |
@@ -69,7 +76,7 @@ jobs:
       - name: Record exact source qualification
         run: |
           mkdir -p smoke-evidence
-          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40961430641\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" > smoke-evidence/qualified-source.txt
+          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40968725019\nExact binary reuse: %s\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" "$REUSE_APK_EXACT" > smoke-evidence/qualified-source.txt
       - name: Enable KVM access
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -85,7 +92,7 @@ jobs:
           script: |
             bash scripts/smoke-android.sh
             node scripts/dual-emulator-start.mts
-            node scripts/dual-android.mts preview/app-release.apk ${{ matrix.flow == 'voice' && '--voice' || '--screen-control' }} --evidence=smoke-evidence/dual
+            node scripts/dual-android.mts preview/app-release.apk ${{ matrix.flow == 'voice' && '--voice' || '--voice --screen-control' }} --evidence=smoke-evidence/dual
       - name: Upload two-phone evidence
         if: always()
         uses: actions/upload-artifact@v4
