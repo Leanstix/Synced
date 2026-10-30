@@ -24,11 +24,12 @@ import { AndroidUi } from '../scripts/dual-android-ui.mts';
 function controlPhone() {
   const p = new AndroidUi('host', 'com.leanstix.synced');
   vi.spyOn(p, 'tap').mockResolvedValue(); vi.spyOn(p, 'visible').mockResolvedValue(); vi.spyOn(p, 'enableTestAccessibility').mockResolvedValue();
+  vi.spyOn(p, 'allowEntireScreen').mockResolvedValue();
   vi.spyOn(p, 'adb').mockReturnValue('mResumedActivity: ActivityRecord{ launcher/.Launcher }'); return p;
 }
 describe('dual Android real media and control proof requirements', () => {
   it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.visible).toHaveBeenCalledWith('Touch control allowed'); });
-  it('uses OS entire-screen permission and a separate explicit owner control dialog', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); for (const label of ['Share my entire screen', 'Entire screen', 'Start now', 'Allow touch control', 'Allow control']) expect(host.tap).toHaveBeenCalledWith(label); });
+  it('uses OS entire-screen permission and a separate explicit owner control dialog', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); for (const label of ['Share my entire screen', 'Entire screen', 'Allow touch control', 'Allow control']) expect(host.tap).toHaveBeenCalledWith(label); expect(host.allowEntireScreen).toHaveBeenCalledOnce(); });
   it('does not claim video or input readiness when the RTCView is absent', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(peer.visible).mockRejectedValueOnce(new Error('video absent')); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('video absent'); expect(stage).not.toHaveBeenCalled(); expect(peer.tap).not.toHaveBeenCalledWith('Home on the other phone'); });
   it('rejects historical launcher activity when Synced is still resumed', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(host.adb).mockReturnValue('mResumedActivity: ActivityRecord{ com.leanstix.synced/.MainActivity }\n historical launcher/.Launcher'); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('Remote Home'); expect(stage).not.toHaveBeenCalledWith('remote-home-opened-launcher'); });
   it('rejects missing resumed activity evidence rather than accepting a Home tap alone', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(host.adb).mockReturnValue('Activity history includes launcher'); await expect(screenAndControl(host, peer, vi.fn(), async () => {})).rejects.toThrow('Remote Home'); });
@@ -41,4 +42,53 @@ describe('two-phone saved trust survives process restart', () => {
   it('does not claim saved resume when the host cannot restart', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); host.launch.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('host restart failed')); await expect(pairSaveReconnect(host, peer, '/tmp/app.apk')).rejects.toThrow('host restart'); expect(host.tap).not.toHaveBeenCalledWith('Receive connection'); });
   it('does not claim saved resume when the controller cannot restart', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); peer.launch.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('controller restart failed')); await expect(pairSaveReconnect(host, peer, '/tmp/app.apk')).rejects.toThrow('controller restart'); expect(peer.tap).not.toHaveBeenCalledWith('Reconnect'); });
   it('rechecks private grants after saved authentication from fresh processes', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); const stage = vi.fn(); await pairSaveReconnect(host, peer, '/tmp/app.apk', stage); const names = stage.mock.calls.map(([name]) => name); expect(names.indexOf('cold-restart-saved-devices')).toBeLessThan(names.indexOf('trusted-reconnect-no-grants')); expect(host.noAutoGrants).toHaveBeenCalledTimes(2); });
+});
+
+describe('guarded real screen visual evidence', () => {
+  function phones() {
+    const host = controlPhone(), peer = controlPhone();
+    vi.spyOn(host, 'screenshot').mockImplementation(() => {});
+    vi.spyOn(peer, 'screenshot').mockImplementation(() => {});
+    return { host, peer };
+  }
+  it('captures both shared screens through the existing secret guard', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence');
+    expect(host.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'host-screen-shared.png');
+    expect(peer.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'controller-screen-shared.png');
+  });
+  it('captures the actual host launcher and its remote image after Home is observed', async () => {
+    const { host, peer } = phones(); const stage = vi.fn();
+    await screenAndControl(host, peer, stage, async () => {}, '/tmp/evidence');
+    expect(host.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'host-remote-home.png');
+    expect(peer.screenshot).toHaveBeenCalledWith('/tmp/evidence', 'controller-remote-home.png');
+    expect(vi.mocked(host.screenshot).mock.invocationCallOrder[1]).toBeGreaterThan(stage.mock.invocationCallOrder[1]!);
+  });
+  it('brings the remote video into view before capturing each controller image', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence');
+    for (const order of vi.mocked(peer.screenshot).mock.invocationCallOrder) {
+      const last = vi.mocked(peer.visible).mock.invocationCallOrder.filter(n => n < order).at(-1)!;
+      const index = vi.mocked(peer.visible).mock.invocationCallOrder.indexOf(last);
+      expect(vi.mocked(peer.visible).mock.calls[index]).toEqual(['Live remote phone screen']);
+    }
+  });
+  it('does not capture a claimed launcher image when remote Home failed', async () => {
+    const { host, peer } = phones();
+    vi.mocked(host.adb).mockReturnValue('mResumedActivity: com.leanstix.synced/.MainActivity');
+    await expect(screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence')).rejects.toThrow('Remote Home');
+    expect(host.screenshot).not.toHaveBeenCalledWith('/tmp/evidence', 'host-remote-home.png');
+    expect(peer.screenshot).not.toHaveBeenCalledWith('/tmp/evidence', 'controller-remote-home.png');
+  });
+  it('propagates the secret guard refusal without capturing the other screen', async () => {
+    const { host, peer } = phones();
+    vi.mocked(host.screenshot).mockImplementation(() => { throw new Error('private invitation'); });
+    await expect(screenAndControl(host, peer, vi.fn(), async () => {}, '/tmp/evidence')).rejects.toThrow('private invitation');
+    expect(peer.screenshot).not.toHaveBeenCalled();
+  });
+  it('keeps screenshot collection optional for in-memory orchestration tests', async () => {
+    const { host, peer } = phones();
+    await screenAndControl(host, peer, vi.fn(), async () => {});
+    expect(host.screenshot).not.toHaveBeenCalled(); expect(peer.screenshot).not.toHaveBeenCalled();
+  });
 });

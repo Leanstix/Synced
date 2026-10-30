@@ -114,7 +114,9 @@ export class FrameDecoder {
       const length = this.pending.readUInt32BE(0);
       if (!length || length > MAX_FRAME_BYTES) { this.pending = Buffer.alloc(0); throw new Error('Invalid frame length.'); }
       if (this.pending.length === length + 4) {
-        results.push(JSON.parse(this.pending.subarray(4).toString('utf8')) as unknown);
+        // Hermes may return a plain Uint8Array from Buffer.subarray. Decode
+        // through the original Buffer so bytes never become comma-separated text.
+        results.push(JSON.parse(this.pending.toString('utf8', 4)) as unknown);
         this.pending = Buffer.alloc(0);
       }
     }

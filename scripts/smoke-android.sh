@@ -8,6 +8,11 @@ adb shell am start -W -n com.leanstix.synced/.MainActivity | node scripts/redact
 for attempt in $(seq 1 12); do
   adb shell uiautomator dump /sdcard/synced-window.xml >/dev/null
   adb shell cat /sdcard/synced-window.xml | node scripts/redact-release-log.mts > smoke-evidence/window.xml
+  if grep -q 'Pixel Launcher isn' smoke-evidence/window.xml; then
+    node --input-type=module -e 'import {AndroidUi} from "./scripts/dual-android-ui.mts"; new AndroidUi(process.env.HOST_SERIAL ?? "emulator-5554", "com.leanstix.synced").dismissLauncherAnr();'
+    sleep 1
+    continue
+  fi
   if grep -q 'YOUR PHONES. TOGETHER.' smoke-evidence/window.xml; then
     adb exec-out screencap -p > smoke-evidence/launch.png
     adb logcat -d '*:E' | node scripts/redact-release-log.mts > smoke-evidence/logcat.txt

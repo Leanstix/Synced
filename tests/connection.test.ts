@@ -26,6 +26,7 @@ const transport = vi.hoisted(() => {
     server: null as FakeServer | null,
     socket: null as FakeSocket | null,
     onConnect: null as null | (() => void),
+    connectOptions: null as unknown,
     network: vi.fn(async () => '192.168.1.2'),
   };
   return { state, FakeSocket, FakeServer };
@@ -37,6 +38,7 @@ vi.mock('react-native-tcp-socket', () => ({ default: {
     const server = new transport.FakeServer(); server.accept = callback; transport.state.server = server; return server;
   },
   createConnection: (_options: unknown, callback: () => void) => {
+    transport.state.connectOptions = _options;
     const socket = new transport.FakeSocket(); transport.state.socket = socket; transport.state.onConnect = callback; return socket;
   },
 } }));
@@ -44,7 +46,7 @@ import { LocalConnection } from '../src/core/connection';
 
 const callbacks = () => ({ onListening: vi.fn(), onConnecting: vi.fn(), onVerified: vi.fn(), onApproved: vi.fn(), onPayload: vi.fn(), onClosed: vi.fn() });
 const invitation = encodeInvitation({ version: 1, address: '192.168.1.2', port: 5000, secret: base64(new Uint8Array(32).fill(8)) });
-beforeEach(() => { vi.useFakeTimers(); transport.state.autoListen = true; transport.state.network.mockResolvedValue('192.168.1.2'); });
+beforeEach(() => { vi.useFakeTimers(); transport.state.autoListen = true; transport.state.connectOptions = null; transport.state.network.mockResolvedValue('192.168.1.2'); });
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
 
 describe('local transport lifetime', () => {
@@ -159,4 +161,30 @@ describe('authenticated TCP liveness and observer cancellation', () => {
     cb.onConnecting.mockImplementation(() => connection.close(false)); const socket = new transport.FakeSocket(); transport.state.server!.accept(socket);
     expect(socket.destroy).toHaveBeenCalled(); expect(socket.setNoDelay).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+const routeFlush=async()=>{for(let i=0;i<12;i++)await Promise.resolve()};
+describe('Wi-Fi-bound local socket routing',()=>{
+ async function inspectDial(trusted=false,override=false){
+  const trust=new TrustManager({read:async()=>null,write:async()=>{}},length=>new Uint8Array(length).fill(1));
+  await trust.initialize();const peerId=base64(new Uint8Array(32).fill(9));
+  await trust.save({id:peerId,name:'LAN host',role:'HOST',secret:base64(new Uint8Array(32).fill(8)),savedAt:12,endpoint:{address:'192.168.1.2',port:5000}});
+  const connection=new LocalConnection(callbacks(),trusted?trust:undefined);
+  const pending=trusted?connection.connectTrusted(peerId,override?{address:'10.42.0.1',port:47631}:undefined):connection.connect(invitation);
+  const cancelled=expect(pending).rejects.toThrow('cancelled');await routeFlush();const options=transport.state.connectOptions;
+  connection.dispose();await cancelled;return options;
+ }
+ it('binds a fresh invitation to Wi-Fi even if Android prefers cellular data',async()=>expect(await inspectDial()).toMatchObject({interface:'wifi',host:'192.168.1.2',port:5000}));
+ it('retains Wi-Fi routing for a saved host endpoint',async()=>expect(await inspectDial(true)).toMatchObject({interface:'wifi',host:'192.168.1.2'}));
+ it('uses the new hotspot endpoint with Wi-Fi routing after a subnet change',async()=>expect(await inspectDial(true,true)).toMatchObject({interface:'wifi',host:'10.42.0.1',port:47631}));
+ it('fails closed when the requested Wi-Fi interface is unavailable',async()=>{
+  const cb=callbacks(),connection=new LocalConnection(cb);const pending=connection.connect(invitation);const rejected=expect(pending).rejects.toThrow('wifi unreachable');await routeFlush();
+  transport.state.socket!.emit('error',new Error('Interface wifi unreachable'));await rejected;
+  expect(transport.state.connectOptions).toMatchObject({interface:'wifi'});expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('Could not reach'));connection.dispose();
+ });
+ it('does not allocate a default-network socket for a public endpoint',async()=>{
+  const connection=new LocalConnection(callbacks());const bad='synced://'+base64(new TextEncoder().encode(JSON.stringify({version:1,address:'8.8.8.8',port:5000,secret:base64(new Uint8Array(32).fill(8))})));
+  await expect(connection.connect(bad)).rejects.toThrow('private');expect(transport.state.connectOptions).toBeNull();connection.dispose();
+ });
+ it('preserves the bounded native connection timeout on the Wi-Fi interface',async()=>expect(await inspectDial()).toMatchObject({interface:'wifi',connectTimeout:12000}));
 });

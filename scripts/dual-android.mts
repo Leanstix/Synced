@@ -40,14 +40,15 @@ export interface VoicePhone {
 }
 export async function voiceLink(host: VoicePhone, controller: VoicePhone, stage: (name: string) => void = () => {}) {
   await host.visible('Talk while you help.'); await controller.visible('Talk while you help.');
-  await host.tap('Request voice link');
+  await host.tap('Request voice link'); stage('voice-request-tapped');
   await host.visible('Waiting for them to accept'); await controller.visible('A voice request is waiting');
   for (const phone of [host, controller]) {
     if (phone.dump().some(node => [node.text, node.description].includes('Voice link is active'))) throw new Error('Voice became active before explicit acceptance.');
   }
   stage('voice-waits-for-explicit-acceptance');
-  await controller.tap('Accept · Use microphone'); await controller.allowMicrophone();
-  await host.allowMicrophone();
+  await controller.tap('Accept · Use microphone'); stage('voice-accept-tapped');
+  await controller.allowMicrophone(); stage('voice-controller-permission-confirmed');
+  await host.allowMicrophone(); stage('voice-host-permission-confirmed');
   await host.visible('Voice link is active'); await controller.visible('Voice link is active'); stage('voice-link-active-both');
   for (const phone of [host, controller]) {
     await phone.tap('Mute my microphone'); await phone.visible('Your microphone is muted');
@@ -58,7 +59,7 @@ export async function voiceLink(host: VoicePhone, controller: VoicePhone, stage:
   await host.visible('Talk while you help.'); await controller.visible('Talk while you help.'); stage('voice-ended-both-idle');
 }
 
-export async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (name: string) => void, pause = delay) {
+export async function screenAndControl(host: AndroidUi, controller: AndroidUi, stage: (name: string) => void, pause = delay, evidence?: string) {
   await host.enableTestAccessibility();
   // Refresh the service state through the public button rather than an app hook.
   await host.tap('I enabled it · Check permission');
@@ -66,15 +67,25 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
   // Android 14+ defaults to a single app. Entire screen is required for gestures.
   try { await host.tap('A single app'); } catch { /* Some Android images already show the choice list. */ }
   await host.tap('Entire screen');
-  await host.tap('Start now');
+  await host.allowEntireScreen();
   await controller.visible('Live remote phone screen');
   await host.tap('Allow touch control'); await host.tap('Allow control');
   await controller.visible('Touch control allowed'); stage('real-video-and-control-ready');
+  if (evidence) {
+    await controller.visible('Live remote phone screen');
+    host.screenshot(evidence, 'host-screen-shared.png');
+    controller.screenshot(evidence, 'controller-screen-shared.png');
+  }
   await controller.tap('Home on the other phone'); await pause(1000);
   const resumed = host.adb(['shell', 'dumpsys', 'activity', 'activities']);
   const foreground = resumed.split('\n').filter(line => /(?:mResumedActivity|topResumedActivity)/.test(line)).join(' ');
   if (!/(?:launcher|NexusLauncherActivity|Launcher)/i.test(foreground) || foreground.includes(host.packageName)) throw new Error('Remote Home did not open the host launcher.');
   stage('remote-home-opened-launcher');
+  if (evidence) {
+    await controller.visible('Live remote phone screen');
+    host.screenshot(evidence, 'host-remote-home.png');
+    controller.screenshot(evidence, 'controller-remote-home.png');
+  }
   // Bring the owner UI back through the normal launcher; the grants remain explicit.
   host.adb(['shell', 'monkey', '-p', host.packageName, '-c', 'android.intent.category.LAUNCHER', '1']);
   await pause(700);
@@ -86,6 +97,14 @@ export function captureSafeFailureEvidence(host: Pick<AndroidUi, 'screenshot'>, 
     try { phone.screenshot(directory, filename); }
     catch { /* Evidence is optional: never replace the original failure or log raw data. */ }
   }
+}
+
+/** Error banners sit at the top; preserve them without dumping private UI text. */
+export async function captureTopFailureEvidence(host: Pick<AndroidUi, 'top' | 'screenshot'>, controller: Pick<AndroidUi, 'top' | 'screenshot'>, directory: string): Promise<void> {
+  for (const phone of [host, controller]) {
+    try { await phone.top(); } catch { /* A disconnected device must not hide the other phone's evidence. */ }
+  }
+  captureSafeFailureEvidence(host, controller, directory);
 }
 
 async function main() {
@@ -105,11 +124,11 @@ async function main() {
     // Pairing secrets and comparison codes are hidden before any screenshots.
     host.screenshot(evidence, 'host-trusted-private.png'); controller.screenshot(evidence, 'controller-trusted-private.png');
     if (process.argv.includes('--voice')) await voiceLink(host, controller, stage);
-    if (process.argv.includes('--screen-control')) await screenAndControl(host, controller, stage);
+    if (process.argv.includes('--screen-control')) await screenAndControl(host, controller, stage, delay, evidence);
     await controller.tap('Disconnect phones'); await host.visible('Disconnected'); stage('final-disconnect');
   } catch (error) {
     failure = redactReleaseLog(error instanceof Error ? error.message : 'Two-device validation failed.');
-    captureSafeFailureEvidence(host, controller, evidence);
+    await captureTopFailureEvidence(host, controller, evidence);
     // No XML, raw adb stderr, invitation screenshots or payloads are persisted.
     console.error(failure); process.exitCode = 1;
   } finally {

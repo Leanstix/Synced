@@ -14,3 +14,28 @@ it('ends the link and observes both idle screens', async () => {const {host, con
 it('stops before asserting active when OS permission fails', async () => {const {host, controller, log} = phones(); controller.allowMicrophone = async () => {throw new Error('denied');}; await expect(voiceLink(host, controller)).rejects.toThrow('denied'); expect(log).not.toContain('host:permission');});
 
 });
+
+describe('voice permission stage diagnostics',()=>{
+ it('records the request before any permission confirmation',async()=>{
+  const {host,controller}=phones(),stage=vi.fn();await voiceLink(host,controller,stage);
+  expect(stage.mock.calls.slice(0,2).flat()).toEqual(['voice-request-tapped','voice-waits-for-explicit-acceptance']);
+ });
+ it('does not claim the acceptance tap completed when the UI action fails',async()=>{
+  const {host,controller}=phones(),stage=vi.fn();controller.tap=async label=>{if(label.startsWith('Accept'))throw new Error('missing action')};
+  await expect(voiceLink(host,controller,stage)).rejects.toThrow('missing action');expect(stage).not.toHaveBeenCalledWith('voice-accept-tapped');
+ });
+ it('identifies receiver permission failure before claiming caller permission',async()=>{
+  const {host,controller}=phones(),stage=vi.fn();controller.allowMicrophone=async()=>{throw new Error('receiver permission')};
+  await expect(voiceLink(host,controller,stage)).rejects.toThrow('receiver permission');
+  expect(stage).toHaveBeenCalledWith('voice-accept-tapped');expect(stage).not.toHaveBeenCalledWith('voice-controller-permission-confirmed');expect(stage).not.toHaveBeenCalledWith('voice-host-permission-confirmed');
+ });
+ it('distinguishes caller permission failure from an accepted receiver permission',async()=>{
+  const {host,controller}=phones(),stage=vi.fn();host.allowMicrophone=async()=>{throw new Error('caller permission')};
+  await expect(voiceLink(host,controller,stage)).rejects.toThrow('caller permission');expect(stage).toHaveBeenCalledWith('voice-controller-permission-confirmed');expect(stage).not.toHaveBeenCalledWith('voice-link-active-both');
+ });
+ it('requires both permission observations before recording an active link',async()=>{
+  const {host,controller}=phones(),stage=vi.fn();await voiceLink(host,controller,stage);const order=stage.mock.calls.flat();
+  expect(order.indexOf('voice-host-permission-confirmed')).toBeGreaterThan(order.indexOf('voice-controller-permission-confirmed'));
+  expect(order.indexOf('voice-link-active-both')).toBeGreaterThan(order.indexOf('voice-host-permission-confirmed'));
+ });
+});

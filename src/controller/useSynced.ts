@@ -18,6 +18,7 @@ interface Runtime {
   connection: Connection | null; input: InputController; media: MediaSession; voice: VoiceSession;
   trust: TrustManager; reconnect: Reconnector; generation: number; controlGeneration: number;
   controllerMediaReady: boolean; foreground: boolean; mounted: boolean;
+  foregroundWaiters: Set<(active: boolean) => void>;
   open(transport: Transport): Connection;
   stop(): void; permissions(): void;
   approved: null | { resolve(): void; reject(error: unknown): void };
@@ -37,7 +38,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
   };
 
   useEffect(() => {
-    const rt = { generation: 0, controlGeneration: 0, controllerMediaReady: false, foreground: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', mounted: true, connection: null, approved: null } as Runtime;
+    const rt = { generation: 0, controlGeneration: 0, controllerMediaReady: false, foreground: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', foregroundWaiters: new Set(), mounted: true, connection: null, approved: null } as Runtime;
     const update = (change: Partial<SyncedState>) => { if (rt.mounted) patch(change); };
     const send = (payload: Parameters<Connection['send']>[0]) => {
       if (!rt.connection) throw new Error('Connect a peer first.');
@@ -57,7 +58,26 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
     rt.voice = new VoiceSession({
       send: signal => send({ type: 'call', signal }),
       onState: voice => update({ voice }), onError: error => update({ error }),
-      canCall: () => rt.mounted && canUseVoice(current.current, rt.foreground), requestMicrophonePermission,
+      canCall: () => rt.mounted && canUseVoice(current.current, rt.foreground),
+      requestMicrophonePermission: async () => {
+        const generation = rt.generation;
+        if (!await requestMicrophonePermission()) return false;
+        if (!rt.mounted || generation !== rt.generation) return false;
+        if (rt.foreground) return true;
+        // Android can pause this Activity for its permission dialog. Wait for
+        // the owner UI to resume, without acquiring any microphone in background.
+        return new Promise<boolean>((resolve, reject) => {
+          const finish = (active: boolean) => {
+            clearTimeout(timer); rt.foregroundWaiters.delete(finish);
+            resolve(active && rt.mounted && generation === rt.generation);
+          };
+          const timer = setTimeout(() => {
+            rt.foregroundWaiters.delete(finish);
+            reject(new Error('Return to Synced before starting the microphone.'));
+          }, 5000);
+          rt.foregroundWaiters.add(finish);
+        });
+      },
     });
     rt.media = new MediaSession({
       send: signal => { if (current.current.transport === 'wifi' && current.current.status === 'connected') send({ type: 'media', signal }); },
@@ -75,6 +95,7 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
     });
     rt.stop = () => {
       rt.generation++; rt.controlGeneration++; rt.reconnect.cancel();
+      for (const finish of rt.foregroundWaiters) finish(false);
       rt.approved?.reject(new ReconnectError('manual', 'Connection cancelled.')); rt.approved = null;
       const connection = rt.connection; rt.connection = null;
       rt.voice.endCall(); rt.input.revoke(); rt.input.setBluetoothControlAllowed(false);
@@ -166,7 +187,12 @@ export function useSynced(): { state: SyncedState; actions: SyncedActions } {
     void refresh();
     const subscription = AppState.addEventListener('change', next => {
       rt.foreground = next === 'active';
-      if (!rt.foreground) rt.voice.endCall(); else void refresh();
+      if (!rt.foreground) {
+        if (!rt.voice.awaitingMicrophonePermission) rt.voice.endCall();
+      } else {
+        for (const finish of rt.foregroundWaiters) finish(true);
+        void refresh();
+      }
     });
     return () => {
       rt.mounted = false; rt.stop(); unsubscribe(); subscription.remove(); rt.input.dispose();

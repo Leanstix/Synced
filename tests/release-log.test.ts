@@ -31,3 +31,20 @@ describe('release diagnostic redaction', () => {
     expect(redactReleaseLog(once)).toBe(once);
   });
 });
+
+describe('Bluetooth invitation diagnostic redaction',()=>{
+ it.each([
+  'synced-bt://PRIVATE_SESSION',
+  'SYNCED-BT://PRIVATE_SESSION',
+  'request failed: synced-bt://PRIVATE_SESSION',
+  '<node text="synced-bt://PRIVATE_SESSION"/>',
+  JSON.stringify({invitation:'synced-bt://PRIVATE_SESSION'}),
+ ])('redacts Bluetooth credentials in diagnostic format %#',input=>{
+  const output=redactReleaseLog(input);
+  expect(output).toContain('[REDACTED INVITATION]');expect(output).not.toContain('PRIVATE_SESSION');
+ });
+ it('redacts mixed Bluetooth and Wi-Fi invitations independently',()=>{
+  expect(redactReleaseLog('synced-bt://BT_SECRET synced://LAN_SECRET')).toBe('[REDACTED INVITATION] [REDACTED INVITATION]');
+ });
+ it('preserves public Bluetooth status text',()=>expect(redactReleaseLog('Bluetooth controls connected')).toBe('Bluetooth controls connected'));
+});

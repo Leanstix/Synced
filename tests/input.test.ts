@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const native = vi.hoisted(() => ({
-  windowChange: null as null | ((window: { packageName: string; isActive: boolean }) => void),
+  accessibilityEvent: null as null | ((event: { packageName: string; eventType: string }) => void),
   isServiceEnabled: vi.fn(async () => true),
   getAccessibilityTree: vi.fn(async () => [{ nodeId: '1', children: [], isEditable: true, isFocused: true, isEnabled: true }]),
   tap: vi.fn(async () => true), longPress: vi.fn(async () => true), swipe: vi.fn(async () => true),
@@ -11,14 +11,14 @@ const native = vi.hoisted(() => ({
 vi.mock('react-native', () => ({ Platform: { OS: 'android' }, Dimensions: { get: () => ({ width: 360, height: 720 }) }, PixelRatio: { get: () => 3 } }));
 vi.mock('react-native-accessibility-controller', () => ({
   ...native,
-  onWindowChange: (callback: typeof native.windowChange) => { native.windowChange = callback; return { remove: native.remove }; },
+  onAccessibilityEvent: (callback: typeof native.accessibilityEvent) => { native.accessibilityEvent = callback; return { remove: native.remove }; },
 }));
 vi.mock('expo-crypto', () => ({}));
 vi.mock('@livekit/react-native-webrtc', () => ({}));
 vi.mock('expo-intent-launcher', () => ({ startActivityAsync: native.alarm }));
 import { InputController, isProtectedPackage, isRemoteInput } from '../src/core/input';
 
-const foreground = (packageName: string) => native.windowChange?.({ packageName, isActive: true });
+const foreground = (packageName: string) => native.accessibilityEvent?.({ packageName, eventType: 'TYPE_WINDOW_STATE_CHANGED' });
 beforeEach(() => {
   vi.clearAllMocks();
   native.isServiceEnabled.mockResolvedValue(true);
@@ -191,5 +191,51 @@ describe('guarded dialer input', () => {
   it('refuses the dialer when the native accessibility tree is empty', async () => {
     const input = bluetoothInput(); await input.grant(); native.getAccessibilityTree.mockResolvedValueOnce([]);
     await input.execute(dial); expect(native.alarm).not.toHaveBeenCalled(); input.dispose();
+  });
+});
+
+describe('typed Android foreground event identity', () => {
+  const event = (eventType: string, packageName = '') => native.accessibilityEvent?.({ eventType, packageName });
+  async function approved(packageName = 'com.example.notes') {
+    const revoked = vi.fn(); const input = new InputController(revoked);
+    foreground(packageName); input.setSharing(true); await input.grant(); return { input, revoked };
+  }
+  it('retains explicit consent across an unattributed window-list notification', async () => {
+    const { input, revoked } = await approved();
+    event('TYPE_WINDOWS_CHANGED'); await input.execute(tap);
+    expect(revoked).not.toHaveBeenCalled(); expect(native.tap).toHaveBeenCalledOnce(); input.dispose();
+  });
+  it('allows safe Home after the owner grant dialog changes the window list', async () => {
+    const { input, revoked } = await approved('com.leanstix.synced');
+    event('TYPE_WINDOWS_CHANGED'); await input.execute({ type: 'globalAction', action: 'home' });
+    expect(revoked).not.toHaveBeenCalled(); expect(native.globalAction).toHaveBeenCalledWith('home'); input.dispose();
+  });
+  it('still revokes on a real protected foreground transition', async () => {
+    const { input, revoked } = await approved();
+    foreground('com.android.systemui'); event('TYPE_WINDOWS_CHANGED'); foreground('com.example.notes'); await input.execute(tap);
+    expect(revoked).toHaveBeenCalledOnce(); expect(native.tap).not.toHaveBeenCalled(); input.dispose();
+  });
+  it('fails closed on a window-state transition with no package identity', async () => {
+    const { input, revoked } = await approved(); foreground(''); await input.execute(tap);
+    expect(revoked).toHaveBeenCalledOnce(); expect(native.tap).not.toHaveBeenCalled(); input.dispose();
+  });
+  it('does not mistake content events from a background package for foreground changes', async () => {
+    const { input, revoked } = await approved(); event('TYPE_WINDOW_CONTENT_CHANGED', 'com.android.systemui'); await input.execute(tap);
+    expect(revoked).not.toHaveBeenCalled(); expect(native.tap).toHaveBeenCalledOnce(); input.dispose();
+  });
+  it('invalidates an action pending a native tree when the window list changes', async () => {
+    const { input } = await approved(); const pendingTree = deferred<typeof tree>();
+    native.getAccessibilityTree.mockReturnValueOnce(pendingTree.promise);
+    const action = input.execute(tap); await Promise.resolve(); await Promise.resolve();
+    event('TYPE_WINDOWS_CHANGED'); pendingTree.resolve(tree); await action;
+    expect(native.tap).not.toHaveBeenCalled(); input.dispose();
+  });
+  it('does not turn a window-list update into an initial foreground identity', async () => {
+    const input = new InputController(vi.fn()); input.setSharing(true); await input.grant();
+    event('TYPE_WINDOWS_CHANGED', 'com.example.notes'); await input.execute(tap);
+    expect(native.tap).not.toHaveBeenCalled(); input.dispose();
+  });
+  it('releases the typed native event subscription on disposal', async () => {
+    const { input } = await approved(); input.dispose(); expect(native.remove).toHaveBeenCalledOnce();
   });
 });

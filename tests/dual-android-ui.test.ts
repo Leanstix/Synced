@@ -57,3 +57,103 @@ describe('current visible Android UI lookup', () => {
     expect(run.mock.calls.filter(([args]) => args.includes('swipe'))).toHaveLength(27);
   });
 });
+
+describe('retained microphone permission on emulator retries',()=>{
+ it('honors an existing owner grant without pretending a new OS prompt appeared',async()=>{
+  const run=vi.fn<AdbCommand>(()=>'User 0: installed=true\n runtime permissions:\n android.permission.RECORD_AUDIO: granted=true, flags=[USER_SET]');
+  await new AndroidUi('emulator-5554','com.leanstix.synced',run,instant).allowMicrophone();
+  expect(run).toHaveBeenCalledExactlyOnceWith(['-s','emulator-5554','shell','dumpsys','package','com.leanstix.synced'],undefined);
+ });
+});
+
+describe('entire-screen Android OS consent variants', () => {
+  const consent = (button = 'Start', scope = 'Entire screen', enabled = true, title = 'Start recording or casting with Synced?') => `<hierarchy><node text="${title}" bounds="[0,0][200,60]"/><node text="${scope}" bounds="[0,60][200,100]"/><node text="${button}" enabled="${enabled}" bounds="[160,300][240,340]"/></hierarchy>`;
+  it.each(['Start', 'Start now'])('uses the actual OS %s button after entire-screen selection', async button => {
+    const run = vi.fn<AdbCommand>(() => consent(button));
+    await new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen();
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '200', '320'], undefined);
+    expect(run.mock.calls.some(([args]) => args.includes('swipe') || args.includes('grant'))).toBe(false);
+  });
+  it('refuses single-app capture even with a valid Start button', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', 'A single app'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow('entire-screen');
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('refuses disabled OS confirmation', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', undefined, false));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('rejects similarly named app actions outside the Android consent dialog', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', undefined, true, 'Synced home screen'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('waits for the actual confirmation without scrolling a system dialog', async () => {
+    let reads = 0;
+    const run = vi.fn<AdbCommand>(args => args.includes('uiautomator') && ++reads < 3 ? '<hierarchy></hierarchy>' : consent());
+    await new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen();
+    expect(reads).toBe(3); expect(run.mock.calls.some(([args]) => args.includes('swipe'))).toBe(false);
+  });
+  it('bounds missing consent polling and never taps a denial choice', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Cancel'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.filter(([args]) => args.includes('uiautomator'))).toHaveLength(20);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+});
+
+describe('sandbox Pixel Launcher ANR recovery', () => {
+  const dialog = (title = "Pixel Launcher isn't responding", button = 'Close app', enabled = true) => `<hierarchy><node text="${title}" bounds="[0,0][200,80]"/><node text="${button}" enabled="${enabled}" bounds="[20,100][180,140]"/></hierarchy>`;
+  it.each(["Pixel Launcher isn't responding", 'Pixel Launcher isn’t responding'])('closes only the observed launcher dialog variant %s', title => {
+    const run = vi.fn<AdbCommand>(() => dialog(title));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(true);
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '100', '120'], undefined);
+  });
+  it.each(["Synced isn't responding", "System UI isn't responding", "Messages isn't responding"])('does not hide the failure %s', title => {
+    const run = vi.fn<AdbCommand>(() => dialog(title));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('refuses disabled Close app buttons', () => {
+    const run = vi.fn<AdbCommand>(() => dialog(undefined, undefined, false));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('does not choose Wait or issue process-kill commands', () => {
+    const run = vi.fn<AdbCommand>(() => dialog(undefined, 'Wait'));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls).toHaveLength(1);
+  });
+  it('leaves an ordinary Synced screen untouched', () => {
+    const run = vi.fn<AdbCommand>(() => dump);
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls).toHaveLength(1);
+  });
+});
+
+describe('remote-safe controller app scrolling', () => {
+  it.each([
+    [320, 640, 1], [480, 800, 1], [1080, 2400, 3], [1440, 3200, 4], [800, 1280, 1.5],
+  ])('keeps app navigation outside the shared viewport at %sx%s density %s', async (width, height, density) => {
+    const run = vi.fn<AdbCommand>(args => args.includes('size') ? `Physical size: ${width}x${height}` : dump);
+    const ui = new AndroidUi('controller', 'com.leanstix.synced', run, instant); await ui.launch(); await ui.top();
+    const swipes = run.mock.calls.filter(([args]) => args.includes('swipe'));
+    expect(swipes).toHaveLength(5);
+    for (const [args] of swipes) {
+      const index = args.indexOf('swipe'); const [x1, y1, x2, y2] = args.slice(index + 1, index + 5).map(Number);
+      expect(x1).toBeGreaterThan(0); expect(x1).toBeLessThan(22 * density); expect(x2).toBe(x1);
+      expect(y1).toBeGreaterThan(0); expect(y2).toBeLessThan(height);
+    }
+  });
+  it('finds an offscreen control caption by scrolling the app instead of sending host swipes', async () => {
+    let scrolled = false, hostGestures = 0;
+    const run = vi.fn<AdbCommand>(args => {
+      const index = args.indexOf('swipe');
+      if (index !== -1) { if (+args[index + 1]! < 22) scrolled = true; else hostGestures++; }
+      return scrolled ? dump.replace('Save phone', 'Touch control allowed') : '<hierarchy></hierarchy>';
+    });
+    await new AndroidUi('controller', 'com.leanstix.synced', run, instant).locate('Touch control allowed');
+    expect(scrolled).toBe(true); expect(hostGestures).toBe(0);
+  });
+});

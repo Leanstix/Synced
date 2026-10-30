@@ -1,0 +1,12 @@
+import {readFileSync} from 'node:fs';
+import {describe,expect,it} from 'vitest';
+const workflow=readFileSync('.github/workflows/verified-two-phone.yml','utf8');
+describe('source-qualified Android iteration workflow',()=>{
+ it('requires the native source boundary before reusing any APK',()=>{expect(workflow).toContain('node scripts/assert-preview-source.mts "$APK_SOURCE_SHA" --javascript-only');expect(workflow.indexOf('assert-preview-source')).toBeLessThan(workflow.indexOf('actions/download-artifact'))});
+ it('builds the current JavaScript offline and replaces the metadata-selected bundle',()=>{expect(workflow).toContain("EXPO_OFFLINE: '1'");expect(workflow).toContain("EXPO_NO_TELEMETRY: '1'");expect(workflow).toContain('node scripts/prepare-iteration-apk.mts preview/app-release.apk dist/metadata.json')});
+ it('requires alignment, development signing and a fresh signature/manifest audit',()=>{for(const requirement of ['zipalign" -P 16','apksigner" sign','apksigner" verify --print-certs','apkanalyzer" manifest print','APP_ENV=preview ALLOW_DEBUG_PREVIEW_SIGNER=1 node scripts/audit-manifest.mts'])expect(workflow).toContain(requirement)});
+ it('keeps voice and screen diagnostics independent without masking failures',()=>{expect(workflow).toContain('fail-fast: false');expect(workflow).toContain('flow: [voice, screen]');expect(workflow).not.toContain('continue-on-error');expect(workflow).toContain("matrix.flow == 'voice' && '--voice' || '--voice --screen-control'")});
+ it('requires exact application source equality when reusing the fully built final APK',()=>{expect(workflow).toMatch(/REUSE_APK_EXACT: '[01]'/);expect(workflow).toContain('if [ "$REUSE_APK_EXACT" = 1 ]; then');expect(workflow).toContain('node scripts/assert-preview-source.mts "$APK_SOURCE_SHA"\n');expect(workflow).toContain("if: env.REUSE_APK_EXACT != '1'");expect(workflow).toContain('run-id: 40991407544')});
+ it('exercises voice followed by screen and control on the same session and unchanged native APK',()=>{expect(workflow).toContain("'--voice --screen-control'");expect(workflow).toContain('Exact binary reuse: %s');expect(workflow).toContain('047523f1ddd23e466e6b08e7cb6529ddc39557ed')});
+ it('never publishes temporary signing material and retains guarded evidence',()=>{expect(workflow).toContain('$RUNNER_TEMP/synced-iteration-debug.keystore');expect(workflow).toContain('name: verified-${{ matrix.flow }}-evidence');expect(workflow).toContain('path: smoke-evidence/');expect(workflow).toContain('if: always()');expect(workflow).not.toContain('path: preview/')});
+});

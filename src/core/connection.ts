@@ -125,7 +125,7 @@ export class LocalConnection {
     if (generation !== this.generation) throw new Error('Connection cancelled.');
     await new Promise<void>((resolve, reject) => {
       this.pendingReject = reject;
-      const socket = TcpSocket.createConnection({ host: invitation.address, port: invitation.port, connectTimeout: 12000 }, () => {
+      const socket = TcpSocket.createConnection({ host: invitation.address, port: invitation.port, interface: 'wifi', connectTimeout: 12000 }, () => {
         if (generation !== this.generation) { socket.destroy(); reject(new Error('Connection cancelled.')); return; }
         this.attach(socket, 'CONTROLLER', invitation.secret, invitation.address, peer);
         if (this.pendingReject === reject) this.pendingReject = null;

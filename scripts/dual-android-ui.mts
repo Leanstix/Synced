@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseUi, findUi, assertEvidenceSafe, shellQuote, type UiNode } from './dual-android-policy.mts';
+import { parseUi, findUi, assertEvidenceSafe, microphoneGrantedForOwner, shellQuote, type UiNode } from './dual-android-policy.mts';
 export type AdbCommand = (args: string[], timeout?: number) => string;
 export const realAdb: AdbCommand = (args, timeout = 30000) => execFileSync(process.env.ADB ?? 'adb', args, { encoding: 'utf8', timeout, maxBuffer: 2_000_000, stdio: ['ignore', 'pipe', 'pipe'] });
 export const delay = (milliseconds: number) => new Promise<void>(resolve => setTimeout(resolve, milliseconds));
@@ -29,8 +29,20 @@ export class AndroidUi {
     await this.pause(1500);
   }
   dump(): UiNode[] { return parseUi(this.adb(['exec-out', 'uiautomator', 'dump', '/dev/tty'])); }
+  /** Fresh emulator images sometimes leave a Pixel Launcher ANR over the tested app. */
+  dismissLauncherAnr(): boolean {
+    const nodes = this.dump();
+    const launcher = nodes.some(node => [node.text, node.description].some(value => /^Pixel Launcher isn['’]t responding$/.test(value)));
+    const button = nodes.find(node => node.enabled && [node.text, node.description].includes('Close app'));
+    if (!launcher || !button) return false;
+    const [l, t, r, b] = button.bounds;
+    this.adb(['shell', 'input', 'tap', String(Math.round((l + r) / 2)), String(Math.round((t + b) / 2))]);
+    return true;
+  }
   private swipe(down: boolean): void {
-    const x = Math.round(this.width * 0.5), upper = Math.round(this.height * 0.28), lower = Math.round(this.height * 0.82);
+    // The middle of the controller is an interactive remote screen. Scroll the
+    // app through its outer gutter so navigation cannot become host gestures.
+    const x = Math.min(12, Math.round(this.width * 0.04)), upper = Math.round(this.height * 0.28), lower = Math.round(this.height * 0.82);
     this.adb(['shell', 'input', 'swipe', String(x), String(down ? lower : upper), String(x), String(down ? upper : lower), '250']);
   }
   async top(): Promise<void> { for (let i = 0; i < 5; i++) this.swipe(false); await this.pause(200); }
@@ -66,7 +78,23 @@ export class AndroidUi {
   }
   async visible(label: string, prefix = false): Promise<void> { await this.locate(label, prefix); }
   async noAutoGrants(): Promise<void> { await this.visible('Your screen is private.'); await this.visible('Only you can control this phone.'); }
+  async allowEntireScreen(): Promise<void> {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const nodes = this.dump();
+      const entireScreen = nodes.some(node => [node.text, node.description].includes('Entire screen'));
+      const consent = nodes.some(node => /Start recording or casting with Synced\?/i.test(`${node.text} ${node.description}`));
+      const button = nodes.find(node => node.enabled && [node.text, node.description].some(value => /^(Start|Start now)$/i.test(value)));
+      if (entireScreen && consent && button) {
+        const [l, t, r, b] = button.bounds;
+        this.adb(['shell', 'input', 'tap', String(Math.round((l + r) / 2)), String(Math.round((t + b) / 2))]);
+        await this.pause(250); return;
+      }
+      await this.pause(400);
+    }
+    throw new Error('Explicit Android entire-screen consent was not found.');
+  }
   async allowMicrophone(): Promise<void> {
+    if (microphoneGrantedForOwner(this.adb(['shell', 'dumpsys', 'package', this.packageName]))) return;
     // Permission controller buttons are read and tapped directly, never app-op grants.
     for (let attempt = 0; attempt < 30; attempt++) {
       const nodes = this.dump();
