@@ -25,7 +25,7 @@ function controlPhone() {
   const p = new AndroidUi('host', 'com.leanstix.synced');
   vi.spyOn(p, 'tap').mockResolvedValue(); vi.spyOn(p, 'visible').mockResolvedValue(); vi.spyOn(p, 'enableTestAccessibility').mockResolvedValue();
   vi.spyOn(p, 'allowEntireScreen').mockResolvedValue();
-  vi.spyOn(p, 'adb').mockReturnValue('mResumedActivity: ActivityRecord{ launcher/.Launcher }'); return p;
+  vi.spyOn(p, 'adb').mockImplementation(args => args.includes('pidof') ? '10123' : 'mResumedActivity: ActivityRecord{ launcher/.Launcher }'); return p;
 }
 describe('dual Android real media and control proof requirements', () => {
   it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.visible).toHaveBeenCalledWith('Touch control allowed'); });
