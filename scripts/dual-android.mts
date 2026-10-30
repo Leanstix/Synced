@@ -86,6 +86,18 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
     host.screenshot(evidence, 'host-remote-home.png');
     controller.screenshot(evidence, 'controller-remote-home.png');
   }
+  // Qualification must include the owner's app out of focus. A 10-second
+  // foreground-only demonstration is insufficient for phone remote control.
+  await pause(15000);
+  await controller.visible('Live remote phone screen');
+  await controller.visible('Touch control allowed');
+  stage('remote-video-and-control-survived-15s-background');
+  await pause(60000);
+  const backgroundPid = host.adb(['shell', 'pidof', host.packageName]).trim();
+  if (!/^\\d+(?:\\s+\\d+)*$/.test(backgroundPid)) throw new Error('Screen-sharing host was killed in the background.');
+  await controller.visible('Live remote phone screen');
+  await controller.visible('Touch control allowed');
+  stage('host-process-and-remote-screen-survived-75s-background');
   // Bring the owner UI back through the normal launcher; the grants remain explicit.
   host.adb(['shell', 'monkey', '-p', host.packageName, '-c', 'android.intent.category.LAUNCHER', '1']);
   await pause(700);
