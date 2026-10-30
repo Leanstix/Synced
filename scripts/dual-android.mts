@@ -94,7 +94,7 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
   stage('remote-video-and-control-survived-15s-background');
   await pause(60000);
   const backgroundPid = host.adb(['shell', 'pidof', host.packageName]).trim();
-  if (!/^\\d+(?:\\s+\\d+)*$/.test(backgroundPid)) throw new Error('Screen-sharing host was killed in the background.');
+  if (!/^\d+(?:\s+\d+)*$/.test(backgroundPid)) throw new Error('Screen-sharing host was killed in the background.');
   await controller.visible('Live remote phone screen');
   await controller.visible('Touch control allowed');
   stage('host-process-and-remote-screen-survived-75s-background');
