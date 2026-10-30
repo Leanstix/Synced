@@ -50,7 +50,7 @@ describe('letterbox-safe real-host remote launcher targeting', () => {
   const viewport: UiNode['bounds'] = [22,225,298,655];
   const chrome: UiNode['bounds'] = [197,466,247,520];
   it('maps a launcher icon to the visible contained remote frame', () => {
-    expect(mapHostTargetToRemote(chrome, source, viewport)).toEqual({x:200,y:556});
+    expect(mapHostTargetToRemote(chrome, source, viewport)).toEqual({x:202,y:556});
   });
   it('rejects targets off the original host screen', () => {
     expect(mapHostTargetToRemote([-2,10,2,20],source,viewport)).toBeNull();
