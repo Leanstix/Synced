@@ -18,7 +18,7 @@ jobs:
         flow: [voice, screen]
     env:
       APK_SOURCE_SHA: fed4703eb8c3b7e5d9622dc0daafc0f256f6ebe4
-      REUSE_APK_EXACT: '1'
+      REUSE_APK_EXACT: '0'
       CI: '1'
       EXPO_OFFLINE: '1'
       EXPO_NO_TELEMETRY: '1'
