@@ -131,3 +131,29 @@ describe('sandbox Pixel Launcher ANR recovery', () => {
     expect(run.mock.calls).toHaveLength(1);
   });
 });
+
+describe('remote-safe controller app scrolling', () => {
+  it.each([
+    [320, 640, 1], [480, 800, 1], [1080, 2400, 3], [1440, 3200, 4], [800, 1280, 1.5],
+  ])('keeps app navigation outside the shared viewport at %sx%s density %s', async (width, height, density) => {
+    const run = vi.fn<AdbCommand>(args => args.includes('size') ? `Physical size: ${width}x${height}` : dump);
+    const ui = new AndroidUi('controller', 'com.leanstix.synced', run, instant); await ui.launch(); await ui.top();
+    const swipes = run.mock.calls.filter(([args]) => args.includes('swipe'));
+    expect(swipes).toHaveLength(5);
+    for (const [args] of swipes) {
+      const index = args.indexOf('swipe'); const [x1, y1, x2, y2] = args.slice(index + 1, index + 5).map(Number);
+      expect(x1).toBeGreaterThan(0); expect(x1).toBeLessThan(22 * density); expect(x2).toBe(x1);
+      expect(y1).toBeGreaterThan(0); expect(y2).toBeLessThan(height);
+    }
+  });
+  it('finds an offscreen control caption by scrolling the app instead of sending host swipes', async () => {
+    let scrolled = false, hostGestures = 0;
+    const run = vi.fn<AdbCommand>(args => {
+      const index = args.indexOf('swipe');
+      if (index !== -1) { if (+args[index + 1]! < 22) scrolled = true; else hostGestures++; }
+      return scrolled ? dump.replace('Save phone', 'Touch control allowed') : '<hierarchy></hierarchy>';
+    });
+    await new AndroidUi('controller', 'com.leanstix.synced', run, instant).locate('Touch control allowed');
+    expect(scrolled).toBe(true); expect(hostGestures).toBe(0);
+  });
+});

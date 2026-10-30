@@ -40,7 +40,9 @@ export class AndroidUi {
     return true;
   }
   private swipe(down: boolean): void {
-    const x = Math.round(this.width * 0.5), upper = Math.round(this.height * 0.28), lower = Math.round(this.height * 0.82);
+    // The middle of the controller is an interactive remote screen. Scroll the
+    // app through its outer gutter so navigation cannot become host gestures.
+    const x = Math.min(12, Math.round(this.width * 0.04)), upper = Math.round(this.height * 0.28), lower = Math.round(this.height * 0.82);
     this.adb(['shell', 'input', 'swipe', String(x), String(down ? lower : upper), String(x), String(down ? upper : lower), '250']);
   }
   async top(): Promise<void> { for (let i = 0; i < 5; i++) this.swipe(false); await this.pause(200); }
