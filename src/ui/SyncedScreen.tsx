@@ -190,7 +190,7 @@ function ControllerPanel({state, actions}: Props) {
   const [hour, setHour] = useState('');
   const [minute, setMinute] = useState('');
   const gesture = useRef<{point: Point; time: number} | null>(null);
-  const {bluetooth, hasVideo, canControl, canTouch, aspectMatches, caption} = remotePanelState({connected: state.status === 'connected', transport: state.transport, controlEnabled: state.controlEnabled, streamUrl: state.remoteStreamUrl, frame, screen: state.remoteStreamSize});
+  const {bluetooth, hasVideo, canControl, canTouch, aspectMatches, caption, mappedFrame, inferredFrame} = remotePanelState({connected: state.status === 'connected', transport: state.transport, controlEnabled: state.controlEnabled, streamUrl: state.remoteStreamUrl, frame, screen: state.remoteStreamSize});
   const validAlarm = alarmFieldsValid(hour, minute);
 
   useEffect(() => {
@@ -202,8 +202,8 @@ function ControllerPanel({state, actions}: Props) {
   const finishGesture = (event: GestureResponderEvent) => {
     const start = gesture.current;
     gesture.current = null;
-    if (!start || !canTouch || !frame) return;
-    const result = resolveScreenGesture(start.point, {x: event.nativeEvent.locationX, y: event.nativeEvent.locationY}, Date.now() - start.time, viewport, frame);
+    if (!start || !canTouch || !mappedFrame) return;
+    const result = resolveScreenGesture(start.point, {x: event.nativeEvent.locationX, y: event.nativeEvent.locationY}, Date.now() - start.time, viewport, mappedFrame);
     if (!result) return;
     if (result.kind === 'swipe') actions.sendInput({type: 'swipe', fromX: result.from.x, fromY: result.from.y, toX: result.to.x, toY: result.to.y, durationMs: result.durationMs});
     else actions.sendInput({type: result.kind, x: result.point.x, y: result.point.y});
@@ -240,6 +240,7 @@ function ControllerPanel({state, actions}: Props) {
       </View>
       <View style={s.remoteBottom}><View style={[s.tinyDot, canTouch && s.activeDot]} /><Text style={s.remoteCaption}>{caption}</Text></View>
     </View>
+    {hasVideo && canTouch && inferredFrame && <Text style={s.noticeText}>Video frame measurements are unavailable; gestures use the host's approved screen size. Stop sharing if the preview is cropped or inaccurate.</Text>}
     {hasVideo && canControl && frame && state.remoteStreamSize && !aspectMatches && <Text style={s.noticeText}>The video does not match the other phone’s entire screen. Ask them to stop sharing and share again, choosing “Entire screen”.</Text>}
     <View style={s.navigationBar}>{(['back', 'home', 'recents'] as const).map(action => <Pressable
       key={action}
