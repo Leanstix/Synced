@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assertEvidenceSafe, comparisonFromUi, decodeXml, findUi, invitationFromUi, parseUi, shellQuote, validateSerials, type UiNode } from '../scripts/dual-android-policy.mts';
+import { assertEvidenceSafe, comparisonFromUi, decodeXml, findUi, invitationFromUi, parseUi, shellQuote, validateSerials, mapHostTargetToRemote, type UiNode } from '../scripts/dual-android-policy.mts';
 const xml = (attrs: string) => `<hierarchy><node bounds="[0,0][200,100]" enabled="true" ${attrs}/></hierarchy>`;
 describe('dual Android UI parser boundaries', () => {
   it('decodes named and numeric entities without executing XML', () => expect(decodeXml('&amp;&quot;&#65;&#x42;&apos;')).toBe('&"AB\''));
@@ -42,4 +42,30 @@ describe('retained owner microphone grant evidence',()=>{
  it('rejects ambiguous duplicate owner records',()=>expect(microphoneGrantedForOwner(owner('true')+owner('false'))).toBe(false));
  it('rejects malformed grant values and other permissions',()=>{expect(microphoneGrantedForOwner(owner('trueish'))).toBe(false);expect(microphoneGrantedForOwner(owner('true').replace('RECORD_AUDIO','READ_CONTACTS'))).toBe(false)});
  it('rejects unavailable permission evidence',()=>expect(microphoneGrantedForOwner('')).toBe(false));
+});
+
+
+describe('letterbox-safe real-host remote launcher targeting', () => {
+  const source = { width:320, height:640 };
+  const viewport: UiNode['bounds'] = [22,225,298,655];
+  const chrome: UiNode['bounds'] = [197,466,247,520];
+  it('maps a launcher icon to the visible contained remote frame', () => {
+    expect(mapHostTargetToRemote(chrome, source, viewport)).toEqual({x:200,y:556});
+  });
+  it('rejects targets off the original host screen', () => {
+    expect(mapHostTargetToRemote([-2,10,2,20],source,viewport)).toBeNull();
+    expect(mapHostTargetToRemote([320,10,321,20],source,viewport)).toBeNull();
+  });
+  it('rejects nonfinite or zero host and viewport dimensions', () => {
+    expect(mapHostTargetToRemote(chrome,{width:NaN,height:640},viewport)).toBeNull();
+    expect(mapHostTargetToRemote(chrome,source,[20,20,20,30])).toBeNull();
+    expect(mapHostTargetToRemote(chrome,{width:320,height:0},viewport)).toBeNull();
+  });
+  it('keeps a centered touch centered on a landscape-contained frame', () => {
+    expect(mapHostTargetToRemote([300,140,340,180],{width:640,height:320},[0,0,400,400])).toEqual({x:200,y:200});
+  });
+  it('rejects collapsed target rectangles rather than tapping an arbitrary surface', () => {
+    expect(mapHostTargetToRemote([10,10,10,30],source,viewport)).toBeNull();
+    expect(mapHostTargetToRemote([10,20,30,20],source,viewport)).toBeNull();
+  });
 });
