@@ -17,8 +17,8 @@ jobs:
       matrix:
         flow: [voice, screen]
     env:
-      APK_SOURCE_SHA: fed4703eb8c3b7e5d9622dc0daafc0f256f6ebe4
-      REUSE_APK_EXACT: '0'
+      APK_SOURCE_SHA: 047523f1ddd23e466e6b08e7cb6529ddc39557ed
+      REUSE_APK_EXACT: '1'
       CI: '1'
       EXPO_OFFLINE: '1'
       EXPO_NO_TELEMETRY: '1'
@@ -46,7 +46,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: synced-android-preview-debug-signed
-          run-id: 40968725019
+          run-id: 40991407544
           github-token: ${{ github.token }}
           path: preview
       - name: Verify reused artifact checksum and permission evidence
@@ -76,7 +76,7 @@ jobs:
       - name: Record exact source qualification
         run: |
           mkdir -p smoke-evidence
-          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40968725019\nExact binary reuse: %s\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" "$REUSE_APK_EXACT" > smoke-evidence/qualified-source.txt
+          printf 'APK source: %s\nHarness source: %s\nArtifact run: 40991407544\nExact binary reuse: %s\n' "$APK_SOURCE_SHA" "$GITHUB_SHA" "$REUSE_APK_EXACT" > smoke-evidence/qualified-source.txt
       - name: Enable KVM access
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
