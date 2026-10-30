@@ -44,6 +44,46 @@ describe('dual Android real media and control proof requirements', () => {
   it('returns the owner through the launcher without force-stopping the verified session', async () => { const host = controlPhone(), peer = controlPhone(); const stage = vi.fn(); await screenAndControl(host, peer, stage, async () => {}); expect(stage).toHaveBeenCalledWith('remote-home-opened-launcher'); expect(host.adb).toHaveBeenCalledWith(['shell', 'monkey', '-p', 'com.leanstix.synced', '-c', 'android.intent.category.LAUNCHER', '1']); expect(vi.mocked(host.adb).mock.calls.some(([args]) => args.includes('force-stop'))).toBe(false); });
 });
 
+
+describe('real remote browser gesture and sustained background controls', () => {
+  const run = (host: AndroidUi, peer: AndroidUi, stage = vi.fn()) => screenAndControl(host, peer, stage, async () => {});
+  it('will not claim touch success without a host launcher target', async () => {
+    const host = controlPhone(), peer = controlPhone(); vi.mocked(host.dump).mockReturnValue([]);
+    await expect(run(host,peer)).rejects.toThrow('No accessible Chrome launcher target');
+    expect(peer.adb).not.toHaveBeenCalledWith(expect.arrayContaining(['input','tap']));
+  });
+  it('will not inject a tap if the host viewport cannot be mapped safely', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    vi.mocked(peer.locate).mockResolvedValue(parseUi('<hierarchy><node bounds="[0,0][1,1]" content-desc="Live remote phone screen"/></hierarchy>')[0]!);
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') ? 'mResumedActivity: launcher/.Launcher' : args.includes('size') ? 'bad device size' : '10123');
+    await expect(run(host,peer)).rejects.toThrow('cannot be mapped');
+  });
+  it('requires the host browser to actually become foreground after video-coordinate tap', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') ? 'mResumedActivity: launcher/.Launcher' : args.includes('size') ? 'Physical size: 320x640' : '10123');
+    await expect(run(host,peer)).rejects.toThrow('did not open Chrome');
+  });
+  it('fails if the sharing host process dies while Chrome remains open', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    const previous = vi.mocked(host.adb).getMockImplementation()!;
+    vi.mocked(host.adb).mockImplementation(args => args.includes('pidof') ? '' : previous(args));
+    await expect(run(host,peer)).rejects.toThrow('killed in the background');
+  });
+  it('fails if another foreground app is replaced before the 75-second checkpoint', async () => {
+    const host = controlPhone(), peer = controlPhone(); let checks = 0;
+    const previous = vi.mocked(host.adb).getMockImplementation()!;
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') && ++checks >= 3 ? 'mResumedActivity: launcher/.Launcher' : previous(args));
+    await expect(run(host,peer)).rejects.toThrow('Other app did not remain foreground');
+  });
+  it('stages a real successful touch before background longevity can pass', async () => {
+    const host = controlPhone(), peer = controlPhone(), stage = vi.fn();
+    await run(host,peer,stage);
+    const names=stage.mock.calls.map(([name])=>name);
+    expect(names.indexOf('real-remote-touch-opened-host-browser')).toBeGreaterThan(names.indexOf('remote-home-opened-launcher'));
+    expect(names.indexOf('real-remote-touch-opened-host-browser')).toBeLessThan(names.indexOf('host-process-and-remote-screen-survived-75s-background'));
+  });
+});
+
 describe('two-phone saved trust survives process restart', () => {
   it('restarts both app processes before using their saved rows', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); const stage = vi.fn(); await pairSaveReconnect(host, peer, '/tmp/app.apk', stage); expect(host.launch).toHaveBeenCalledTimes(2); expect(peer.launch).toHaveBeenCalledTimes(2); expect(stage.mock.calls.map(([name]) => name)).toContain('cold-restart-saved-devices'); });
   it('completes save and disconnection before the cold restart', async () => { const host = phone('host', '10.0.2.16'), peer = phone('peer', '10.0.2.17'); await pairSaveReconnect(host, peer, '/tmp/app.apk'); expect(host.launch.mock.invocationCallOrder[1]).toBeGreaterThan(host.tap.mock.invocationCallOrder[host.tap.mock.calls.findIndex(([label]) => label === 'Disconnect phones')]); });
