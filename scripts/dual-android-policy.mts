@@ -55,3 +55,19 @@ export function shellQuote(value: string): string {
 export function validateSerials(host: string, controller: string): void {
   if (!/^(?:emulator-\d+|[\w.:-]+)$/.test(host) || !/^(?:emulator-\d+|[\w.:-]+)$/.test(controller) || host === controller) throw new Error('Two distinct Android device serials are required.');
 }
+
+/** Map a host UI node into the rendered remote video (objectFit="contain"). */
+export function mapHostTargetToRemote(
+  target: UiNode['bounds'], host: { width: number; height: number }, viewport: UiNode['bounds'],
+): { x: number; y: number } | null {
+  const [l,t,r,b] = viewport;
+  const [tl,tt,tr,tb] = target;
+  if (![l,t,r,b,tl,tt,tr,tb,host.width,host.height].every(Number.isFinite) ||
+    host.width <= 0 || host.height <= 0 || r <= l || b <= t ||
+    tl < 0 || tt < 0 || tr > host.width || tb > host.height || tr <= tl || tb <= tt) return null;
+  const scale = Math.min((r-l)/host.width, (b-t)/host.height);
+  const left = l + ((r-l) - host.width * scale)/2;
+  const top = t + ((b-t) - host.height * scale)/2;
+  const x = left + (tl+tr)*scale/2, y = top + (tt+tb)*scale/2;
+  return x >= l && x <= r && y >= t && y <= b ? {x:Math.round(x),y:Math.round(y)} : null;
+}
