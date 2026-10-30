@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { AndroidUi, delay } from './dual-android-ui.mts';
-import { comparisonFromUi, invitationFromUi, validateSerials } from './dual-android-policy.mts';
+import { comparisonFromUi, invitationFromUi, mapHostTargetToRemote, validateSerials } from './dual-android-policy.mts';
 import { redactReleaseLog } from './log-policy.mts';
 
 export interface PairingPhone {
@@ -70,7 +70,8 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
   await host.allowEntireScreen();
   await controller.visible('Live remote phone screen');
   await host.tap('Allow touch control'); await host.tap('Allow control');
-  await controller.visible('Touch control allowed'); stage('real-video-and-control-ready');
+  // A hidden footer label cannot establish gesture readiness; a real gesture must.
+  stage('real-video-and-control-consented');
   if (evidence) {
     await controller.visible('Live remote phone screen');
     host.screenshot(evidence, 'host-screen-shared.png');
@@ -86,18 +87,35 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
     host.screenshot(evidence, 'host-remote-home.png');
     controller.screenshot(evidence, 'controller-remote-home.png');
   }
-  // Qualification must include the owner's app out of focus. A 10-second
-  // foreground-only demonstration is insufficient for phone remote control.
+  // Verify an actual video-coordinate gesture rather than an offscreen footer.
+  // The icon is located from the host's public launcher accessibility bounds.
+  await controller.top();
+  const viewport = await controller.locate('Live remote phone screen');
+  const browser = host.dump().find(node => node.enabled && [node.text, node.description].some(value => /^Chrome(?:$|[, ] )/.test(value) || value === 'Chrome'));
+  if (!browser) throw new Error('No accessible Chrome launcher target on host emulator.');
+  const size = /(?:^|\s)(\d+)x(\d+)/.exec(host.adb(['shell','wm','size']));
+  const mapped = size && mapHostTargetToRemote(browser.bounds, {width:Number(size[1]),height:Number(size[2])}, viewport.bounds);
+  if (!mapped) throw new Error('Host launcher gesture cannot be mapped to the visible video.');
+  controller.adb(['shell','input','tap',String(mapped.x),String(mapped.y)]);
+  await pause(1400);
+  const resumedBrowser = host.adb(['shell','dumpsys','activity','activities']).split('\n').filter(line => /(?:mResumedActivity|topResumedActivity)/.test(line)).join(' ');
+  if (!/chrome/i.test(resumedBrowser) || resumedBrowser.includes(host.packageName)) throw new Error('Remote screen gesture did not open Chrome on host.');
+  stage('real-remote-touch-opened-host-browser');
+  // Qualification must include a different foreground Android app for 75 seconds.
   await pause(15000);
   await controller.visible('Live remote phone screen');
-  await controller.visible('Touch control allowed');
   stage('remote-video-and-control-survived-15s-background');
   await pause(60000);
   const backgroundPid = host.adb(['shell', 'pidof', host.packageName]).trim();
   if (!/^\d+(?:\s+\d+)*$/.test(backgroundPid)) throw new Error('Screen-sharing host was killed in the background.');
+  const foregroundApp = host.adb(['shell','dumpsys','activity','activities']).split('\n').filter(line => /(?:mResumedActivity|topResumedActivity)/.test(line)).join(' ');
+  if (!/chrome/i.test(foregroundApp) || foregroundApp.includes(host.packageName)) throw new Error('Other app did not remain foreground while Synced shared the screen.');
   await controller.visible('Live remote phone screen');
-  await controller.visible('Touch control allowed');
   stage('host-process-and-remote-screen-survived-75s-background');
+  if (evidence) {
+    host.screenshot(evidence, 'host-background-chrome.png');
+    controller.screenshot(evidence, 'controller-background-chrome.png');
+  }
   // Bring the owner UI back through the normal launcher; the grants remain explicit.
   host.adb(['shell', 'monkey', '-p', host.packageName, '-c', 'android.intent.category.LAUNCHER', '1']);
   await pause(700);
