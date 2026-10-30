@@ -194,7 +194,7 @@ describe('background-safe authenticated LAN heartbeats', () => {
     connection.dispose();
   });
   it('renews the deadline only for an authenticated complete peer message', async () => {
-    const { cb, connection, socket, controller } = await approvedHost();
+    const { cb, connection, controller } = await approvedHost();
     vi.advanceTimersByTime(80000);
     controller.send({ type: 'pong' });
     vi.advanceTimersByTime(80000);
