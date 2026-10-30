@@ -67,7 +67,7 @@ export async function screenAndControl(host: AndroidUi, controller: AndroidUi, s
   // Android 14+ defaults to a single app. Entire screen is required for gestures.
   try { await host.tap('A single app'); } catch { /* Some Android images already show the choice list. */ }
   await host.tap('Entire screen');
-  await host.tap('Start now');
+  await host.allowEntireScreen();
   await controller.visible('Live remote phone screen');
   await host.tap('Allow touch control'); await host.tap('Allow control');
   await controller.visible('Touch control allowed'); stage('real-video-and-control-ready');

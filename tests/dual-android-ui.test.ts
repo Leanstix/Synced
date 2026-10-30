@@ -65,3 +65,40 @@ describe('retained microphone permission on emulator retries',()=>{
   expect(run).toHaveBeenCalledExactlyOnceWith(['-s','emulator-5554','shell','dumpsys','package','com.leanstix.synced'],undefined);
  });
 });
+
+describe('entire-screen Android OS consent variants', () => {
+  const consent = (button = 'Start', scope = 'Entire screen', enabled = true, title = 'Start recording or casting with Synced?') => `<hierarchy><node text="${title}" bounds="[0,0][200,60]"/><node text="${scope}" bounds="[0,60][200,100]"/><node text="${button}" enabled="${enabled}" bounds="[160,300][240,340]"/></hierarchy>`;
+  it.each(['Start', 'Start now'])('uses the actual OS %s button after entire-screen selection', async button => {
+    const run = vi.fn<AdbCommand>(() => consent(button));
+    await new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen();
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '200', '320'], undefined);
+    expect(run.mock.calls.some(([args]) => args.includes('swipe') || args.includes('grant'))).toBe(false);
+  });
+  it('refuses single-app capture even with a valid Start button', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', 'A single app'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow('entire-screen');
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('refuses disabled OS confirmation', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', undefined, false));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('rejects similarly named app actions outside the Android consent dialog', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Start', undefined, true, 'Synced home screen'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('waits for the actual confirmation without scrolling a system dialog', async () => {
+    let reads = 0;
+    const run = vi.fn<AdbCommand>(args => args.includes('uiautomator') && ++reads < 3 ? '<hierarchy></hierarchy>' : consent());
+    await new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen();
+    expect(reads).toBe(3); expect(run.mock.calls.some(([args]) => args.includes('swipe'))).toBe(false);
+  });
+  it('bounds missing consent polling and never taps a denial choice', async () => {
+    const run = vi.fn<AdbCommand>(() => consent('Cancel'));
+    await expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).allowEntireScreen()).rejects.toThrow();
+    expect(run.mock.calls.filter(([args]) => args.includes('uiautomator'))).toHaveLength(20);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+});

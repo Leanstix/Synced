@@ -826,6 +826,13 @@
       "testFile": "tests/dual-android.test.ts",
       "testPrefix": "guarded real screen visual evidence",
       "risk": "Preserve guarded images of actual shared content and remote Home without substituting labels for pixel observations"
+    },
+    {
+      "id": "android-screen-consent-variants",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-android-ui.test.ts",
+      "testPrefix": "entire-screen Android OS consent variants",
+      "risk": "Handle Android Start and Start now labels while requiring entire-screen OS consent, enabled controls and bounded polling"
     }
   ]
 }
