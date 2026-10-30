@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mock = vi.hoisted(() => ({
   getDisplayMedia: vi.fn(), peers: [] as MockPeer[],
@@ -210,5 +210,66 @@ describe('bounded pending media signaling', () => {
     const { media, callbacks } = setup(); media.startController();
     for (let i = 0; i < 150; i++) await media.handleSignal({ type: 'dimensions', width: 800, height: 1600 });
     expect(callbacks.onError).not.toHaveBeenCalled(); media.stop();
+  });
+});
+
+
+describe('background screen-video reconnection grace', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  async function connectedController() {
+    const result = setup();
+    result.media.startController();
+    await result.media.handleSignal({ type: 'offer', sdp: 'valid-offer' });
+    const peer = mock.peers[0]!;
+    return { ...result, peer, disconnected: () => { peer.connectionState = 'disconnected'; peer.listeners.connectionstatechange(); } };
+  }
+  it('does not tear down video at the previous ten-second threshold', async () => {
+    const { media, callbacks, peer, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(11000);
+    expect(peer.close).not.toHaveBeenCalled();
+    expect(callbacks.onError).not.toHaveBeenCalled();
+    media.stop();
+  });
+  it('retains a recovering peer until the 60-second deadline', async () => {
+    const { media, callbacks, peer, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(59000);
+    expect(peer.close).not.toHaveBeenCalled();
+    expect(callbacks.onError).not.toHaveBeenCalled();
+    media.stop();
+  });
+  it('fails closed after prolonged loss instead of keeping a stale video grant forever', async () => {
+    const { media, callbacks, peer, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(60000);
+    expect(peer.close).toHaveBeenCalledOnce();
+    expect(callbacks.onError).toHaveBeenCalledWith('Screen connection was lost.');
+    media.stop();
+  });
+  it('cancels pending disconnection teardown when media connectivity returns', async () => {
+    const { media, callbacks, peer, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(30000);
+    peer.connectionState = 'connected'; peer.listeners.connectionstatechange();
+    vi.advanceTimersByTime(65000);
+    expect(callbacks.onError).not.toHaveBeenCalled();
+    expect(peer.close).not.toHaveBeenCalled();
+    media.stop();
+  });
+  it('does not keep extending a disconnected deadline with duplicate native callbacks', async () => {
+    const { media, callbacks, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(30000);
+    disconnected(); vi.advanceTimersByTime(30000);
+    expect(callbacks.onError).toHaveBeenCalledTimes(1);
+    media.stop();
+  });
+  it('never lets a stale timeout destroy a newly created sharing session', async () => {
+    const { media, callbacks, disconnected } = await connectedController();
+    disconnected(); vi.advanceTimersByTime(30000);
+    media.stop(); media.startController();
+    await media.handleSignal({ type: 'offer', sdp: 'fresh' });
+    const fresh = mock.peers[1]!;
+    vi.advanceTimersByTime(65000);
+    expect(fresh.close).not.toHaveBeenCalled();
+    expect(callbacks.onError).not.toHaveBeenCalled();
+    media.stop();
   });
 });
