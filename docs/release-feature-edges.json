@@ -833,6 +833,13 @@
       "testFile": "tests/dual-android-ui.test.ts",
       "testPrefix": "entire-screen Android OS consent variants",
       "risk": "Handle Android Start and Start now labels while requiring entire-screen OS consent, enabled controls and bounded polling"
+    },
+    {
+      "id": "sandbox-launcher-anr",
+      "source": "scripts/dual-android-ui.mts",
+      "testFile": "tests/dual-android-ui.test.ts",
+      "testPrefix": "sandbox Pixel Launcher ANR recovery",
+      "risk": "Close only the observed Pixel Launcher system ANR on a fresh emulator and preserve Synced or other process failures"
     }
   ]
 }

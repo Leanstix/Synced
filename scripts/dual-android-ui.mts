@@ -29,6 +29,16 @@ export class AndroidUi {
     await this.pause(1500);
   }
   dump(): UiNode[] { return parseUi(this.adb(['exec-out', 'uiautomator', 'dump', '/dev/tty'])); }
+  /** Fresh emulator images sometimes leave a Pixel Launcher ANR over the tested app. */
+  dismissLauncherAnr(): boolean {
+    const nodes = this.dump();
+    const launcher = nodes.some(node => [node.text, node.description].some(value => /^Pixel Launcher isn['’]t responding$/.test(value)));
+    const button = nodes.find(node => node.enabled && [node.text, node.description].includes('Close app'));
+    if (!launcher || !button) return false;
+    const [l, t, r, b] = button.bounds;
+    this.adb(['shell', 'input', 'tap', String(Math.round((l + r) / 2)), String(Math.round((t + b) / 2))]);
+    return true;
+  }
   private swipe(down: boolean): void {
     const x = Math.round(this.width * 0.5), upper = Math.round(this.height * 0.28), lower = Math.round(this.height * 0.82);
     this.adb(['shell', 'input', 'swipe', String(x), String(down ? lower : upper), String(x), String(down ? upper : lower), '250']);

@@ -102,3 +102,32 @@ describe('entire-screen Android OS consent variants', () => {
     expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
   });
 });
+
+describe('sandbox Pixel Launcher ANR recovery', () => {
+  const dialog = (title = "Pixel Launcher isn't responding", button = 'Close app', enabled = true) => `<hierarchy><node text="${title}" bounds="[0,0][200,80]"/><node text="${button}" enabled="${enabled}" bounds="[20,100][180,140]"/></hierarchy>`;
+  it.each(["Pixel Launcher isn't responding", 'Pixel Launcher isn’t responding'])('closes only the observed launcher dialog variant %s', title => {
+    const run = vi.fn<AdbCommand>(() => dialog(title));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(true);
+    expect(run).toHaveBeenCalledWith(['-s', 'host', 'shell', 'input', 'tap', '100', '120'], undefined);
+  });
+  it.each(["Synced isn't responding", "System UI isn't responding", "Messages isn't responding"])('does not hide the failure %s', title => {
+    const run = vi.fn<AdbCommand>(() => dialog(title));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('refuses disabled Close app buttons', () => {
+    const run = vi.fn<AdbCommand>(() => dialog(undefined, undefined, false));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls.some(([args]) => args.includes('tap'))).toBe(false);
+  });
+  it('does not choose Wait or issue process-kill commands', () => {
+    const run = vi.fn<AdbCommand>(() => dialog(undefined, 'Wait'));
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls).toHaveLength(1);
+  });
+  it('leaves an ordinary Synced screen untouched', () => {
+    const run = vi.fn<AdbCommand>(() => dump);
+    expect(new AndroidUi('host', 'com.leanstix.synced', run, instant).dismissLauncherAnr()).toBe(false);
+    expect(run.mock.calls).toHaveLength(1);
+  });
+});
