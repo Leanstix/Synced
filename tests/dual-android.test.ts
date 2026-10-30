@@ -23,12 +23,20 @@ import { screenAndControl } from '../scripts/dual-android.mts';
 import { AndroidUi } from '../scripts/dual-android-ui.mts';
 function controlPhone() {
   const p = new AndroidUi('host', 'com.leanstix.synced');
+  let resumedChecks = 0;
   vi.spyOn(p, 'tap').mockResolvedValue(); vi.spyOn(p, 'visible').mockResolvedValue(); vi.spyOn(p, 'enableTestAccessibility').mockResolvedValue();
-  vi.spyOn(p, 'allowEntireScreen').mockResolvedValue();
-  vi.spyOn(p, 'adb').mockImplementation(args => args.includes('pidof') ? '10123' : 'mResumedActivity: ActivityRecord{ launcher/.Launcher }'); return p;
+  vi.spyOn(p, 'allowEntireScreen').mockResolvedValue(); vi.spyOn(p,'top').mockResolvedValue();
+  vi.spyOn(p,'locate').mockResolvedValue(parseUi('<hierarchy><node bounds="[22,225][298,655]" content-desc="Live remote phone screen" enabled="true"/></hierarchy>')[0]!);
+  vi.spyOn(p,'dump').mockReturnValue(parseUi('<hierarchy><node bounds="[197,466][247,520]" content-desc="Chrome" enabled="true"/></hierarchy>'));
+  vi.spyOn(p, 'adb').mockImplementation(args => {
+    if (args.includes('pidof')) return '10123';
+    if (args.includes('size')) return 'Physical size: 320x640';
+    if (args.includes('dumpsys')) return ++resumedChecks === 1 ? 'mResumedActivity: ActivityRecord{ launcher/.Launcher }' : 'mResumedActivity: ActivityRecord{ com.android.chrome/.Main }';
+    return '';
+  }); return p;
 }
 describe('dual Android real media and control proof requirements', () => {
-  it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.visible).toHaveBeenCalledWith('Touch control allowed'); });
+  it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.adb).toHaveBeenCalledWith(['shell','input','tap','202','556']); });
   it('uses OS entire-screen permission and a separate explicit owner control dialog', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); for (const label of ['Share my entire screen', 'Entire screen', 'Allow touch control', 'Allow control']) expect(host.tap).toHaveBeenCalledWith(label); expect(host.allowEntireScreen).toHaveBeenCalledOnce(); });
   it('does not claim video or input readiness when the RTCView is absent', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(peer.visible).mockRejectedValueOnce(new Error('video absent')); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('video absent'); expect(stage).not.toHaveBeenCalled(); expect(peer.tap).not.toHaveBeenCalledWith('Home on the other phone'); });
   it('rejects historical launcher activity when Synced is still resumed', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(host.adb).mockReturnValue('mResumedActivity: ActivityRecord{ com.leanstix.synced/.MainActivity }\n historical launcher/.Launcher'); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('Remote Home'); expect(stage).not.toHaveBeenCalledWith('remote-home-opened-launcher'); });
