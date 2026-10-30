@@ -54,9 +54,14 @@ export class InputController {
   private lastAction = 0;
   private subscription: Accessibility.Subscription | null = null;
   constructor(private onRevoke: (reason?: string) => void) {
-    if (Platform.OS === 'android') this.subscription = Accessibility.onWindowChange(window => {
+    if (Platform.OS === 'android') this.subscription = Accessibility.onAccessibilityEvent(event => {
+      // The dependency's simplified onWindowChange marks every WINDOWS_CHANGED
+      // notification active, even when Android supplies no event package. Those
+      // window-list updates invalidate pending actions but do not identify focus.
+      if (event.eventType !== 'TYPE_WINDOW_STATE_CHANGED' && event.eventType !== 'TYPE_WINDOWS_CHANGED') return;
       this.windowVersion++;
-      this.foreground = window.isActive ? window.packageName : null;
+      if (event.eventType !== 'TYPE_WINDOW_STATE_CHANGED') return;
+      this.foreground = event.packageName || null;
       // The grant dialog itself belongs to Synced. It may dismiss after the grant
       // resolves; only Home or a visible alarm/dialer intent is allowed on this surface.
       const ownerOpeningApp = this.foreground === 'com.leanstix.synced';

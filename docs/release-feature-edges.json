@@ -840,6 +840,13 @@
       "testFile": "tests/dual-android-ui.test.ts",
       "testPrefix": "sandbox Pixel Launcher ANR recovery",
       "risk": "Close only the observed Pixel Launcher system ANR on a fresh emulator and preserve Synced or other process failures"
+    },
+    {
+      "id": "typed-foreground-events",
+      "source": "src/core/input.ts",
+      "testFile": "tests/input.test.ts",
+      "testPrefix": "typed Android foreground event identity",
+      "risk": "Distinguish real foreground transitions from unattributed window-list notifications while preserving revocation and in-flight input cancellation"
     }
   ]
 }
