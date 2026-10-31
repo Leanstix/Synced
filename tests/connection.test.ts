@@ -12,7 +12,7 @@ const transport = vi.hoisted(() => {
   class FakeSocket extends Events {
     remoteAddress = '192.168.1.3'; destroyed = false;
     destroy = vi.fn(() => { this.destroyed = true; this.emit('close'); });
-    write = vi.fn(); setNoDelay = vi.fn();
+    write = vi.fn(); setNoDelay = vi.fn(); setKeepAlive = vi.fn();
   }
   class FakeServer extends Events {
     accept!: (socket: FakeSocket) => void;
@@ -128,12 +128,12 @@ async function approvedHost() {
 describe('authenticated TCP liveness and observer cancellation', () => {
   it('does not extend an approved session with empty native reads', async () => {
     const { cb, connection, socket } = await approvedHost();
-    vi.advanceTimersByTime(20000); socket.emit('data', new Uint8Array()); vi.advanceTimersByTime(10000);
+    vi.advanceTimersByTime(85000); socket.emit('data', new Uint8Array()); vi.advanceTimersByTime(10000);
     expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected')); expect(socket.destroy).toHaveBeenCalled(); connection.dispose();
   });
   it('does not extend an approved session with an incomplete frame header', async () => {
     const { cb, connection, socket } = await approvedHost();
-    vi.advanceTimersByTime(20000); socket.emit('data', new Uint8Array([0])); vi.advanceTimersByTime(10000);
+    vi.advanceTimersByTime(85000); socket.emit('data', new Uint8Array([0])); vi.advanceTimersByTime(10000);
     expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected')); expect(vi.getTimerCount()).toBe(0); connection.dispose();
   });
   it('refreshes liveness only when the complete authenticated frame arrives', async () => {
@@ -144,8 +144,8 @@ describe('authenticated TCP liveness and observer cancellation', () => {
     controller.send({ type: 'pong' }); socket.emit = original;
     vi.advanceTimersByTime(15000); socket.emit('data', frame.subarray(0, -1));
     vi.advanceTimersByTime(5000); socket.emit('data', frame.subarray(-1));
-    vi.advanceTimersByTime(20000); expect(cb.onClosed).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(10000); expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected')); connection.dispose();
+    vi.advanceTimersByTime(80000); expect(cb.onClosed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(15000); expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected')); connection.dispose();
   });
   it('does not leave an invitation timer after a listening observer cancels', async () => {
     const cb = callbacks(); const connection = new LocalConnection(cb); cb.onListening.mockImplementation(() => connection.close(false));
@@ -160,6 +160,48 @@ describe('authenticated TCP liveness and observer cancellation', () => {
     const cb = callbacks(); const connection = new LocalConnection(cb); await connection.host();
     cb.onConnecting.mockImplementation(() => connection.close(false)); const socket = new transport.FakeSocket(); transport.state.server!.accept(socket);
     expect(socket.destroy).toHaveBeenCalled(); expect(socket.setNoDelay).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+
+describe('background-safe authenticated LAN heartbeats', () => {
+  it('does not drop an approved peer at the old 25-second deadline', async () => {
+    const { cb, connection, socket } = await approvedHost();
+    vi.advanceTimersByTime(30000);
+    expect(cb.onClosed).not.toHaveBeenCalled();
+    expect(socket.destroy).not.toHaveBeenCalled();
+    connection.dispose();
+  });
+  it('tolerates 85 seconds of silent JavaScript scheduling without granting indefinite access', async () => {
+    const { cb, connection, socket } = await approvedHost();
+    vi.advanceTimersByTime(85000);
+    expect(cb.onClosed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10000);
+    expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected'));
+    expect(socket.destroy).toHaveBeenCalled();
+    connection.dispose();
+  });
+  it('enables native TCP keepalive for a connected host', async () => {
+    const { connection, socket } = await approvedHost();
+    expect(socket.setKeepAlive).toHaveBeenCalledWith(true, 15000);
+    connection.dispose();
+  });
+  it('sends authenticated pings from a host rather than depending on foreground controller timers', async () => {
+    const { connection, socket } = await approvedHost();
+    const before = socket.write.mock.calls.length;
+    vi.advanceTimersByTime(5000);
+    expect(socket.write.mock.calls.length).toBeGreaterThan(before);
+    connection.dispose();
+  });
+  it('renews the deadline only for an authenticated complete peer message', async () => {
+    const { cb, connection, controller } = await approvedHost();
+    vi.advanceTimersByTime(80000);
+    controller.send({ type: 'pong' });
+    vi.advanceTimersByTime(80000);
+    expect(cb.onClosed).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(15000);
+    expect(cb.onClosed).toHaveBeenCalledWith(expect.stringContaining('disconnected'));
+    connection.dispose();
   });
 });
 

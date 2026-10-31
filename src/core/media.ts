@@ -175,11 +175,13 @@ export class MediaSession {
     });
     peer.addEventListener('connectionstatechange', () => {
       if (generation !== this.generation) return;
-      if (peer.connectionState === 'failed') this.fail('Screen connection failed. Reconnect both phones.');
+      if (peer.connectionState === 'failed') { this.fail('Screen connection failed. Reconnect both phones.'); return; }
+      // Backgrounded Android capture can temporarily report disconnected while
+      // MediaProjection remains active. Recover on the same peer before teardown.
       if (peer.connectionState === 'disconnected' && !this.disconnectedTimer) {
         this.disconnectedTimer = setTimeout(() => {
           if (generation === this.generation) this.fail('Screen connection was lost.');
-        }, 10_000);
+        }, 60_000);
       } else if (peer.connectionState === 'connected' && this.disconnectedTimer) {
         clearTimeout(this.disconnectedTimer);
         this.disconnectedTimer = null;

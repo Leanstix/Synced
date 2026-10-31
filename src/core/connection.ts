@@ -22,6 +22,9 @@ export interface ConnectionCallbacks {
   onPairingError?: (message: string) => void;
 }
 const nonce = () => base64(Crypto.getRandomBytes(32));
+// Allow brief Android scheduler pauses while still failing closed on a silent peer.
+export const LAN_HEARTBEAT_MS = 5000;
+export const LAN_PEER_TIMEOUT_MS = 90000;
 
 /** Ephemeral LAN only. Every disconnect invalidates the invitation and all grants. */
 export class LocalConnection {
@@ -187,6 +190,8 @@ export class LocalConnection {
     }, options);
     this.session = session;
     socket.setNoDelay(true);
+    // Native TCP keepalive is useful when Android throttles the JS event loop.
+    socket.setKeepAlive(true, 15000);
     socket.on('data', (chunk: Buffer | string) => {
       if (generation !== this.generation) return;
       try {
@@ -203,10 +208,11 @@ export class LocalConnection {
     this.handshakeTimer = setTimeout(() => this.fail('Pairing handshake timed out.'), 15000);
     this.timer = setInterval(() => {
       if (!session.ready) return;
-      if (Date.now() - this.lastReceived > 25000) { this.fail('Peer disconnected. All sharing and control stopped.'); return; }
-      // Only the foreground controller drives heartbeats; the host answers immediately.
-      if (role === 'CONTROLLER') { try { session.send({ type: 'ping' }); } catch { this.fail('Connection closed.'); } }
-    }, 5000);
+      if (Date.now() - this.lastReceived > LAN_PEER_TIMEOUT_MS) { this.fail('Peer disconnected. All sharing and control stopped.'); return; }
+      // Both peers initiate authenticated heartbeats. A backgrounded controller
+      // must not be the sole source of host liveness traffic.
+      try { session.send({ type: 'ping' }); } catch { this.fail('Connection closed.'); }
+    }, LAN_HEARTBEAT_MS);
     session.start();
   }
   get currentPeerId(): string | null { return this.activePeerId; }

@@ -23,9 +23,36 @@ describe('remote controls and viewport states', () => {
   it('requires approval for Bluetooth button controls too', () => {
     expect(remotePanelState({...ready, transport: 'bluetooth', controlEnabled: false}).canControl).toBe(false);
   });
-  it('waits for actual dimensions before any screen-coordinate action', () => {
-    expect(remotePanelState({...ready, frame: null}).canTouch).toBe(false);
+  it('recovers host geometry when RTCView omits its first dimension callback', () => {
+    expect(remotePanelState({...ready, frame: null})).toMatchObject({
+      canTouch: true, inferredFrame: true, mappedFrame: {width: 1000, height: 2000},
+    });
     expect(remotePanelState({...ready, screen: null}).caption).toContain('Waiting for screen dimensions');
+  });
+  it('does not infer dimensions without a real remote stream', () => {
+    expect(remotePanelState({...ready, frame: null, streamUrl: null})).toMatchObject({
+      hasVideo: false, canTouch: false, mappedFrame: null, inferredFrame: false,
+    });
+  });
+  it('does not infer geometry before host screen metadata is received', () => {
+    expect(remotePanelState({...ready, frame: null, screen: null})).toMatchObject({
+      canTouch: false, mappedFrame: null, inferredFrame: false,
+    });
+  });
+  it('does not let the geometry fallback bypass host control approval', () => {
+    expect(remotePanelState({...ready, frame: null, controlEnabled: false})).toMatchObject({
+      canTouch: false, hasVideo: true, canControl: false,
+    });
+  });
+  it('prefers measured native video dimensions to the host estimate', () => {
+    expect(remotePanelState({...ready, frame: {width: 500, height: 500}})).toMatchObject({
+      canTouch: false, inferredFrame: false, mappedFrame: {width: 500, height: 500},
+    });
+  });
+  it('never guesses geometry from stale video after switching to Bluetooth', () => {
+    expect(remotePanelState({...ready, transport: 'bluetooth', frame: null})).toMatchObject({
+      canTouch: false, inferredFrame: false, mappedFrame: null,
+    });
   });
   it('pauses taps on a cropped screen without disabling safe navigation', () => {
     expect(remotePanelState({...ready, frame: {width: 500, height: 500}})).toMatchObject({canControl: true, canTouch: false});

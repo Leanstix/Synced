@@ -23,17 +23,65 @@ import { screenAndControl } from '../scripts/dual-android.mts';
 import { AndroidUi } from '../scripts/dual-android-ui.mts';
 function controlPhone() {
   const p = new AndroidUi('host', 'com.leanstix.synced');
+  let resumedChecks = 0;
   vi.spyOn(p, 'tap').mockResolvedValue(); vi.spyOn(p, 'visible').mockResolvedValue(); vi.spyOn(p, 'enableTestAccessibility').mockResolvedValue();
-  vi.spyOn(p, 'allowEntireScreen').mockResolvedValue();
-  vi.spyOn(p, 'adb').mockReturnValue('mResumedActivity: ActivityRecord{ launcher/.Launcher }'); return p;
+  vi.spyOn(p, 'allowEntireScreen').mockResolvedValue(); vi.spyOn(p,'top').mockResolvedValue();
+  vi.spyOn(p,'locate').mockResolvedValue(parseUi('<hierarchy><node bounds="[22,225][298,655]" content-desc="Live remote phone screen" enabled="true"/></hierarchy>')[0]!);
+  vi.spyOn(p,'dump').mockReturnValue(parseUi('<hierarchy><node bounds="[197,466][247,520]" content-desc="Chrome" enabled="true"/></hierarchy>'));
+  vi.spyOn(p, 'adb').mockImplementation(args => {
+    if (args.includes('pidof')) return '10123';
+    if (args.includes('size')) return 'Physical size: 320x640';
+    if (args.includes('dumpsys')) return ++resumedChecks === 1 ? 'mResumedActivity: ActivityRecord{ launcher/.Launcher }' : 'mResumedActivity: ActivityRecord{ com.android.chrome/.Main }';
+    return '';
+  }); return p;
 }
 describe('dual Android real media and control proof requirements', () => {
-  it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.visible).toHaveBeenCalledWith('Touch control allowed'); });
+  it('requires live remote video and touch-ready dimensions before claiming success', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); expect(peer.visible).toHaveBeenCalledWith('Live remote phone screen'); expect(peer.adb).toHaveBeenCalledWith(['shell','input','tap','202','556']); });
   it('uses OS entire-screen permission and a separate explicit owner control dialog', async () => { const host = controlPhone(), peer = controlPhone(); await screenAndControl(host, peer, vi.fn(), async () => {}); for (const label of ['Share my entire screen', 'Entire screen', 'Allow touch control', 'Allow control']) expect(host.tap).toHaveBeenCalledWith(label); expect(host.allowEntireScreen).toHaveBeenCalledOnce(); });
   it('does not claim video or input readiness when the RTCView is absent', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(peer.visible).mockRejectedValueOnce(new Error('video absent')); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('video absent'); expect(stage).not.toHaveBeenCalled(); expect(peer.tap).not.toHaveBeenCalledWith('Home on the other phone'); });
   it('rejects historical launcher activity when Synced is still resumed', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(host.adb).mockReturnValue('mResumedActivity: ActivityRecord{ com.leanstix.synced/.MainActivity }\n historical launcher/.Launcher'); const stage = vi.fn(); await expect(screenAndControl(host, peer, stage, async () => {})).rejects.toThrow('Remote Home'); expect(stage).not.toHaveBeenCalledWith('remote-home-opened-launcher'); });
   it('rejects missing resumed activity evidence rather than accepting a Home tap alone', async () => { const host = controlPhone(), peer = controlPhone(); vi.mocked(host.adb).mockReturnValue('Activity history includes launcher'); await expect(screenAndControl(host, peer, vi.fn(), async () => {})).rejects.toThrow('Remote Home'); });
   it('returns the owner through the launcher without force-stopping the verified session', async () => { const host = controlPhone(), peer = controlPhone(); const stage = vi.fn(); await screenAndControl(host, peer, stage, async () => {}); expect(stage).toHaveBeenCalledWith('remote-home-opened-launcher'); expect(host.adb).toHaveBeenCalledWith(['shell', 'monkey', '-p', 'com.leanstix.synced', '-c', 'android.intent.category.LAUNCHER', '1']); expect(vi.mocked(host.adb).mock.calls.some(([args]) => args.includes('force-stop'))).toBe(false); });
+});
+
+
+describe('real remote browser gesture and sustained background controls', () => {
+  const run = (host: AndroidUi, peer: AndroidUi, stage = vi.fn()) => screenAndControl(host, peer, stage, async () => {});
+  it('will not claim touch success without a host launcher target', async () => {
+    const host = controlPhone(), peer = controlPhone(); vi.mocked(host.dump).mockReturnValue([]);
+    await expect(run(host,peer)).rejects.toThrow('No accessible Chrome launcher target');
+    expect(peer.adb).not.toHaveBeenCalledWith(expect.arrayContaining(['input','tap']));
+  });
+  it('will not inject a tap if the host viewport cannot be mapped safely', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    vi.mocked(peer.locate).mockResolvedValue(parseUi('<hierarchy><node bounds="[0,0][1,1]" content-desc="Live remote phone screen"/></hierarchy>')[0]!);
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') ? 'mResumedActivity: launcher/.Launcher' : args.includes('size') ? 'bad device size' : '10123');
+    await expect(run(host,peer)).rejects.toThrow('cannot be mapped');
+  });
+  it('requires the host browser to actually become foreground after video-coordinate tap', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') ? 'mResumedActivity: launcher/.Launcher' : args.includes('size') ? 'Physical size: 320x640' : '10123');
+    await expect(run(host,peer)).rejects.toThrow('did not open Chrome');
+  });
+  it('fails if the sharing host process dies while Chrome remains open', async () => {
+    const host = controlPhone(), peer = controlPhone();
+    const previous = vi.mocked(host.adb).getMockImplementation()!;
+    vi.mocked(host.adb).mockImplementation(args => args.includes('pidof') ? '' : previous(args));
+    await expect(run(host,peer)).rejects.toThrow('killed in the background');
+  });
+  it('fails if another foreground app is replaced before the 75-second checkpoint', async () => {
+    const host = controlPhone(), peer = controlPhone(); let checks = 0;
+    const previous = vi.mocked(host.adb).getMockImplementation()!;
+    vi.mocked(host.adb).mockImplementation(args => args.includes('dumpsys') && ++checks >= 3 ? 'mResumedActivity: launcher/.Launcher' : previous(args));
+    await expect(run(host,peer)).rejects.toThrow('Other app did not remain foreground');
+  });
+  it('stages a real successful touch before background longevity can pass', async () => {
+    const host = controlPhone(), peer = controlPhone(), stage = vi.fn();
+    await run(host,peer,stage);
+    const names=stage.mock.calls.map(([name])=>name);
+    expect(names.indexOf('real-remote-touch-opened-host-browser')).toBeGreaterThan(names.indexOf('remote-home-opened-launcher'));
+    expect(names.indexOf('real-remote-touch-opened-host-browser')).toBeLessThan(names.indexOf('host-process-and-remote-screen-survived-75s-background'));
+  });
 });
 
 describe('two-phone saved trust survives process restart', () => {
